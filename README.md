@@ -13,6 +13,7 @@ pipeline/          Python: fetch Copernicus data, simulate routes, mine cases, e
 tests/             pytest tests for pipeline code
 web/prototype/     clickable prototype with illustrative (not real) data
 docs/SCHEMA.md     JSON contracts between pipeline, web and api
+docs/ARCHITECTURE.md  components, data flow, AI coach design, deployment, known limits
 ```
 
 Planned: `web/` app, `api/` (AI coach and play-test log), `docs/METHODS.md`.
