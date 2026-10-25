@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SeaSense prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: chart table. Map canvas on the left like an open chart, the case file / instrument panel on the right; a stepper across the top walks one case. */
+:root {
+  --paper: #EEF3F6;
+  --surface: #FFFFFF;
+  --ink: #0F2233;
+  --muted: #55697B;
+  --rule: #C8D4DD;
+  --sea: #D7E7F1;
+  --land: #EDE3CB;
+  --land-edge: #B9A77E;
+  --track: #A8146A;
+  --route-b: #245E9E;
+  --route-c: #1D7466;
+  --bad: #C2261C;
+  --ok: #1F6B4F;
+  --warn: #9A5B00;
+  --soft: #F6DDEA;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0A141E; --surface: #0F1E2C; --ink: #E3EBF1; --muted: #93A7B8; --rule: #22384C;
+    --sea: #102638; --land: #2B2A22; --land-edge: #6E6448;
+    --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0A141E; --surface: #0F1E2C; --ink: #E3EBF1; --muted: #93A7B8; --rule: #22384C;
+  --sea: #102638; --land: #2B2A22; --land-edge: #6E6448;
+  --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 56px; display: grid; gap: 14px; }
+h1, h2, h3 { margin: 0; line-height: 1.25; text-wrap: balance; }
+p { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--track); outline-offset: 2px; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.label { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.banner { background: var(--soft); padding: 8px 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.banner b { color: var(--track); }
+
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
+.brand span { color: var(--track); }
+.tag { color: var(--muted); font-size: 14px; font-style: italic; }
+
+.stepper { display: flex; flex-wrap: wrap; gap: 4px; }
+.stepper button {
+  border: 1px solid var(--rule); background: var(--surface); padding: 4px 10px; cursor: pointer;
+  font-size: 13px; display: flex; gap: 6px; align-items: baseline;
+}
+.stepper button b { font-family: var(--font-display); font-size: 15px; color: var(--muted); }
+.stepper button[aria-current="step"] { border-color: var(--track); background: var(--soft); }
+.stepper button[aria-current="step"] b { color: var(--track); }
+.stepper button:disabled { opacity: .45; cursor: not-allowed; }
+.intent { font-size: 13px; color: var(--muted); border-left: 3px solid var(--rule); padding-left: 10px; }
+.intent b { color: var(--ink); font-weight: 500; }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 920px) { .stage { grid-template-columns: 1fr; } }
+.mapbox { background: var(--surface); border: 1px solid var(--rule); display: grid; }
+.mapbox canvas { width: 100%; display: block; aspect-ratio: 1.47; max-width: 100%; }
+.mapfoot { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); align-items: center; }
+.mapfoot .k { display: inline-flex; gap: 6px; align-items: center; }
+.sw { width: 18px; height: 3px; display: inline-block; }
+
+.panel { background: var(--surface); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 14px; align-content: start; }
+.panel h2 { font-family: var(--font-display); font-weight: 700; font-size: 26px; }
+.panel h2 small { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); padding: 8px 16px; cursor: pointer; font-weight: 500; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+
+.cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.case { border: 1px solid var(--rule); background: var(--surface); padding: 14px; display: grid; gap: 6px; text-align: left; cursor: pointer; align-content: start; }
+.case:hover { border-color: var(--track); }
+.case[disabled] { cursor: not-allowed; opacity: .55; }
+.case .no { font-family: var(--font-display); font-weight: 700; font-size: 28px; color: var(--track); line-height: 1; }
+.case .t { font-weight: 700; }
+.dots { letter-spacing: 2px; color: var(--track); }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+
+.layers { display: grid; gap: 6px; }
+.layer { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; border: 1px solid var(--rule); padding: 7px 10px; cursor: pointer; background: var(--surface); text-align: left; }
+.layer[aria-pressed="true"] { border-color: var(--track); background: var(--soft); }
+.layer:disabled { opacity: .45; cursor: not-allowed; }
+.layer .ic { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.budget { display: flex; gap: 6px; align-items: center; }
+.budget i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--track); display: inline-block; }
+.budget i.on { background: var(--track); }
+
+.slider { display: grid; gap: 4px; }
+.slider input { width: 100%; accent-color: var(--track); }
+.slider .row { justify-content: space-between; }
+.clock { font-family: var(--font-data); font-size: 22px; font-variant-numeric: tabular-nums; }
+
+.routes { display: grid; gap: 8px; }
+.route { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--rule); padding: 10px 12px; background: var(--surface); text-align: left; cursor: pointer; }
+.route .L { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; }
+.route[aria-pressed="true"] { border-color: var(--track); background: var(--soft); }
+.route .meta { font-size: 13px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); padding: 3px 10px; cursor: pointer; background: var(--surface); font-size: 13px; }
+.chip[aria-pressed="true"] { border-color: var(--track); color: var(--track); font-weight: 500; }
+textarea { width: 100%; border: 1px solid var(--rule); background: var(--surface); padding: 8px; min-height: 60px; resize: vertical; }
+
+.gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.gauges div { background: var(--surface); padding: 8px 10px; display: grid; gap: 2px; }
+.gauges b { font-family: var(--font-data); font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.gauges .bad b { color: var(--bad); }
+@media (max-width: 480px) { .gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.tblwrap { overflow-x: auto; border: 1px solid var(--rule); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-family: var(--font-display); font-weight: 600; letter-spacing: .05em; color: var(--muted); background: var(--paper); }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td.bad { color: var(--bad); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+
+.strip { display: grid; gap: 2px; }
+.cells { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); gap: 1px; }
+.cells div { height: 30px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: #fff; position: relative; }
+.cells div.none { background: repeating-linear-gradient(45deg, var(--rule) 0 4px, transparent 4px 8px); color: var(--muted); }
+.cells div.cur::after { content: ""; position: absolute; inset: -3px; border: 2px solid var(--ink); }
+.ticks { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); font-family: var(--font-data); font-size: 10px; color: var(--muted); }
+.ticks span { text-align: center; }
+.flipnote { background: var(--soft); padding: 10px 12px; font-size: 14px; display: grid; gap: 4px; }
+
+.rank { display: grid; gap: 6px; }
+.rank .route { cursor: default; }
+.pill { display: inline-block; font-size: 12px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.ok { color: var(--ok); }
+.pill.bad { color: var(--bad); }
+
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 11em 1fr 2.5em; gap: 10px; align-items: center; font-size: 13px; }
+.bar .t { height: 10px; background: var(--paper); border: 1px solid var(--rule); }
+.bar .t i { display: block; height: 100%; background: var(--track); }
+.bar.weak span:first-child { color: var(--bad); font-weight: 500; }
+.coach { border-left: 3px solid var(--track); padding: 10px 12px; background: var(--paper); display: grid; gap: 6px; font-size: 14px; }
+.ev { display: flex; flex-wrap: wrap; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner"><b>Illustrative prototype</b><span>Coastline, routes, vessel data, thresholds and all sea-state values are made-up examples that only demonstrate the interaction. In the real product every number comes from Copernicus Marine data and every threshold cites a published seamanship source.</span></div>
+
+  <div class="top">
+    <div class="row" style="gap:14px;align-items:baseline"><div class="brand">Sea<span>Sense</span></div><span class="tag">Solve real cases at sea. Build the judgment future mariners need.</span></div>
+    <nav class="stepper" id="stepper" aria-label="Steps"></nav>
+  </div>
+  <p class="intent" id="intent"></p>
+
+  <div class="stage" id="stage">
+    <div class="mapbox" id="mapbox">
+      <canvas id="map" aria-label="Illustrative chart of the channel between Mallorca and Menorca"></canvas>
+      <div class="mapfoot" id="mapfoot"></div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- geometry (illustrative coastline, not survey data) ----------
+  const LON0 = 2.25, LON1 = 4.45, LAT0 = 39.15, LAT1 = 40.30, KX = Math.cos(39.7 * Math.PI / 180);
+  const MALLORCA = [[2.35,39.60],[2.45,39.74],[2.62,39.84],[2.80,39.90],[2.98,39.93],[3.20,39.96],[3.17,39.90],[3.10,39.86],[3.12,39.80],[3.22,39.76],[3.34,39.74],[3.47,39.72],[3.45,39.63],[3.38,39.54],[3.27,39.42],[3.16,39.33],[3.05,39.27],[2.94,39.35],[2.80,39.47],[2.68,39.55],[2.56,39.50],[2.46,39.48],[2.38,39.53]];
+  const MENORCA = [[3.82,39.93],[3.81,39.97],[3.84,40.03],[3.93,40.06],[4.05,40.07],[4.15,40.05],[4.26,39.99],[4.32,39.90],[4.30,39.85],[4.20,39.82],[4.08,39.86],[3.96,39.90],[3.88,39.92]];
+  const PORTS = { start: { name: "Alcúdia", lon: 3.14, lat: 39.84 }, end: { name: "Ciutadella", lon: 3.83, lat: 40.00 } };
+  const ROUTES = {
+    A: { name: "Direct crossing", pts: [[3.14,39.84],[3.25,39.88],[3.83,40.00]], color: "--track" },
+    B: { name: "Northern loop", pts: [[3.14,39.84],[3.55,40.18],[3.83,40.00]], color: "--route-b" },
+    C: { name: "Southern lee", pts: [[3.14,39.84],[3.48,39.78],[3.78,39.92],[3.83,40.00]], color: "--route-c" }
+  };
+  const SPEED = 6; // knots, illustrative training vessel
+  const rad = d => d * Math.PI / 180;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+  function legsOf(pts) {
+    const legs = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [lo1, la1] = pts[i], [lo2, la2] = pts[i + 1];
+      const mid = (la1 + la2) / 2;
+      const dx = (lo2 - lo1) * 60 * Math.cos(rad(mid)), dy = (la2 - la1) * 60;
+      legs.push({ a: pts[i], b: pts[i + 1], nm: Math.hypot(dx, dy), hdg: (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360 });
+    }
+    return legs;
+  }
+  for (const k in ROUTES) { ROUTES[k].legs = legsOf(ROUTES[k].pts); ROUTES[k].nm = ROUTES[k].legs.reduce((s, l) => s + l.nm, 0); }
+  const exposure = lat => clamp((lat - 39.7) / 0.4, 0.35, 1.25); // illustrative: more open water further north
+  const angDiff = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; };
+  const category = rel => rel < 60 ? "head" : rel <= 120 ? "beam" : "following";
+  const CAT_LABEL = { head: "Head seas", beam: "Beam seas", following: "Following seas", arrived: "In port" };
+
+  // ---------- cases (all numbers illustrative) ----------
+  function windSeaField(onset, peak) {
+    return {
+      hs: t => 0.7 + (peak - 0.7) * smooth((t - onset) / 3),
+      dir: 5, period: t => 4.5 + 1.5 * smooth((t - onset) / 3),
+      wind: t => 8 + 20 * smooth((t - onset + 0.5) / 2.5), windDir: 10,
+      sst: 26.1, cur: { kn: 0.3, to: 270 }
+    };
+  }
+  function swellField(start, peak) {
+    return {
+      hs: t => 0.8 + (peak - 0.8) * smooth((t - start) / 5),
+      dir: 345, period: () => 11,
+      wind: () => 6, windDir: 200,
+      sst: 21.4, cur: { kn: 0.3, to: 270 }
+    };
+  }
+  const CASES = {
+    c07: {
+      id: "c07", no: "#07", title: "Before the north wind", date: "A day in August (illustrative)",
+      goal: "Wave direction vs heading", dots: "●●○", key: "dir",
+      beamLimit: 1.5, genLimit: 2.5, arriveBy: 20.5,
+      forecast: windSeaField(12.0, 2.2), actual: windSeaField(10.5, 2.6),
+      forecastNote: "Forecast: north wind from about 12:00, waves up to about 2.2 m",
+      actualNote: "Actual: the north wind arrived around 10:30, waves up to about 2.6 m",
+      lesson: "The direct route heads roughly east-northeast, so waves from the north hit the vessel on the beam. The north wind also arrived more than an hour earlier than forecast.",
+      next: "c12"
+    },
+    c12: {
+      id: "c12", no: "#12", title: "The quiet swell", date: "A day in October (illustrative)",
+      goal: "Wind sea vs swell", dots: "●●●", key: "period",
+      beamLimit: 0.8, genLimit: 2.5, arriveBy: 20.5,
+      forecast: swellField(11.5, 1.6), actual: swellField(11.0, 1.7),
+      forecastNote: "Forecast: north-northwest swell, period about 11 s, building in the afternoon",
+      actualNote: "Actual: the swell built about half an hour earlier, up to about 1.7 m",
+      lesson: "There was almost no wind and the waves looked barely over a metre, but a swell period of about 11 s carries a lot of energy. In this illustrative rule set, the beam-sea limit for long-period swell is lower (0.8 m).",
+      next: null
+    }
+  };
+
+  // ---------- simulation ----------
+  function simulate(c, which, rk, dep) {
+    const f = c[which], route = ROUTES[rk], dt = 1 / 12, samples = [];
+    let t = dep;
+    for (const leg of route.legs) {
+      const spd = SPEED + f.cur.kn * Math.cos(rad(leg.hdg - f.cur.to));
+      let d = 0;
+      while (d < leg.nm) {
+        const fr = d / leg.nm, lon = leg.a[0] + (leg.b[0] - leg.a[0]) * fr, lat = leg.a[1] + (leg.b[1] - leg.a[1]) * fr;
+        const hs = f.hs(t) * exposure(lat), rel = angDiff(leg.hdg, f.dir), cat = category(rel);
+        const beamBad = cat === "beam" && hs > c.beamLimit, over = hs > c.genLimit;
+        samples.push({ t, lon, lat, hs, rel, cat, beamBad, over, spd, period: f.period(t) });
+        d += spd * dt; t += dt;
+      }
+    }
+    const last = route.pts[route.pts.length - 1];
+    samples.push({ t, lon: last[0], lat: last[1], hs: 0, rel: 0, cat: "arrived", beamBad: false, over: false, spd: 0, period: f.period(t), arrived: true });
+    const beamH = samples.filter(s => s.beamBad).length * dt, overH = samples.filter(s => s.over).length * dt;
+    const maxHs = Math.max(...samples.map(s => s.hs)), arrive = t, late = arrive > c.arriveBy;
+    const safe = beamH === 0 && overH === 0 && !late;
+    const score = (safe ? 0 : 100) + beamH * 10 + overH * 10 + (late ? 20 : 0) + (arrive - dep);
+    return { rk, dep, arrive, eta: arrive - dep, beamH, overH, maxHs, late, safe, score, samples };
+  }
+  function allSims(c, dep) { return ["A", "B", "C"].map(k => simulate(c, "actual", k, dep)); }
+  function bestAt(c, dep) {
+    const s = allSims(c, dep).filter(x => x.safe).sort((a, b) => a.eta - b.eta);
+    return s.length ? s[0] : null;
+  }
+  const STRIP = Array.from({ length: 21 }, (_, i) => 5 + i * 0.5);
+  function flips(c) {
+    const out = []; let prev;
+    STRIP.forEach((h, i) => {
+      const b = bestAt(c, h), k = b ? b.rk : null;
+      if (i > 0 && k !== prev) out.push({ at: h, from: prev, to: k });
+      prev = k;
+    });
+    return out;
+  }
+  function whyNot(c, rk, dep) {
+    const s = simulate(c, "actual", rk, dep);
+    if (s.beamH > 0) return `${rk} would spend about ${s.beamH.toFixed(1)} h in beam seas above ${c.beamLimit} m`;
+    if (s.overH > 0) return `${rk} would meet waves above ${c.genLimit} m`;
+    if (s.late) return `${rk} cannot reach port before ${hhmm(c.arriveBy)}`;
+    return `${rk} is slower than the new best option`;
+  }
+  const hhmm = h => { const m = Math.round(h * 60); return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+  const hrs = h => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`; };
+
+  // ---------- state ----------
+  const LAYERS = [
+    { id: "hs", name: "Wave height", unit: "m" },
+    { id: "dir", name: "Wave direction", unit: "°" },
+    { id: "period", name: "Swell period", unit: "s" },
+    { id: "cur", name: "Current", unit: "kn" },
+    { id: "wind", name: "Wind", unit: "kn" },
+    { id: "sst", name: "Sea temperature", unit: "°C" }
+  ];
+  const REASONS = ["Wave height", "Wave direction", "Swell period", "Current", "Wind", "Shortest distance", "Arrival time"];
+  const STEPS = [
+    { n: 1, name: "Cases", intent: "<b>This step shows:</b> every case is a real historical day. In the real product, a program mines Copernicus history for days when the best route flips." },
+    { n: 2, name: "Briefing", intent: "<b>This step shows:</b> the task, the vessel and the rules. The student decides which route and when to depart." },
+    { n: 3, name: "Investigate", intent: "<b>This step shows:</b> the detective part. Only 3 of 6 evidence layers can be opened, so students must decide which data matters. They see the forecast." },
+    { n: 4, name: "Decide", intent: "<b>This step shows:</b> pick a route, a departure time and the reasons. The reasons are recorded for the case report." },
+    { n: 5, name: "Replay", intent: "<b>This step shows:</b> three vessels leave at your departure time and sail through the actual sea state. Red segments exceed a limit." },
+    { n: 6, name: "Tipping point", intent: "<b>This step shows:</b> the core scene. Drag the departure time to see when the best route flips, and why." },
+    { n: 7, name: "Report", intent: "<b>This step shows:</b> the evidence you missed, your judgment profile and coach feedback, then a next case that targets your weak spot." }
+  ];
+  const S = { step: 1, maxStep: 1, caseId: null, opened: new Set(), invT: 8, choice: { rk: null, dep: 8, reasons: new Set(), note: "" }, replayT: null, playing: false, tradeDep: 8, done: new Set() };
+  const C = () => CASES[S.caseId];
+
+  // ---------- map ----------
+  const canvas = document.getElementById("map"), ctx = canvas.getContext("2d");
+  let W = 0, H = 0, view = { mode: "plain" };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const P = (lon, lat) => [(lon - LON0) * KX / ((LON1 - LON0) * KX) * W, (LAT1 - lat) / (LAT1 - LAT0) * H];
+  function resize() {
+    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.width / 1.47;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function poly(pts) { ctx.beginPath(); pts.forEach(([lo, la], i) => { const [x, y] = P(lo, la); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); }
+  function inLand(lon, lat) {
+    const test = pts => { let ins = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) ins = !ins; } return ins; };
+    return test(MALLORCA) || test(MENORCA);
+  }
+  function arrow(x, y, deg, len, color, w) {
+    const a = rad(deg), dx = Math.sin(a) * len, dy = -Math.cos(a) * len;
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
+    ctx.beginPath(); ctx.moveTo(x - dx / 2, y - dy / 2); ctx.lineTo(x + dx / 2, y + dy / 2); ctx.stroke();
+    const hx = x + dx / 2, hy = y + dy / 2, s = Math.max(4, len * 0.28);
+    ctx.beginPath(); ctx.moveTo(hx, hy);
+    ctx.lineTo(hx - Math.sin(a - 0.45) * s, hy + Math.cos(a - 0.45) * s);
+    ctx.lineTo(hx - Math.sin(a + 0.45) * s, hy + Math.cos(a + 0.45) * s);
+    ctx.closePath(); ctx.fill();
+  }
+  function hsColor(v, alphaMax) {
+    const x = clamp(v / 2.8, 0, 1);
+    const stops = [[70, 140, 200], [60, 110, 200], [130, 70, 170], [200, 40, 60]];
+    const p = x * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(p)), f = p - i;
+    const c = stops[i].map((s, k) => Math.round(s + (stops[i + 1][k] - s) * f));
+    return `rgba(${c[0]},${c[1]},${c[2]},${(0.12 + x * alphaMax).toFixed(3)})`;
+  }
+  function draw() {
+    if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = css("--sea"); ctx.fillRect(0, 0, W, H);
+    const c = S.caseId ? C() : null;
+    const field = c ? c[view.field || "forecast"] : null, t = view.t;
+    const layers = view.layers || new Set();
+    if (field && layers.has("hs")) {
+      const step = 0.04;
+      for (let lo = LON0; lo < LON1; lo += step) for (let la = LAT0; la < LAT1; la += step) {
+        const v = field.hs(t) * exposure(la + step / 2);
+        const [x1, y1] = P(lo, la + step), [x2, y2] = P(lo + step, la);
+        ctx.fillStyle = hsColor(v, 0.5); ctx.fillRect(x1, y1, x2 - x1 + 0.5, y2 - y1 + 0.5);
+      }
+    }
+    if (field && layers.has("sst")) {
+      ctx.fillStyle = "rgba(220,120,40,0.10)"; ctx.fillRect(0, 0, W, H);
+    }
+    ctx.fillStyle = css("--land"); ctx.strokeStyle = css("--land-edge"); ctx.lineWidth = 1;
+    poly(MALLORCA); ctx.fill(); ctx.stroke(); poly(MENORCA); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = css("--muted"); ctx.font = `600 ${Math.max(11, W / 60)}px ${css("--font-display")}`; ctx.textAlign = "center";
+    let [mx, my] = P(2.85, 39.62); ctx.fillText("MALLORCA", mx, my);
+    [mx, my] = P(4.08, 39.96); ctx.fillText("MENORCA", mx, my);
+    const gridPts = [];
+    for (let lo = 2.4; lo < 4.4; lo += 0.16) for (let la = 39.25; la < 40.25; la += 0.12) if (!inLand(lo, la)) gridPts.push([lo, la]);
+    const fs = Math.max(10, W / 72);
+    if (field && layers.has("dir")) gridPts.forEach(([lo, la]) => { const [x, y] = P(lo, la); arrow(x, y, field.dir + 180, 8 + field.hs(t) * exposure(la) * 7, css("--ink"), 1.4); });
+    if (field && layers.has("wind")) gridPts.filter((_, i) => i % 3 === 0).forEach(([lo, la]) => {
+      const [x, y] = P(lo + 0.05, la + 0.04); arrow(x, y, field.windDir + 180, 14, css("--warn"), 1.8);
+      ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(Math.round(field.wind(t)) + " kn", x, y + 16);
+    });
+    if (field && layers.has("cur")) gridPts.filter((_, i) => i % 2 === 1).forEach(([lo, la]) => {
+      const [x, y] = P(lo, la - 0.04); arrow(x, y, field.cur.to, 10, css("--route-c"), 1.2);
+    });
+    if (field && layers.has("period")) gridPts.filter((_, i) => i % 4 === 0).forEach(([lo, la]) => {
+      const [x, y] = P(lo + 0.03, la - 0.03);
+      ctx.fillStyle = css("--route-b"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(field.period(t).toFixed(0) + " s", x, y);
+    });
+    if (field && layers.has("sst")) gridPts.filter((_, i) => i % 5 === 2).forEach(([lo, la]) => {
+      const [x, y] = P(lo, la);
+      ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText((field.sst + (la - 39.7) * -0.6).toFixed(1) + "°C", x, y);
+    });
+    // routes
+    if (c) for (const k of ["A", "B", "C"]) {
+      const r = ROUTES[k], col = css(r.color), dim = view.focus && view.focus !== k;
+      const track = view.tracks && view.tracks[k];
+      ctx.globalAlpha = dim ? 0.35 : 1;
+      ctx.setLineDash(track ? [] : [7, 5]); ctx.lineWidth = view.focus === k ? 3.5 : 2.5; ctx.strokeStyle = col;
+      ctx.beginPath(); r.pts.forEach(([lo, la], i) => { const [x, y] = P(lo, la); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      ctx.setLineDash([]);
+      if (track) {
+        ctx.lineWidth = 6; ctx.strokeStyle = css("--bad");
+        for (let i = 1; i < track.length; i++) if (track[i - 1].beamBad || track[i - 1].over) {
+          const [x1, y1] = P(track[i - 1].lon, track[i - 1].lat), [x2, y2] = P(track[i].lon, track[i].lat);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
+      }
+      const lab = r.pts[Math.floor(r.pts.length / 2)], lp = r.pts.length === 3 ? [(r.pts[1][0] + r.pts[2][0]) / 2, (r.pts[1][1] + r.pts[2][1]) / 2] : lab;
+      const [lx, ly] = P(lp[0], lp[1] + (k === "C" ? -0.05 : 0.05));
+      ctx.fillStyle = col; ctx.font = `700 ${Math.max(14, W / 40)}px ${css("--font-display")}`; ctx.fillText(k, lx, ly);
+      ctx.globalAlpha = 1;
+    }
+    // ports
+    for (const p of [PORTS.start, PORTS.end]) {
+      const [x, y] = P(p.lon, p.lat);
+      ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.font = `500 ${Math.max(11, W / 64)}px ${css("--font-body")}`; ctx.textAlign = p === PORTS.start ? "right" : "left";
+      ctx.fillText(p.name, x + (p === PORTS.start ? -8 : 8), y + 4); ctx.textAlign = "center";
+    }
+    // ships
+    if (view.ships) for (const sh of view.ships) {
+      const [x, y] = P(sh.s.lon, sh.s.lat);
+      ctx.fillStyle = css(ROUTES[sh.k].color); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, sh.mine ? 8 : 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (sh.mine) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
+    }
+    // stamp
+    if (c && view.field) {
+      ctx.textAlign = "left"; ctx.fillStyle = css("--ink"); ctx.font = `600 ${Math.max(13, W / 52)}px ${css("--font-display")}`;
+      ctx.fillText(`${view.field === "forecast" ? "FORECAST" : "ACTUAL"} · ${hhmm(t)}`, 12, 22);
+      ctx.fillStyle = css("--muted"); ctx.font = `400 ${Math.max(10, W / 80)}px ${css("--font-body")}`;
+      ctx.fillText("Illustrative chart and data", 12, 40);
+    }
+    ctx.textAlign = "center";
+  }
+  new ResizeObserver(resize).observe(canvas);
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener && mq.addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  function setFoot(extra) {
+    const k = r => `<span class="k"><span class="sw" style="background:var(${ROUTES[r].color})"></span>${r} ${ROUTES[r].name} · <span class="mono">${ROUTES[r].nm.toFixed(1)} nm</span></span>`;
+    document.getElementById("mapfoot").innerHTML = (S.caseId ? ["A", "B", "C"].map(k).join("") : "<span>Mallorca–Menorca channel (illustrative)</span>") + (extra || "");
+  }
+
+  // ---------- render ----------
+  const panel = document.getElementById("panel");
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+  function renderStepper() {
+    document.getElementById("stepper").innerHTML = STEPS.map(s => `<button type="button" data-step="${s.n}" ${s.n === S.step ? 'aria-current="step"' : ""} ${s.n > S.maxStep ? "disabled" : ""}><b>${s.n}</b>${s.name}</button>`).join("");
+    document.getElementById("intent").innerHTML = STEPS[S.step - 1].intent;
+  }
+  function go(n) {
+    stopPlay();
+    S.step = n; S.maxStep = Math.max(S.maxStep, n);
+    renderStepper(); renderPanel();
+  }
+  document.getElementById("stepper").addEventListener("click", e => { const b = e.target.closest("button[data-step]"); if (b && !b.disabled) go(+b.dataset.step); });
+
+  function renderPanel() {
+    const f = [null, pLibrary, pBrief, pInvestigate, pDecide, pReplay, pTrade, pReport][S.step];
+    f();
+  }
+
+  function pLibrary() {
+    view = { mode: "plain" }; setFoot(); draw();
+    const card = c => `<button type="button" class="case" data-case="${c.id}">
+      <span class="no">Case ${c.no}</span><span class="t">${c.title}</span>
+      <span class="small muted">${c.date}</span>
+      <span class="small">Practises: ${c.goal}</span>
+      <span class="small"><span class="dots">${c.dots}</span> difficulty ${S.done.has(c.id) ? '· <span class="pill ok">Solved</span>' : ""}</span>
+    </button>`;
+    panel.innerHTML = `<h2>Case library<small>Every case is a real day at sea.</small></h2>
+      <div class="cases">${card(CASES.c07)}${card(CASES.c12)}
+        <button type="button" class="case" disabled><span class="no">Case #03</span><span class="t">More cases</span><span class="small muted">The real product mines these from years of historical data</span></button>
+      </div>
+      <p class="small muted">Start with #07. After the report, the coach recommends #12.</p>`;
+    panel.querySelectorAll("[data-case]").forEach(b => b.addEventListener("click", () => startCase(b.dataset.case)));
+  }
+  function startCase(id) {
+    S.caseId = id; S.opened = new Set(); S.invT = 8;
+    S.choice = { rk: null, dep: 8, reasons: new Set(), note: "" };
+    S.maxStep = 2; go(2);
+  }
+
+  function pBrief() {
+    const c = C();
+    view = { mode: "plain", field: "forecast", t: 8, layers: new Set() }; setFoot(); draw();
+    panel.innerHTML = `<h2>Case ${c.no}<small>${c.title}</small></h2>
+      <p>${c.date}. A training sailing vessel must sail from <b>Alcúdia</b> to <b>Ciutadella</b> on Menorca. The chart shows three candidate routes.</p>
+      <dl class="kv">
+        <dt>Vessel</dt><dd>Training sailing vessel under sail and engine, about <span class="mono">${SPEED} kn</span></dd>
+        <dt>Beam-sea limit</dt><dd><span class="mono">${c.beamLimit} m</span> (illustrative)</dd>
+        <dt>Any heading</dt><dd>No sailing in waves above <span class="mono">${c.genLimit} m</span> (illustrative)</dd>
+        <dt>Arrival</dt><dd>In port before <span class="mono">${hhmm(c.arriveBy)}</span> (illustrative)</dd>
+      </dl>
+      <div class="coach"><span class="label">Your task</span><p>Which route, and what time do you depart? Give your reasons.</p></div>
+      <div class="row"><button type="button" class="btn" id="toInv">Start investigating</button></div>`;
+    document.getElementById("toInv").addEventListener("click", () => go(3));
+  }
+
+  function pInvestigate() {
+    const c = C();
+    const left = 3 - S.opened.size;
+    view = { mode: "inv", field: "forecast", t: S.invT, layers: S.opened }; setFoot(); draw();
+    panel.innerHTML = `<h2>Investigate<small>Open up to 3 pieces of evidence</small></h2>
+      <div class="budget" aria-label="${left} left">${[0, 1, 2].map(i => `<i class="${i < left ? "on" : ""}"></i>`).join("")}<span class="small muted">${left} left</span></div>
+      <div class="layers">${LAYERS.map(L => { const on = S.opened.has(L.id); return `<button type="button" class="layer" data-layer="${L.id}" aria-pressed="${on}" ${!on && left === 0 ? "disabled" : ""}><span>${on ? "◉" : "○"}</span><span>${L.name}</span><span class="ic">${L.unit}</span></button>`; }).join("")}</div>
+      <div class="slider"><div class="row"><span class="label">Forecast time</span><span class="clock" id="invClock">${hhmm(S.invT)}</span></div>
+        <input type="range" id="invT" min="5" max="20" step="0.25" value="${S.invT}" aria-label="Forecast time"></div>
+      <p class="small muted">${c.forecastNote}. Drag the time to see how the sea changes.</p>
+      <div class="row"><button type="button" class="btn" id="toDecide" ${S.opened.size ? "" : "disabled"}>Done investigating, decide</button></div>`;
+    panel.querySelectorAll("[data-layer]").forEach(b => b.addEventListener("click", () => {
+      const id = b.dataset.layer;
+      if (S.opened.has(id)) return; // opening is final: budget is spent
+      if (S.opened.size >= 3) return;
+      S.opened.add(id); pInvestigate();
+    }));
+    const r = document.getElementById("invT");
+    r.addEventListener("input", () => { S.invT = +r.value; document.getElementById("invClock").textContent = hhmm(S.invT); view.t = S.invT; draw(); });
+    document.getElementById("toDecide").addEventListener("click", () => go(4));
+  }
+
+  function pDecide() {
+    const ch = S.choice;
+    view = { mode: "dec", field: "forecast", t: ch.dep, layers: S.opened, focus: ch.rk }; setFoot(); draw();
+    const shortest = ["A", "B", "C"].sort((a, b) => ROUTES[a].nm - ROUTES[b].nm)[0];
+    panel.innerHTML = `<h2>Decide<small>Which route? When?</small></h2>
+      <div class="routes">${["A", "B", "C"].map(k => `<button type="button" class="route" data-rk="${k}" aria-pressed="${ch.rk === k}">
+        <span class="L" style="color:var(${ROUTES[k].color})">${k}</span>
+        <span><b>${ROUTES[k].name}</b><br><span class="meta mono">${ROUTES[k].nm.toFixed(1)} nm · about ${hrs(ROUTES[k].nm / SPEED)}</span></span>
+        <span>${k === shortest ? '<span class="pill">Shortest</span>' : ""}</span></button>`).join("")}</div>
+      <div class="slider"><div class="row"><span class="label">Departure</span><span class="clock" id="depClock">${hhmm(ch.dep)}</span></div>
+        <input type="range" id="dep" min="5" max="15" step="0.25" value="${ch.dep}" aria-label="Departure time"></div>
+      <div><span class="label">Your reasons (pick any)</span><div class="chips">${REASONS.map(r => `<button type="button" class="chip" data-reason="${r}" aria-pressed="${ch.reasons.has(r)}">${r}</button>`).join("")}</div></div>
+      <label class="small" for="note">Anything else (optional)</label>
+      <textarea id="note" placeholder="e.g. Waves were low, so I took the shortest route">${esc(ch.note)}</textarea>
+      <div class="row"><button type="button" class="btn" id="submit" ${ch.rk ? "" : "disabled"}>Submit decision</button><span class="small muted">Then replay the actual sea state</span></div>`;
+    panel.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { ch.rk = b.dataset.rk; pDecide(); }));
+    const r = document.getElementById("dep");
+    r.addEventListener("input", () => { ch.dep = +r.value; document.getElementById("depClock").textContent = hhmm(ch.dep); view.t = ch.dep; draw(); });
+    panel.querySelectorAll("[data-reason]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.reason; ch.reasons.has(v) ? ch.reasons.delete(v) : ch.reasons.add(v); b.setAttribute("aria-pressed", ch.reasons.has(v)); }));
+    document.getElementById("note").addEventListener("input", e => { ch.note = e.target.value; });
+    document.getElementById("submit").addEventListener("click", () => { S.replayT = ch.dep; S.tradeDep = ch.dep; go(5); startPlay(); });
+  }
+
+  // replay
+  let raf = 0, lastTs = 0;
+  function sims() { return allSims(C(), S.choice.dep); }
+  function sampleAt(sim, t) {
+    const sm = sim.samples; if (t <= sm[0].t) return sm[0];
+    for (let i = 1; i < sm.length; i++) if (sm[i].t >= t) return sm[i - 1];
+    return sm[sm.length - 1];
+  }
+  function pReplay() {
+    const c = C(), ss = sims();
+    const tEnd = Math.max(...ss.map(s => s.arrive));
+    if (S.replayT == null) S.replayT = S.choice.dep;
+    panel.innerHTML = `<h2>Replay<small>Departing ${hhmm(S.choice.dep)}, actual sea state</small></h2>
+      <div class="gauges" id="gauges"></div>
+      <div class="slider"><div class="row"><span class="label">Time</span><span class="clock" id="rpClock"></span></div>
+        <input type="range" id="rpT" min="${S.choice.dep}" max="${tEnd.toFixed(3)}" step="0.05" value="${S.replayT}" aria-label="Replay time"></div>
+      <div class="row"><button type="button" class="btn ghost" id="play">${S.playing ? "Pause" : "Play"}</button>
+        <span class="small muted">${c.forecastNote}. <b>${c.actualNote}</b></span></div>
+      <div id="rpStatus" class="small"></div>
+      <div class="row"><button type="button" class="btn" id="toTrade">See trade-offs and the tipping point</button></div>`;
+    document.getElementById("rpT").addEventListener("input", e => { stopPlay(); S.replayT = +e.target.value; updReplay(); });
+    document.getElementById("play").addEventListener("click", () => { S.playing ? stopPlay() : startPlay(); document.getElementById("play").textContent = S.playing ? "Pause" : "Play"; });
+    document.getElementById("toTrade").addEventListener("click", () => go(6));
+    updReplay();
+  }
+  function updReplay() {
+    if (S.step !== 5) return;
+    const ss = sims(), mine = ss.find(s => s.rk === S.choice.rk);
+    const t = S.replayT, cur = sampleAt(mine, t);
+    const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples.filter(x => x.t <= t + 1e-6); });
+    view = { mode: "rp", field: "actual", t, layers: new Set(["hs"]), tracks, focus: S.choice.rk, ships: ss.map(s => ({ k: s.rk, s: sampleAt(s, t), mine: s.rk === S.choice.rk })) };
+    setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>Segment over a limit</span>`); draw();
+    const g = document.getElementById("gauges"); if (!g) return;
+    const bad = cur.beamBad || cur.over;
+    g.innerHTML = `<div class="${cur.over ? "bad" : ""}"><span class="label">Wave height</span><b>${cur.arrived ? "—" : cur.hs.toFixed(1) + " m"}</b></div>
+      <div class="${cur.beamBad ? "bad" : ""}"><span class="label">Encounter</span><b>${CAT_LABEL[cur.cat]}${cur.beamBad ? " ⚠" : ""}</b></div>
+      <div><span class="label">Period</span><b>${cur.period.toFixed(0)} s</b></div>
+      <div><span class="label">Speed</span><b>${cur.arrived ? "—" : cur.spd.toFixed(1) + " kn"}</b></div>`;
+    document.getElementById("rpClock").textContent = hhmm(t);
+    const st = document.getElementById("rpStatus");
+    const arrivedAll = ss.every(s => t >= s.arrive - 1e-6);
+    st.innerHTML = arrivedAll
+      ? `Your route ${S.choice.rk}: ${mine.safe ? '<span class="pill ok">Within limits all the way</span>' : '<span class="pill bad">Dangerous segments</span>'} about <span class="mono">${mine.beamH.toFixed(1)}</span> h in beam seas over the limit, in port at ${hhmm(mine.arrive)}${mine.late ? " (after the arrival deadline)" : ""}.`
+      : (bad ? `<span class="pill bad">Your vessel is in a dangerous segment</span>` : "");
+  }
+  function frame(ts) {
+    if (!S.playing) return;
+    const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
+    const ss = sims(), tEnd = Math.max(...ss.map(s => s.arrive));
+    S.replayT = Math.min(tEnd, S.replayT + dt * 0.9);
+    const r = document.getElementById("rpT"); if (r) r.value = S.replayT;
+    updReplay();
+    if (S.replayT >= tEnd) { stopPlay(); const b = document.getElementById("play"); if (b) b.textContent = "Play"; return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function startPlay() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { const ss = sims(); S.replayT = Math.max(...ss.map(s => s.arrive)); updReplay(); return; }
+    const ss = sims(), tEnd = Math.max(...ss.map(s => s.arrive));
+    if (S.replayT >= tEnd - 0.01) S.replayT = S.choice.dep;
+    S.playing = true; lastTs = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+  }
+  function stopPlay() { S.playing = false; cancelAnimationFrame(raf); }
+
+  // trade-off + tipping point
+  function pTrade() {
+    panel.innerHTML = `<h2>Tipping point<small>Drag the departure time</small></h2>
+      <div class="slider"><div class="row"><span class="label">Departure</span><span class="clock" id="tdClock"></span></div>
+        <input type="range" id="td" min="5" max="15" step="0.25" value="${S.tradeDep}" aria-label="Departure time"></div>
+      <div class="strip"><span class="label">Decision map · best route for each departure time (illustrative data)</span>
+        <div class="cells" id="cells"></div>
+        <div class="ticks">${STRIP.map((h, i) => `<span>${i % 2 === 0 ? String(h).padStart(2, "0") : ""}</span>`).join("")}</div></div>
+      <div class="flipnote" id="flipnote"></div>
+      <div class="rank" id="rank"></div>
+      <div class="tblwrap"><table><thead><tr><th>Measure</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody id="tb"></tbody></table></div>
+      <div class="row"><button type="button" class="btn" id="toReport">Close the case</button></div>`;
+    document.getElementById("td").addEventListener("input", e => { S.tradeDep = +e.target.value; updTrade(); });
+    document.getElementById("toReport").addEventListener("click", () => go(7));
+    updTrade();
+  }
+  function updTrade() {
+    const c = C(), dep = S.tradeDep, ss = allSims(c, dep), best = bestAt(c, dep), fl = flips(c);
+    document.getElementById("tdClock").textContent = hhmm(dep);
+    const ci = Math.round((clamp(dep, 5, 15) - 5) / 0.5);
+    document.getElementById("cells").innerHTML = STRIP.map((h, i) => {
+      const b = bestAt(c, h);
+      return b ? `<div style="background:var(${ROUTES[b.rk].color})" class="${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: ${b.rk}">${b.rk}</div>` : `<div class="none ${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: no safe option">✕</div>`;
+    }).join("");
+    const notes = fl.map(f => f.to
+      ? `<span>Around <b class="mono">${hhmm(f.at)}</b> the best route changes from <b>${f.from || "none"}</b> to <b>${f.to}</b>. Why: ${f.from ? whyNot(c, f.from, f.at) : ""}.</span>`
+      : `<span>From <b class="mono">${hhmm(f.at)}</b>: <b>no safe option</b>. The right call is not to sail today. Why: ${whyNot(c, f.from, f.at)}.</span>`);
+    document.getElementById("flipnote").innerHTML = `<span class="label">Tipping points</span>${notes.join("") || "<span>The best option stays the same all day.</span>"}`;
+    const order = ss.slice().sort((a, b) => a.score - b.score);
+    document.getElementById("rank").innerHTML = order.map(s => `<div class="route" ${s.rk === S.choice.rk ? 'aria-pressed="true"' : ""}>
+      <span class="L" style="color:var(${ROUTES[s.rk].color})">${s.rk}</span>
+      <span><b>${ROUTES[s.rk].name}</b>${s.rk === S.choice.rk ? ' <span class="small muted">(your choice)</span>' : ""}<br><span class="meta mono">${hhmm(dep)} → ${hhmm(s.arrive)}</span></span>
+      <span>${s.safe ? (best && best.rk === s.rk ? '<span class="pill ok">Best</span>' : '<span class="pill ok">Safe</span>') : '<span class="pill bad">At risk</span>'}</span></div>`).join("");
+    const by = k => ss.find(s => s.rk === k);
+    const row = (name, fn, badFn) => `<tr><td>${name}</td>${["A", "B", "C"].map(k => { const s = by(k); return `<td class="${badFn && badFn(s) ? "bad" : ""}">${fn(s)}</td>`; }).join("")}</tr>`;
+    document.getElementById("tb").innerHTML =
+      row("Distance", s => ROUTES[s.rk].nm.toFixed(1) + " nm") +
+      row("Passage time", s => hrs(s.eta)) +
+      row("Arrival", s => hhmm(s.arrive), s => s.late) +
+      row("Max wave height", s => s.maxHs.toFixed(1) + " m", s => s.overH > 0) +
+      row("Beam seas over limit", s => s.beamH.toFixed(1) + " h", s => s.beamH > 0);
+    const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples; });
+    view = { mode: "td", field: "actual", t: dep + 3, layers: new Set(), tracks, focus: best ? best.rk : null };
+    setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>Segment over a limit</span>`); draw();
+  }
+
+  // report
+  function pReport() {
+    const c = C(), ch = S.choice, mine = simulate(c, "actual", ch.rk, ch.dep), best = bestAt(c, ch.dep), fl = flips(c);
+    S.done.add(c.id);
+    const keyL = LAYERS.find(L => L.id === c.key), missedKey = !S.opened.has(c.key);
+    const prof = [
+      { name: "Wind sea vs swell", v: S.opened.has("period") ? 80 : 30 },
+      { name: "Wave direction vs heading", v: (S.opened.has("dir") ? 45 : 10) + (mine.beamH === 0 ? 40 : 0) },
+      { name: "Current and passage time", v: S.opened.has("cur") ? 75 : 35 },
+      { name: "Departure window", v: mine.safe ? 80 : 30 }
+    ];
+    const weak = prof.find(p => p.name === c.goal);
+    const firstFlip = fl.find(f => f.from === (bestAt(c, 5) || {}).rk);
+    const reasons = [...ch.reasons];
+    let coach = `<p>Your reasons: ${reasons.length ? reasons.join(", ") : "none selected"}${ch.note ? `. You also wrote: “${esc(ch.note)}”` : ""}.</p>`;
+    coach += mine.safe
+      ? `<p>Departing <span class="mono">${hhmm(ch.dep)}</span> on route ${ch.rk} stays within every limit and reaches port at <span class="mono">${hhmm(mine.arrive)}</span>. Good call.</p>`
+      : `<p>Departing <span class="mono">${hhmm(ch.dep)}</span> on route ${ch.rk}, the vessel meets waves up to <span class="mono">${mine.maxHs.toFixed(1)} m</span> and spends about <span class="mono">${mine.beamH.toFixed(1)}</span> h in beam seas over the limit${mine.late ? ", and misses the arrival deadline" : ""}.</p>`;
+    coach += missedKey
+      ? `<p>The key evidence in this case was ${keyL.name.toLowerCase()}, and you did not open it. ${c.lesson}</p>`
+      : `<p>You opened the key evidence, ${keyL.name.toLowerCase()}. ${c.lesson}</p>`;
+    if (best && best.rk !== ch.rk) coach += `<p>Departing at the same time, a better choice was <b>${best.rk} ${ROUTES[best.rk].name}</b>, in port at <span class="mono">${hhmm(best.arrive)}</span>.</p>`;
+    if (!best) coach += `<p>At this departure time all three routes carry risk. A better decision was to change the time or not sail today.</p>`;
+    if (firstFlip) coach += `<p>Before <span class="mono">${hhmm(firstFlip.at)}</span>, ${firstFlip.from} was still the best option. After that, the decision needed a second look.</p>`;
+    const next = c.next && CASES[c.next];
+    panel.innerHTML = `<h2>Case report<small>Case ${c.no}</small></h2>
+      <p>Your decision: <b>${ch.rk} ${ROUTES[ch.rk].name}</b>, departing <span class="mono">${hhmm(ch.dep)}</span> ${mine.safe ? '<span class="pill ok">Safe</span>' : '<span class="pill bad">At risk</span>'}</p>
+      <div><span class="label">Evidence you opened</span><div class="ev">${LAYERS.filter(L => S.opened.has(L.id)).map(L => `<span class="pill ${L.id === c.key ? "ok" : ""}">${L.name}${L.id === c.key ? " ✓ key" : ""}</span>`).join("") || '<span class="small muted">None</span>'}${missedKey ? `<span class="pill bad">${keyL.name} ✕ key evidence not opened</span>` : ""}</div></div>
+      <div><span class="label">Judgment profile (illustrative scores)</span><div class="bars">${prof.map(p => `<div class="bar ${p === weak && p.v < 60 ? "weak" : ""}"><span>${p.name}</span><span class="t"><i style="width:${clamp(p.v, 0, 100)}%"></i></span><span class="mono">${clamp(p.v, 0, 100)}</span></div>`).join("")}</div></div>
+      <div class="coach"><span class="label">Coach feedback (template text in this prototype; in the product, code computes the facts and AI only phrases them)</span>${coach}</div>
+      <div class="row">${next ? `<button type="button" class="btn" id="next">Next: Case ${next.no} ${next.title} (practises ${next.goal.toLowerCase()})</button>` : ""}
+        <button type="button" class="btn ghost" id="lib">Back to the case library</button></div>`;
+    if (next) document.getElementById("next").addEventListener("click", () => startCase(next.id));
+    document.getElementById("lib").addEventListener("click", () => { S.caseId = null; S.maxStep = 1; go(1); });
+    view = { mode: "rep", field: "actual", t: ch.dep + 3, layers: new Set(), tracks: { [ch.rk]: mine.samples }, focus: ch.rk }; setFoot(); draw();
+  }
+
+  renderStepper(); renderPanel(); resize();
+})();
+</script>
+</body>
+</html>

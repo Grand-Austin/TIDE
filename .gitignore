@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# SeaSense
+data/raw/
+*.nc
+*.zarr/
+node_modules/
+.vercel/
+.DS_Store
