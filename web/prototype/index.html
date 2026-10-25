@@ -1,0 +1,713 @@
+<title>SeaSense 原型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: chart table — map canvas on the left like an open chart, the case file / instrument panel on the right; a stepper across the top walks one case. */
+:root {
+  --paper: #EEF3F6;
+  --surface: #FFFFFF;
+  --ink: #0F2233;
+  --muted: #55697B;
+  --rule: #C8D4DD;
+  --sea: #D7E7F1;
+  --land: #EDE3CB;
+  --land-edge: #B9A77E;
+  --track: #A8146A;
+  --route-b: #245E9E;
+  --route-c: #1D7466;
+  --bad: #C2261C;
+  --ok: #1F6B4F;
+  --warn: #9A5B00;
+  --soft: #F6DDEA;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Noto Sans SC", sans-serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0A141E; --surface: #0F1E2C; --ink: #E3EBF1; --muted: #93A7B8; --rule: #22384C;
+    --sea: #102638; --land: #2B2A22; --land-edge: #6E6448;
+    --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0A141E; --surface: #0F1E2C; --ink: #E3EBF1; --muted: #93A7B8; --rule: #22384C;
+  --sea: #102638; --land: #2B2A22; --land-edge: #6E6448;
+  --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.65;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 56px; display: grid; gap: 14px; }
+h1, h2, h3 { margin: 0; line-height: 1.25; text-wrap: balance; }
+p { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--track); outline-offset: 2px; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.label { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.banner { background: var(--soft); padding: 8px 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.banner b { color: var(--track); }
+
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
+.brand span { color: var(--track); }
+.tag { color: var(--muted); font-size: 14px; font-style: italic; }
+
+.stepper { display: flex; flex-wrap: wrap; gap: 4px; }
+.stepper button {
+  border: 1px solid var(--rule); background: var(--surface); padding: 4px 10px; cursor: pointer;
+  font-size: 13px; display: flex; gap: 6px; align-items: baseline;
+}
+.stepper button b { font-family: var(--font-display); font-size: 15px; color: var(--muted); }
+.stepper button[aria-current="step"] { border-color: var(--track); background: var(--soft); }
+.stepper button[aria-current="step"] b { color: var(--track); }
+.stepper button:disabled { opacity: .45; cursor: not-allowed; }
+.intent { font-size: 13px; color: var(--muted); border-left: 3px solid var(--rule); padding-left: 10px; }
+.intent b { color: var(--ink); font-weight: 500; }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 920px) { .stage { grid-template-columns: 1fr; } }
+.mapbox { background: var(--surface); border: 1px solid var(--rule); display: grid; }
+.mapbox canvas { width: 100%; display: block; aspect-ratio: 1.47; max-width: 100%; }
+.mapfoot { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); align-items: center; }
+.mapfoot .k { display: inline-flex; gap: 6px; align-items: center; }
+.sw { width: 18px; height: 3px; display: inline-block; }
+
+.panel { background: var(--surface); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 14px; align-content: start; }
+.panel h2 { font-family: var(--font-display); font-weight: 700; font-size: 26px; }
+.panel h2 small { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); padding: 8px 16px; cursor: pointer; font-weight: 500; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+
+.cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.case { border: 1px solid var(--rule); background: var(--surface); padding: 14px; display: grid; gap: 6px; text-align: left; cursor: pointer; align-content: start; }
+.case:hover { border-color: var(--track); }
+.case[disabled] { cursor: not-allowed; opacity: .55; }
+.case .no { font-family: var(--font-display); font-weight: 700; font-size: 28px; color: var(--track); line-height: 1; }
+.case .t { font-weight: 700; }
+.dots { letter-spacing: 2px; color: var(--track); }
+
+.brief { display: grid; gap: 10px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+
+.layers { display: grid; gap: 6px; }
+.layer { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; border: 1px solid var(--rule); padding: 7px 10px; cursor: pointer; background: var(--surface); text-align: left; }
+.layer[aria-pressed="true"] { border-color: var(--track); background: var(--soft); }
+.layer:disabled { opacity: .45; cursor: not-allowed; }
+.layer .ic { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.budget { display: flex; gap: 6px; align-items: center; }
+.budget i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--track); display: inline-block; }
+.budget i.on { background: var(--track); }
+
+.slider { display: grid; gap: 4px; }
+.slider input { width: 100%; accent-color: var(--track); }
+.slider .row { justify-content: space-between; }
+.clock { font-family: var(--font-data); font-size: 22px; font-variant-numeric: tabular-nums; }
+
+.routes { display: grid; gap: 8px; }
+.route { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--rule); padding: 10px 12px; background: var(--surface); text-align: left; cursor: pointer; }
+.route .L { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; }
+.route[aria-pressed="true"] { border-color: var(--track); background: var(--soft); }
+.route .meta { font-size: 13px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); padding: 3px 10px; cursor: pointer; background: var(--surface); font-size: 13px; }
+.chip[aria-pressed="true"] { border-color: var(--track); color: var(--track); font-weight: 500; }
+textarea { width: 100%; border: 1px solid var(--rule); background: var(--surface); padding: 8px; min-height: 60px; resize: vertical; }
+
+.gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.gauges div { background: var(--surface); padding: 8px 10px; display: grid; gap: 2px; }
+.gauges b { font-family: var(--font-data); font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.gauges .bad b { color: var(--bad); }
+@media (max-width: 480px) { .gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.tblwrap { overflow-x: auto; border: 1px solid var(--rule); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-family: var(--font-display); font-weight: 600; letter-spacing: .05em; color: var(--muted); background: var(--paper); }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td.bad { color: var(--bad); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+
+.strip { display: grid; gap: 2px; }
+.cells { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); gap: 1px; }
+.cells div { height: 30px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: #fff; position: relative; }
+.cells div.none { background: repeating-linear-gradient(45deg, var(--rule) 0 4px, transparent 4px 8px); color: var(--muted); }
+.cells div.cur::after { content: ""; position: absolute; inset: -3px; border: 2px solid var(--ink); }
+.ticks { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); font-family: var(--font-data); font-size: 10px; color: var(--muted); }
+.ticks span { text-align: center; }
+.flipnote { background: var(--soft); padding: 10px 12px; font-size: 14px; display: grid; gap: 4px; }
+
+.rank { display: grid; gap: 6px; }
+.rank .route { cursor: default; transition: transform .25s ease; }
+.pill { display: inline-block; font-size: 12px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.ok { color: var(--ok); }
+.pill.bad { color: var(--bad); }
+.pill.warn { color: var(--warn); }
+
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 7.5em 1fr 2.5em; gap: 10px; align-items: center; font-size: 13px; }
+.bar .t { height: 10px; background: var(--paper); border: 1px solid var(--rule); }
+.bar .t i { display: block; height: 100%; background: var(--track); }
+.bar.weak span:first-child { color: var(--bad); font-weight: 500; }
+.coach { border-left: 3px solid var(--track); padding: 10px 12px; background: var(--paper); display: grid; gap: 6px; font-size: 14px; }
+.ev { display: flex; flex-wrap: wrap; gap: 6px; }
+
+@media (prefers-reduced-motion: reduce) { .rank .route { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="banner"><b>示意原型</b><span>海岸线、航线、船舶参数、阈值和全部海况数据都是虚构的示例，只用来演示交互流程。正式版的每个数字都来自 Copernicus Marine 数据，阈值引用公开的航海规范。</span></div>
+
+  <div class="top">
+    <div class="row" style="gap:14px;align-items:baseline"><div class="brand">Sea<span>Sense</span></div><span class="tag">Solve real cases at sea. Build the judgment future mariners need.</span></div>
+    <nav class="stepper" id="stepper" aria-label="步骤"></nav>
+  </div>
+  <p class="intent" id="intent"></p>
+
+  <div class="stage" id="stage">
+    <div class="mapbox" id="mapbox">
+      <canvas id="map" aria-label="马略卡岛和梅诺卡岛之间海峡的示意海图"></canvas>
+      <div class="mapfoot" id="mapfoot"></div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- geometry (illustrative coastline, not survey data) ----------
+  const LON0 = 2.25, LON1 = 4.45, LAT0 = 39.15, LAT1 = 40.30, KX = Math.cos(39.7 * Math.PI / 180);
+  const MALLORCA = [[2.35,39.60],[2.45,39.74],[2.62,39.84],[2.80,39.90],[2.98,39.93],[3.20,39.96],[3.17,39.90],[3.10,39.86],[3.12,39.80],[3.22,39.76],[3.34,39.74],[3.47,39.72],[3.45,39.63],[3.38,39.54],[3.27,39.42],[3.16,39.33],[3.05,39.27],[2.94,39.35],[2.80,39.47],[2.68,39.55],[2.56,39.50],[2.46,39.48],[2.38,39.53]];
+  const MENORCA = [[3.82,39.93],[3.81,39.97],[3.84,40.03],[3.93,40.06],[4.05,40.07],[4.15,40.05],[4.26,39.99],[4.32,39.90],[4.30,39.85],[4.20,39.82],[4.08,39.86],[3.96,39.90],[3.88,39.92]];
+  const PORTS = { start: { name: "阿尔库迪亚", lon: 3.14, lat: 39.84 }, end: { name: "休达德亚", lon: 3.83, lat: 40.00 } };
+  const ROUTES = {
+    A: { name: "直线横渡", pts: [[3.14,39.84],[3.25,39.88],[3.83,40.00]], color: "--track" },
+    B: { name: "北侧绕行", pts: [[3.14,39.84],[3.55,40.18],[3.83,40.00]], color: "--route-b" },
+    C: { name: "南侧借遮挡", pts: [[3.14,39.84],[3.48,39.78],[3.78,39.92],[3.83,40.00]], color: "--route-c" }
+  };
+  const SPEED = 6; // knots, illustrative training vessel
+  const rad = d => d * Math.PI / 180;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+  function legsOf(pts) {
+    const legs = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [lo1, la1] = pts[i], [lo2, la2] = pts[i + 1];
+      const mid = (la1 + la2) / 2;
+      const dx = (lo2 - lo1) * 60 * Math.cos(rad(mid)), dy = (la2 - la1) * 60;
+      legs.push({ a: pts[i], b: pts[i + 1], nm: Math.hypot(dx, dy), hdg: (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360 });
+    }
+    return legs;
+  }
+  for (const k in ROUTES) { ROUTES[k].legs = legsOf(ROUTES[k].pts); ROUTES[k].nm = ROUTES[k].legs.reduce((s, l) => s + l.nm, 0); }
+  const exposure = lat => clamp((lat - 39.7) / 0.4, 0.35, 1.25); // illustrative: more open water further north
+  const angDiff = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; };
+  const category = rel => rel < 60 ? "迎浪" : rel <= 120 ? "横浪" : "顺浪";
+
+  // ---------- cases (all numbers illustrative) ----------
+  function windSeaField(onset, peak) {
+    return {
+      hs: t => 0.7 + (peak - 0.7) * smooth((t - onset) / 3),
+      dir: 5, period: t => 4.5 + 1.5 * smooth((t - onset) / 3),
+      wind: t => 8 + 20 * smooth((t - onset + 0.5) / 2.5), windDir: 10,
+      sst: 26.1, cur: { kn: 0.3, to: 270 }
+    };
+  }
+  function swellField(start, peak) {
+    return {
+      hs: t => 0.8 + (peak - 0.8) * smooth((t - start) / 5),
+      dir: 345, period: () => 11,
+      wind: () => 6, windDir: 200,
+      sst: 21.4, cur: { kn: 0.3, to: 270 }
+    };
+  }
+  const CASES = {
+    c07: {
+      id: "c07", no: "#07", title: "北风来临前", date: "某年 8 月某日（示意）",
+      goal: "浪向与航向", dots: "●●○", key: "dir",
+      beamLimit: 1.5, genLimit: 2.5, arriveBy: 20.5,
+      forecast: windSeaField(12.0, 2.2), actual: windSeaField(10.5, 2.6),
+      forecastNote: "预报：北风约 12:00 起，浪高最高约 2.2 m",
+      actualNote: "实际：北风约 10:30 就到了，浪高最高约 2.6 m",
+      lesson: "直线航线大致朝东北偏东走，北面来的浪正好打在船侧，就是横浪。而且这天北风比预报早到了一个多小时。",
+      next: "c12"
+    },
+    c12: {
+      id: "c12", no: "#12", title: "安静的涌浪", date: "某年 10 月某日（示意）",
+      goal: "风浪与涌浪", dots: "●●●", key: "period",
+      beamLimit: 0.8, genLimit: 2.5, arriveBy: 20.5,
+      forecast: swellField(11.5, 1.6), actual: swellField(11.0, 1.7),
+      forecastNote: "预报：西北偏北涌浪，周期约 11 s，下午增强",
+      actualNote: "实际：涌浪提前约半小时增强，最高约 1.7 m",
+      lesson: "这天几乎没风，浪高看起来只有 1 米多，但涌浪周期约 11 秒，能量大。示意规则里，长周期横浪的阈值更低（0.8 m）。",
+      next: null
+    }
+  };
+
+  // ---------- simulation ----------
+  function simulate(c, which, rk, dep) {
+    const f = c[which], route = ROUTES[rk], dt = 1 / 12, samples = [];
+    let t = dep;
+    for (const leg of route.legs) {
+      const spd = SPEED + f.cur.kn * Math.cos(rad(leg.hdg - f.cur.to));
+      let d = 0;
+      while (d < leg.nm) {
+        const fr = d / leg.nm, lon = leg.a[0] + (leg.b[0] - leg.a[0]) * fr, lat = leg.a[1] + (leg.b[1] - leg.a[1]) * fr;
+        const hs = f.hs(t) * exposure(lat), rel = angDiff(leg.hdg, f.dir), cat = category(rel);
+        const beamBad = cat === "横浪" && hs > c.beamLimit, over = hs > c.genLimit;
+        samples.push({ t, lon, lat, hs, rel, cat, beamBad, over, spd, period: f.period(t) });
+        d += spd * dt; t += dt;
+      }
+    }
+    const last = route.pts[route.pts.length - 1];
+    samples.push({ t, lon: last[0], lat: last[1], hs: 0, rel: 0, cat: "到港", beamBad: false, over: false, spd: 0, period: f.period(t), arrived: true });
+    const beamH = samples.filter(s => s.beamBad).length * dt, overH = samples.filter(s => s.over).length * dt;
+    const maxHs = Math.max(...samples.map(s => s.hs)), arrive = t, late = arrive > c.arriveBy;
+    const safe = beamH === 0 && overH === 0 && !late;
+    const score = (safe ? 0 : 100) + beamH * 10 + overH * 10 + (late ? 20 : 0) + (arrive - dep);
+    return { rk, dep, arrive, eta: arrive - dep, beamH, overH, maxHs, late, safe, score, samples };
+  }
+  function allSims(c, dep) { return ["A", "B", "C"].map(k => simulate(c, "actual", k, dep)); }
+  function bestAt(c, dep) {
+    const s = allSims(c, dep).filter(x => x.safe).sort((a, b) => a.eta - b.eta);
+    return s.length ? s[0] : null;
+  }
+  const STRIP = Array.from({ length: 21 }, (_, i) => 5 + i * 0.5);
+  function flips(c) {
+    const out = []; let prev;
+    STRIP.forEach((h, i) => {
+      const b = bestAt(c, h), k = b ? b.rk : null;
+      if (i > 0 && k !== prev) out.push({ at: h, from: prev, to: k });
+      prev = k;
+    });
+    return out;
+  }
+  function whyNot(c, rk, dep) {
+    const s = simulate(c, "actual", rk, dep);
+    if (s.beamH > 0) return `${rk} 会有约 ${s.beamH.toFixed(1)} 小时横浪超过 ${c.beamLimit} m`;
+    if (s.overH > 0) return `${rk} 沿途浪高会超过 ${c.genLimit} m`;
+    if (s.late) return `${rk} 无法在 ${hhmm(c.arriveBy)} 前到港`;
+    return `${rk} 比新的最优方案更慢`;
+  }
+  const hhmm = h => { const m = Math.round(h * 60); return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+  const hrs = h => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} 小时 ${String(m % 60).padStart(2, "0")} 分`; };
+
+  // ---------- state ----------
+  const LAYERS = [
+    { id: "hs", name: "浪高", unit: "m" },
+    { id: "dir", name: "浪向", unit: "°" },
+    { id: "period", name: "涌浪周期", unit: "s" },
+    { id: "cur", name: "海流", unit: "kn" },
+    { id: "wind", name: "风", unit: "kn" },
+    { id: "sst", name: "海温", unit: "°C" }
+  ];
+  const REASONS = ["浪高", "浪向", "涌浪周期", "海流", "风", "距离最短", "到港时间"];
+  const STEPS = [
+    { n: 1, name: "案件库", intent: "<b>这一步展示：</b>每个案件都是一个真实的历史日子。正式版由程序从 Copernicus 历史数据里挖出“最优航线会翻转”的日子。" },
+    { n: 2, name: "简报", intent: "<b>这一步展示：</b>交代任务、船和规则。学生要决定走哪条航线、几点出发。" },
+    { n: 3, name: "调查", intent: "<b>这一步展示：</b>侦探环节。6 个证据图层只能开 3 个，逼学生想清楚哪些数据最重要。看到的是预报。" },
+    { n: 4, name: "判断", intent: "<b>这一步展示：</b>选航线、选出发时间、勾选理由。理由会被记录下来，用于结案报告。" },
+    { n: 5, name: "回放", intent: "<b>这一步展示：</b>三艘船按你选的时间同时出发，用实际海况回放。红色路段是超过阈值的危险航段。" },
+    { n: 6, name: "转折点", intent: "<b>这一步展示：</b>最核心的一幕。拖动出发时间，看最优航线在哪个时间点翻转，以及为什么。" },
+    { n: 7, name: "结案", intent: "<b>这一步展示：</b>你漏掉的证据、判断画像和教练反馈，再推荐专门练弱点的下一个案件。" }
+  ];
+  const S = { step: 1, maxStep: 1, caseId: null, opened: new Set(), invT: 8, choice: { rk: null, dep: 8, reasons: new Set(), note: "" }, replayT: null, playing: false, tradeDep: 8, done: new Set() };
+  const C = () => CASES[S.caseId];
+
+  // ---------- map ----------
+  const canvas = document.getElementById("map"), ctx = canvas.getContext("2d");
+  let W = 0, H = 0, view = { mode: "plain" };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const P = (lon, lat) => [(lon - LON0) * KX / ((LON1 - LON0) * KX) * W, (LAT1 - lat) / (LAT1 - LAT0) * H];
+  function resize() {
+    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.width / 1.47;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function poly(pts) { ctx.beginPath(); pts.forEach(([lo, la], i) => { const [x, y] = P(lo, la); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); }
+  function inLand(lon, lat) {
+    const test = pts => { let ins = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) ins = !ins; } return ins; };
+    return test(MALLORCA) || test(MENORCA);
+  }
+  function arrow(x, y, deg, len, color, w) {
+    const a = rad(deg), dx = Math.sin(a) * len, dy = -Math.cos(a) * len;
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
+    ctx.beginPath(); ctx.moveTo(x - dx / 2, y - dy / 2); ctx.lineTo(x + dx / 2, y + dy / 2); ctx.stroke();
+    const hx = x + dx / 2, hy = y + dy / 2, s = Math.max(4, len * 0.28);
+    ctx.beginPath(); ctx.moveTo(hx, hy);
+    ctx.lineTo(hx - Math.sin(a - 0.45) * s, hy + Math.cos(a - 0.45) * s);
+    ctx.lineTo(hx - Math.sin(a + 0.45) * s, hy + Math.cos(a + 0.45) * s);
+    ctx.closePath(); ctx.fill();
+  }
+  function hsColor(v, alphaMax) {
+    const x = clamp(v / 2.8, 0, 1);
+    const stops = [[70, 140, 200], [60, 110, 200], [130, 70, 170], [200, 40, 60]];
+    const p = x * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(p)), f = p - i;
+    const c = stops[i].map((s, k) => Math.round(s + (stops[i + 1][k] - s) * f));
+    return `rgba(${c[0]},${c[1]},${c[2]},${(0.12 + x * alphaMax).toFixed(3)})`;
+  }
+  function draw() {
+    if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = css("--sea"); ctx.fillRect(0, 0, W, H);
+    const c = S.caseId ? C() : null;
+    const field = c ? c[view.field || "forecast"] : null, t = view.t;
+    const layers = view.layers || new Set();
+    if (field && layers.has("hs")) {
+      const step = 0.04;
+      for (let lo = LON0; lo < LON1; lo += step) for (let la = LAT0; la < LAT1; la += step) {
+        const v = field.hs(t) * exposure(la + step / 2);
+        const [x1, y1] = P(lo, la + step), [x2, y2] = P(lo + step, la);
+        ctx.fillStyle = hsColor(v, 0.5); ctx.fillRect(x1, y1, x2 - x1 + 0.5, y2 - y1 + 0.5);
+      }
+    }
+    if (field && layers.has("sst")) {
+      ctx.fillStyle = "rgba(220,120,40,0.10)"; ctx.fillRect(0, 0, W, H);
+    }
+    ctx.fillStyle = css("--land"); ctx.strokeStyle = css("--land-edge"); ctx.lineWidth = 1;
+    poly(MALLORCA); ctx.fill(); ctx.stroke(); poly(MENORCA); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = css("--muted"); ctx.font = `600 ${Math.max(11, W / 60)}px ${css("--font-display")}`; ctx.textAlign = "center";
+    let [mx, my] = P(2.85, 39.62); ctx.fillText("MALLORCA", mx, my);
+    [mx, my] = P(4.08, 39.96); ctx.fillText("MENORCA", mx, my);
+    const gridPts = [];
+    for (let lo = 2.4; lo < 4.4; lo += 0.16) for (let la = 39.25; la < 40.25; la += 0.12) if (!inLand(lo, la)) gridPts.push([lo, la]);
+    const fs = Math.max(10, W / 72);
+    if (field && layers.has("dir")) gridPts.forEach(([lo, la]) => { const [x, y] = P(lo, la); arrow(x, y, field.dir + 180, 8 + field.hs(t) * exposure(la) * 7, css("--ink"), 1.4); });
+    if (field && layers.has("wind")) gridPts.filter((_, i) => i % 3 === 0).forEach(([lo, la]) => {
+      const [x, y] = P(lo + 0.05, la + 0.04); arrow(x, y, field.windDir + 180, 14, css("--warn"), 1.8);
+      ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(Math.round(field.wind(t)) + " kn", x, y + 16);
+    });
+    if (field && layers.has("cur")) gridPts.filter((_, i) => i % 2 === 1).forEach(([lo, la]) => {
+      const [x, y] = P(lo, la - 0.04); arrow(x, y, field.cur.to, 10, css("--route-c"), 1.2);
+    });
+    if (field && layers.has("period")) gridPts.filter((_, i) => i % 4 === 0).forEach(([lo, la]) => {
+      const [x, y] = P(lo + 0.03, la - 0.03);
+      ctx.fillStyle = css("--route-b"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(field.period(t).toFixed(0) + " s", x, y);
+    });
+    if (field && layers.has("sst")) gridPts.filter((_, i) => i % 5 === 2).forEach(([lo, la]) => {
+      const [x, y] = P(lo, la);
+      ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText((field.sst + (la - 39.7) * -0.6).toFixed(1) + "°C", x, y);
+    });
+    // routes
+    if (c) for (const k of ["A", "B", "C"]) {
+      const r = ROUTES[k], col = css(r.color), dim = view.focus && view.focus !== k;
+      const track = view.tracks && view.tracks[k];
+      ctx.globalAlpha = dim ? 0.35 : 1;
+      ctx.setLineDash(track ? [] : [7, 5]); ctx.lineWidth = view.focus === k ? 3.5 : 2.5; ctx.strokeStyle = col;
+      ctx.beginPath(); r.pts.forEach(([lo, la], i) => { const [x, y] = P(lo, la); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      ctx.setLineDash([]);
+      if (track) {
+        ctx.lineWidth = 6; ctx.strokeStyle = css("--bad");
+        for (let i = 1; i < track.length; i++) if (track[i - 1].beamBad || track[i - 1].over) {
+          const [x1, y1] = P(track[i - 1].lon, track[i - 1].lat), [x2, y2] = P(track[i].lon, track[i].lat);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
+      }
+      const lab = r.pts[Math.floor(r.pts.length / 2)], lp = r.pts.length === 3 ? [(r.pts[1][0] + r.pts[2][0]) / 2, (r.pts[1][1] + r.pts[2][1]) / 2] : lab;
+      const [lx, ly] = P(lp[0], lp[1] + (k === "C" ? -0.05 : 0.05));
+      ctx.fillStyle = col; ctx.font = `700 ${Math.max(14, W / 40)}px ${css("--font-display")}`; ctx.fillText(k, lx, ly);
+      ctx.globalAlpha = 1;
+    }
+    // ports
+    for (const p of [PORTS.start, PORTS.end]) {
+      const [x, y] = P(p.lon, p.lat);
+      ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.font = `500 ${Math.max(11, W / 64)}px ${css("--font-body")}`; ctx.textAlign = p === PORTS.start ? "right" : "left";
+      ctx.fillText(p.name, x + (p === PORTS.start ? -8 : 8), y + 4); ctx.textAlign = "center";
+    }
+    // ships
+    if (view.ships) for (const sh of view.ships) {
+      const [x, y] = P(sh.s.lon, sh.s.lat);
+      ctx.fillStyle = css(ROUTES[sh.k].color); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, sh.mine ? 8 : 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (sh.mine) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
+    }
+    // stamp
+    if (c && view.field) {
+      ctx.textAlign = "left"; ctx.fillStyle = css("--ink"); ctx.font = `600 ${Math.max(13, W / 52)}px ${css("--font-display")}`;
+      ctx.fillText(`${view.field === "forecast" ? "预报" : "实际"} · ${hhmm(t)}`, 12, 22);
+      ctx.fillStyle = css("--muted"); ctx.font = `400 ${Math.max(10, W / 80)}px ${css("--font-body")}`;
+      ctx.fillText("示意海图与示意数据", 12, 40);
+    }
+    ctx.textAlign = "center";
+  }
+  new ResizeObserver(resize).observe(canvas);
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener && mq.addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  function setFoot(extra) {
+    const k = r => `<span class="k"><span class="sw" style="background:var(${ROUTES[r].color})"></span>${r} ${ROUTES[r].name} · <span class="mono">${ROUTES[r].nm.toFixed(1)} nm</span></span>`;
+    document.getElementById("mapfoot").innerHTML = (S.caseId ? ["A", "B", "C"].map(k).join("") : '<span>马略卡–梅诺卡海峡（示意）</span>') + (extra || "");
+  }
+
+  // ---------- render ----------
+  const panel = document.getElementById("panel");
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+  function renderStepper() {
+    document.getElementById("stepper").innerHTML = STEPS.map(s => `<button type="button" data-step="${s.n}" ${s.n === S.step ? 'aria-current="step"' : ""} ${s.n > S.maxStep ? "disabled" : ""}><b>${s.n}</b>${s.name}</button>`).join("");
+    document.getElementById("intent").innerHTML = STEPS[S.step - 1].intent;
+  }
+  function go(n) {
+    stopPlay();
+    S.step = n; S.maxStep = Math.max(S.maxStep, n);
+    renderStepper(); renderPanel();
+  }
+  document.getElementById("stepper").addEventListener("click", e => { const b = e.target.closest("button[data-step]"); if (b && !b.disabled) go(+b.dataset.step); });
+
+  function renderPanel() {
+    const f = [null, pLibrary, pBrief, pInvestigate, pDecide, pReplay, pTrade, pReport][S.step];
+    f();
+  }
+
+  function pLibrary() {
+    view = { mode: "plain" }; setFoot(); draw();
+    const card = c => `<button type="button" class="case" data-case="${c.id}">
+      <span class="no">Case ${c.no}</span><span class="t">${c.title}</span>
+      <span class="small muted">${c.date}</span>
+      <span class="small">练习目标：${c.goal}</span>
+      <span class="small"><span class="dots">${c.dots}</span> 难度 ${S.done.has(c.id) ? '· <span class="pill ok">已破案</span>' : ""}</span>
+    </button>`;
+    panel.innerHTML = `<h2>案件库<small>Every case is a real day at sea.</small></h2>
+      <div class="cases">${card(CASES.c07)}${card(CASES.c12)}
+        <button type="button" class="case" disabled><span class="no">Case #03</span><span class="t">更多案件</span><span class="small muted">正式版由程序从多年历史数据中挖掘</span></button>
+      </div>
+      <p class="small muted">建议先玩 #07，结案后教练会推荐 #12。</p>`;
+    panel.querySelectorAll("[data-case]").forEach(b => b.addEventListener("click", () => startCase(b.dataset.case)));
+  }
+  function startCase(id) {
+    S.caseId = id; S.opened = new Set(); S.invT = 8;
+    S.choice = { rk: null, dep: 8, reasons: new Set(), note: "" };
+    S.maxStep = 2; go(2);
+  }
+
+  function pBrief() {
+    const c = C();
+    view = { mode: "plain", field: "forecast", t: 8, layers: new Set() }; setFoot(); draw();
+    panel.innerHTML = `<h2>Case ${c.no}<small>${c.title}</small></h2>
+      <p>${c.date}，一艘训练帆船要从<b>阿尔库迪亚</b>开往梅诺卡岛的<b>休达德亚</b>。左图是三条备选航线。</p>
+      <dl class="kv">
+        <dt>船</dt><dd>训练帆船，机帆并用，航速约 <span class="mono">${SPEED} kn</span></dd>
+        <dt>横浪阈值</dt><dd><span class="mono">${c.beamLimit} m</span>（示意）</dd>
+        <dt>任何航段</dt><dd>浪高超过 <span class="mono">${c.genLimit} m</span> 不航行（示意）</dd>
+        <dt>到港</dt><dd>须在 <span class="mono">${hhmm(c.arriveBy)}</span> 前到港（示意）</dd>
+      </dl>
+      <div class="coach"><span class="label">你的任务</span><p>走哪条航线？几点出发？请给出理由。</p></div>
+      <div class="row"><button type="button" class="btn" id="toInv">开始调查</button></div>`;
+    document.getElementById("toInv").addEventListener("click", () => go(3));
+  }
+
+  function pInvestigate() {
+    const c = C();
+    const left = 3 - S.opened.size;
+    view = { mode: "inv", field: "forecast", t: S.invT, layers: S.opened }; setFoot(); draw();
+    panel.innerHTML = `<h2>调查<small>只能打开 3 个证据</small></h2>
+      <div class="budget" aria-label="还能打开 ${left} 个">${[0, 1, 2].map(i => `<i class="${i < left ? "on" : ""}"></i>`).join("")}<span class="small muted">还能打开 ${left} 个</span></div>
+      <div class="layers">${LAYERS.map(L => { const on = S.opened.has(L.id); return `<button type="button" class="layer" data-layer="${L.id}" aria-pressed="${on}" ${!on && left === 0 ? "disabled" : ""}><span>${on ? "◉" : "○"}</span><span>${L.name}</span><span class="ic">${L.unit}</span></button>`; }).join("")}</div>
+      <div class="slider"><div class="row"><span class="label">预报时间</span><span class="clock" id="invClock">${hhmm(S.invT)}</span></div>
+        <input type="range" id="invT" min="5" max="20" step="0.25" value="${S.invT}" aria-label="预报时间"></div>
+      <p class="small muted">${c.forecastNote}。拖动时间看海况怎么变化。</p>
+      <div class="row"><button type="button" class="btn" id="toDecide" ${S.opened.size ? "" : "disabled"}>证据收集完毕，去做判断</button></div>`;
+    panel.querySelectorAll("[data-layer]").forEach(b => b.addEventListener("click", () => {
+      const id = b.dataset.layer;
+      if (S.opened.has(id)) return; // opening is final: budget is spent
+      if (S.opened.size >= 3) return;
+      S.opened.add(id); pInvestigate();
+    }));
+    const r = document.getElementById("invT");
+    r.addEventListener("input", () => { S.invT = +r.value; document.getElementById("invClock").textContent = hhmm(S.invT); view.t = S.invT; draw(); });
+    document.getElementById("toDecide").addEventListener("click", () => go(4));
+  }
+
+  function pDecide() {
+    const c = C(), ch = S.choice;
+    view = { mode: "dec", field: "forecast", t: ch.dep, layers: S.opened, focus: ch.rk }; setFoot(); draw();
+    const shortest = ["A", "B", "C"].sort((a, b) => ROUTES[a].nm - ROUTES[b].nm)[0];
+    panel.innerHTML = `<h2>判断<small>走哪条？几点出发？</small></h2>
+      <div class="routes">${["A", "B", "C"].map(k => `<button type="button" class="route" data-rk="${k}" aria-pressed="${ch.rk === k}">
+        <span class="L" style="color:var(${ROUTES[k].color})">${k}</span>
+        <span><b>${ROUTES[k].name}</b><br><span class="meta mono">${ROUTES[k].nm.toFixed(1)} nm · 约 ${hrs(ROUTES[k].nm / SPEED)}</span></span>
+        <span>${k === shortest ? '<span class="pill">最短</span>' : ""}</span></button>`).join("")}</div>
+      <div class="slider"><div class="row"><span class="label">出发时间</span><span class="clock" id="depClock">${hhmm(ch.dep)}</span></div>
+        <input type="range" id="dep" min="5" max="15" step="0.25" value="${ch.dep}" aria-label="出发时间"></div>
+      <div><span class="label">你的理由（可多选）</span><div class="chips">${REASONS.map(r => `<button type="button" class="chip" data-reason="${r}" aria-pressed="${ch.reasons.has(r)}">${r}</button>`).join("")}</div></div>
+      <label class="small" for="note">补一句（可选）</label>
+      <textarea id="note" placeholder="例如：浪不高，所以选最短的">${esc(ch.note)}</textarea>
+      <div class="row"><button type="button" class="btn" id="submit" ${ch.rk ? "" : "disabled"}>提交判断</button><span class="small muted">提交后用实际海况回放</span></div>`;
+    panel.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { ch.rk = b.dataset.rk; pDecide(); }));
+    const r = document.getElementById("dep");
+    r.addEventListener("input", () => { ch.dep = +r.value; document.getElementById("depClock").textContent = hhmm(ch.dep); view.t = ch.dep; draw(); });
+    panel.querySelectorAll("[data-reason]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.reason; ch.reasons.has(v) ? ch.reasons.delete(v) : ch.reasons.add(v); b.setAttribute("aria-pressed", ch.reasons.has(v)); }));
+    document.getElementById("note").addEventListener("input", e => { ch.note = e.target.value; });
+    document.getElementById("submit").addEventListener("click", () => { S.replayT = ch.dep; S.tradeDep = ch.dep; go(5); startPlay(); });
+  }
+
+  // replay
+  let raf = 0, lastTs = 0;
+  function sims() { return allSims(C(), S.choice.dep); }
+  function sampleAt(sim, t) {
+    const sm = sim.samples; if (t <= sm[0].t) return sm[0];
+    for (let i = 1; i < sm.length; i++) if (sm[i].t >= t) return sm[i - 1];
+    return sm[sm.length - 1];
+  }
+  function pReplay() {
+    const c = C(), ss = sims(), mine = ss.find(s => s.rk === S.choice.rk);
+    const tEnd = Math.max(...ss.map(s => s.arrive));
+    if (S.replayT == null) S.replayT = S.choice.dep;
+    panel.innerHTML = `<h2>回放<small>按 ${hhmm(S.choice.dep)} 出发，实际海况</small></h2>
+      <div class="gauges" id="gauges"></div>
+      <div class="slider"><div class="row"><span class="label">时间</span><span class="clock" id="rpClock"></span></div>
+        <input type="range" id="rpT" min="${S.choice.dep}" max="${tEnd.toFixed(3)}" step="0.05" value="${S.replayT}" aria-label="回放时间"></div>
+      <div class="row"><button type="button" class="btn ghost" id="play">${S.playing ? "暂停" : "播放"}</button>
+        <span class="small muted">${c.forecastNote}；<b>${c.actualNote}</b></span></div>
+      <div id="rpStatus" class="small"></div>
+      <div class="row"><button type="button" class="btn" id="toTrade">看取舍和转折点</button></div>`;
+    document.getElementById("rpT").addEventListener("input", e => { stopPlay(); S.replayT = +e.target.value; updReplay(); });
+    document.getElementById("play").addEventListener("click", () => { S.playing ? stopPlay() : startPlay(); document.getElementById("play").textContent = S.playing ? "暂停" : "播放"; });
+    document.getElementById("toTrade").addEventListener("click", () => go(6));
+    updReplay();
+  }
+  function updReplay() {
+    if (S.step !== 5) return;
+    const c = C(), ss = sims(), mine = ss.find(s => s.rk === S.choice.rk);
+    const t = S.replayT, cur = sampleAt(mine, t);
+    const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples.filter(x => x.t <= t + 1e-6); });
+    view = { mode: "rp", field: "actual", t, layers: new Set(["hs"]), tracks, focus: S.choice.rk, ships: ss.map(s => ({ k: s.rk, s: sampleAt(s, t), mine: s.rk === S.choice.rk })) };
+    setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>超过阈值的航段</span>`); draw();
+    const g = document.getElementById("gauges"); if (!g) return;
+    const bad = cur.beamBad || cur.over;
+    g.innerHTML = `<div class="${cur.over ? "bad" : ""}"><span class="label">浪高</span><b>${cur.arrived ? "—" : cur.hs.toFixed(1) + " m"}</b></div>
+      <div class="${cur.beamBad ? "bad" : ""}"><span class="label">遭遇</span><b>${cur.cat}${cur.beamBad ? " ⚠" : ""}</b></div>
+      <div><span class="label">周期</span><b>${cur.period.toFixed(0)} s</b></div>
+      <div><span class="label">船速</span><b>${cur.arrived ? "—" : cur.spd.toFixed(1) + " kn"}</b></div>`;
+    document.getElementById("rpClock").textContent = hhmm(t);
+    const st = document.getElementById("rpStatus");
+    const arrivedAll = ss.every(s => t >= s.arrive - 1e-6);
+    st.innerHTML = arrivedAll
+      ? `你的 ${S.choice.rk} 航线：${mine.safe ? '<span class="pill ok">全程在阈值内</span>' : '<span class="pill bad">有危险航段</span>'} 横浪超阈值约 <span class="mono">${mine.beamH.toFixed(1)}</span> 小时，${hhmm(mine.arrive)} 到港${mine.late ? "（超过到港时限）" : ""}。`
+      : (bad ? `<span class="pill bad">你的船正处在危险航段</span>` : "");
+  }
+  function frame(ts) {
+    if (!S.playing) return;
+    const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
+    const ss = sims(), tEnd = Math.max(...ss.map(s => s.arrive));
+    S.replayT = Math.min(tEnd, S.replayT + dt * 0.9);
+    const r = document.getElementById("rpT"); if (r) r.value = S.replayT;
+    updReplay();
+    if (S.replayT >= tEnd) { stopPlay(); const b = document.getElementById("play"); if (b) b.textContent = "播放"; return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function startPlay() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { const ss = sims(); S.replayT = Math.max(...ss.map(s => s.arrive)); updReplay(); return; }
+    const ss = sims(), tEnd = Math.max(...ss.map(s => s.arrive));
+    if (S.replayT >= tEnd - 0.01) S.replayT = S.choice.dep;
+    S.playing = true; lastTs = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+  }
+  function stopPlay() { S.playing = false; cancelAnimationFrame(raf); }
+
+  // trade-off + tipping point
+  function pTrade() {
+    const c = C();
+    panel.innerHTML = `<h2>转折点<small>拖动出发时间</small></h2>
+      <div class="slider"><div class="row"><span class="label">出发时间</span><span class="clock" id="tdClock"></span></div>
+        <input type="range" id="td" min="5" max="15" step="0.25" value="${S.tradeDep}" aria-label="出发时间"></div>
+      <div class="strip"><span class="label">决策地图 · 每个出发时间的最优航线（示意数据）</span>
+        <div class="cells" id="cells"></div>
+        <div class="ticks">${STRIP.map((h, i) => `<span>${i % 2 === 0 ? String(h).padStart(2, "0") : ""}</span>`).join("")}</div></div>
+      <div class="flipnote" id="flipnote"></div>
+      <div class="rank" id="rank"></div>
+      <div class="tblwrap"><table><thead><tr><th>指标</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody id="tb"></tbody></table></div>
+      <div class="row"><button type="button" class="btn" id="toReport">结案</button></div>`;
+    document.getElementById("td").addEventListener("input", e => { S.tradeDep = +e.target.value; updTrade(); });
+    document.getElementById("toReport").addEventListener("click", () => go(7));
+    updTrade();
+  }
+  function updTrade() {
+    const c = C(), dep = S.tradeDep, ss = allSims(c, dep), best = bestAt(c, dep), fl = flips(c);
+    document.getElementById("tdClock").textContent = hhmm(dep);
+    const ci = Math.round((clamp(dep, 5, 15) - 5) / 0.5);
+    document.getElementById("cells").innerHTML = STRIP.map((h, i) => {
+      const b = bestAt(c, h);
+      return b ? `<div style="background:var(${ROUTES[b.rk].color})" class="${i === ci ? "cur" : ""}" title="${hhmm(h)} 出发：${b.rk}">${b.rk}</div>` : `<div class="none ${i === ci ? "cur" : ""}" title="${hhmm(h)} 出发：没有安全方案">✕</div>`;
+    }).join("");
+    const notes = fl.map(f => f.to
+      ? `<span><b class="mono">${hhmm(f.at)}</b> 前后：最优从 <b>${f.from || "无"}</b> 变成 <b>${f.to}</b>。原因：${f.from ? whyNot(c, f.from, f.at) : ""}。</span>`
+      : `<span><b class="mono">${hhmm(f.at)}</b> 起：<b>没有安全方案</b>，这时正确答案是今天不出发。原因：${whyNot(c, f.from, f.at)}。</span>`);
+    document.getElementById("flipnote").innerHTML = `<span class="label">转折点</span>${notes.join("") || "<span>这一天全天的最优方案不变。</span>"}`;
+    const order = ss.slice().sort((a, b) => a.score - b.score);
+    document.getElementById("rank").innerHTML = order.map(s => `<div class="route" ${s.rk === S.choice.rk ? 'aria-pressed="true"' : ""}>
+      <span class="L" style="color:var(${ROUTES[s.rk].color})">${s.rk}</span>
+      <span><b>${ROUTES[s.rk].name}</b>${s.rk === S.choice.rk ? ' <span class="small muted">（你的选择）</span>' : ""}<br><span class="meta mono">${hhmm(dep)} → ${hhmm(s.arrive)}</span></span>
+      <span>${s.safe ? (best && best.rk === s.rk ? '<span class="pill ok">最优</span>' : '<span class="pill ok">安全</span>') : '<span class="pill bad">有风险</span>'}</span></div>`).join("");
+    const by = k => ss.find(s => s.rk === k);
+    const row = (name, fn, badFn) => `<tr><td>${name}</td>${["A", "B", "C"].map(k => { const s = by(k); return `<td class="${badFn && badFn(s) ? "bad" : ""}">${fn(s)}</td>`; }).join("")}</tr>`;
+    document.getElementById("tb").innerHTML =
+      row("距离", s => ROUTES[s.rk].nm.toFixed(1) + " nm") +
+      row("航行时间", s => hrs(s.eta)) +
+      row("到港", s => hhmm(s.arrive), s => s.late) +
+      row("最大浪高", s => s.maxHs.toFixed(1) + " m", s => s.overH > 0) +
+      row("横浪超阈值", s => s.beamH.toFixed(1) + " h", s => s.beamH > 0);
+    const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples; });
+    view = { mode: "td", field: "actual", t: dep + 3, layers: new Set(), tracks, focus: best ? best.rk : null };
+    setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>超过阈值的航段</span>`); draw();
+  }
+
+  // report
+  function pReport() {
+    const c = C(), ch = S.choice, mine = simulate(c, "actual", ch.rk, ch.dep), best = bestAt(c, ch.dep), fl = flips(c);
+    S.done.add(c.id);
+    const keyL = LAYERS.find(L => L.id === c.key), missedKey = !S.opened.has(c.key);
+    const prof = [
+      { name: "风浪与涌浪", v: S.opened.has("period") ? 80 : 30 },
+      { name: "浪向与航向", v: (S.opened.has("dir") ? 45 : 10) + (mine.beamH === 0 ? 40 : 0) },
+      { name: "海流与航行时间", v: S.opened.has("cur") ? 75 : 35 },
+      { name: "出发时间窗口", v: mine.safe ? 80 : 30 }
+    ];
+    const weak = prof.find(p => p.name === c.goal);
+    const firstFlip = fl.find(f => f.from === (bestAt(c, 5) || {}).rk);
+    const reasons = [...ch.reasons];
+    let coach = `<p>你的理由是「${reasons.length ? reasons.join("、") : "未勾选"}」${ch.note ? `，你还写了：“${esc(ch.note)}”` : ""}。</p>`;
+    coach += mine.safe
+      ? `<p>按 <span class="mono">${hhmm(ch.dep)}</span> 出发走 ${ch.rk}，全程都在阈值内，<span class="mono">${hhmm(mine.arrive)}</span> 到港。判断正确。</p>`
+      : `<p>按 <span class="mono">${hhmm(ch.dep)}</span> 出发走 ${ch.rk}，船会遇到最高 <span class="mono">${mine.maxHs.toFixed(1)} m</span> 的浪，横浪超过阈值约 <span class="mono">${mine.beamH.toFixed(1)}</span> 小时${mine.late ? "，而且赶不上到港时限" : ""}。</p>`;
+    if (missedKey) coach += `<p>这个案件的关键线索是「${keyL.name}」，你没有打开它。${c.lesson}</p>`;
+    else coach += `<p>你打开了关键线索「${keyL.name}」。${c.lesson}</p>`;
+    if (best && best.rk !== ch.rk) coach += `<p>同样 <span class="mono">${hhmm(ch.dep)}</span> 出发，更好的选择是 <b>${best.rk} ${ROUTES[best.rk].name}</b>，<span class="mono">${hhmm(best.arrive)}</span> 到港。</p>`;
+    if (!best) coach += `<p>这个时间出发，三条航线都有风险。更好的决定是改时间或者今天不出发。</p>`;
+    if (firstFlip) coach += `<p>如果在 <span class="mono">${hhmm(firstFlip.at)}</span> 之前出发，${firstFlip.from} 仍然是最优；过了这个时间就要重新考虑。</p>`;
+    const next = c.next && CASES[c.next];
+    panel.innerHTML = `<h2>结案报告<small>Case ${c.no}</small></h2>
+      <p>你的判断：<b>${ch.rk} ${ROUTES[ch.rk].name}</b>，<span class="mono">${hhmm(ch.dep)}</span> 出发 ${mine.safe ? '<span class="pill ok">安全</span>' : '<span class="pill bad">有风险</span>'}</p>
+      <div><span class="label">你打开的证据</span><div class="ev">${LAYERS.filter(L => S.opened.has(L.id)).map(L => `<span class="pill ${L.id === c.key ? "ok" : ""}">${L.name}${L.id === c.key ? " ✓ 关键" : ""}</span>`).join("") || '<span class="small muted">无</span>'}${missedKey ? `<span class="pill bad">${keyL.name} ✕ 关键证据未打开</span>` : ""}</div></div>
+      <div><span class="label">判断画像（示意评分）</span><div class="bars">${prof.map(p => `<div class="bar ${p === weak && p.v < 60 ? "weak" : ""}"><span>${p.name}</span><span class="t"><i style="width:${clamp(p.v, 0, 100)}%"></i></span><span class="mono">${clamp(p.v, 0, 100)}</span></div>`).join("")}</div></div>
+      <div class="coach"><span class="label">教练反馈（原型中是模板文字。正式版由程序算出事实，AI 只负责表达）</span>${coach}</div>
+      <div class="row">${next ? `<button type="button" class="btn" id="next">下一案：Case ${next.no} ${next.title}（练习：${next.goal}）</button>` : ""}
+        <button type="button" class="btn ghost" id="lib">回到案件库</button></div>`;
+    if (next) document.getElementById("next").addEventListener("click", () => startCase(next.id));
+    document.getElementById("lib").addEventListener("click", () => { S.caseId = null; S.maxStep = 1; go(1); });
+    view = { mode: "rep", field: "actual", t: ch.dep + 3, layers: new Set(), tracks: { [ch.rk]: mine.samples }, focus: ch.rk }; setFoot(); draw();
+  }
+
+  renderStepper(); renderPanel(); resize();
+})();
+</script>
