@@ -71,7 +71,7 @@ Notes:
 - `grid.layers.*.values` is indexed `[time][lat][lon]`. Crop to a small box around the routes to keep files small.
 - `forecast_grid`: if the forecast actually issued on that day is available, store it here in the same shape as `grid`. Otherwise set it to `null`; the investigation step then shows `grid` data up to the departure time only, and `docs/METHODS.md` must say so.
 - `sims` is keyed by departure time, every 30 minutes is recommended. Each entry must contain all three routes.
-- `flips[].to` is `null` when no route is safe from that time on. `reason` is one of `beam_hours` | `over_hours` | `late` | `slower`.
+- `flips[].to` is `null` when no route is safe from that time on. `reason` is one of `beam_hours` | `over_hours` | `late` | `slower`: why `from` stopped being the best choice. It is `null` when `from` is `null`.
 - `goal` takes a value from the learning goals table below. `key_evidence` uses a `grid.layers` key, with `current_u`/`current_v` written as `current`.
 
 ## 2. Decision record
@@ -123,6 +123,40 @@ The request body is the analysis result above. The response:
 ```
 
 `source` is `"ai"` or `"template"`. The server checks that every number and time in `feedback` appears in the request body. On a mismatch or a timeout it returns the template text with `source` set to `"template"`.
+
+## 5. Candidate days — `data/candidates.json`
+
+Written by `pipeline/mine.py`, read by `pipeline/export_cases.py`. Pipeline-internal; the web app does not read it.
+
+```json
+{
+  "generated_by": "pipeline/mine.py",
+  "datasets": ["cmems_mod_med_wav_my_4.2km_PT1H-i"],
+  "default_limits": { "beam_hs": 1.5, "max_hs": 2.5, "arrive_by": 19.0, "beam_from": 60.0 },
+  "combinations": 15,
+  "candidates": [
+    {
+      "date": "2026-09-09",
+      "kind": "route",
+      "robust_route": 13,
+      "robust_any": 15,
+      "flips": [{ "at": "2026-09-09T06:00:00Z", "from": "A", "to": "C", "reason": "beam_hours" }],
+      "suggested_goal": "beam_seas",
+      "max_hs": 4.25,
+      "peak_wind": { "kn": 25.0, "from": 30, "at": "2026-09-09T15:00:00Z" }
+    }
+  ],
+  "deadline_only": []
+}
+```
+
+Notes:
+
+- A **sea-state flip** is a flip whose `reason` is not `late`. Days whose only flips come from the arrival deadline are not candidates; at the default limits they are listed in `deadline_only`.
+- `kind`: `route` if the default limits give a sea-state flip from one route to another; `go_no_go` if the default limits only give flips to or from "no safe route"; `other_settings` if the day flips only under other threshold settings or head/beam boundaries.
+- `robust_route` and `robust_any`: in how many of the `combinations` (threshold settings × head/beam boundaries, `docs/METHODS.md`) the day has a route-to-route sea-state flip, and any sea-state flip.
+- `flips` are at the default limits, in the case-file format. `default_limits.arrive_by` is in hours UTC on the case day.
+- Candidates are sorted by `kind`, then `robust_route` and `robust_any`, highest first.
 
 ## Learning goals
 
