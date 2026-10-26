@@ -221,7 +221,10 @@ __marimo__/
 # SeaSense
 data/raw/
 *.nc
+# Curated Copernicus subsets are committed on purpose, see data/copernicus/README.md
+!data/copernicus/*.nc
 *.zarr/
 node_modules/
 .vercel/
 .DS_Store
+.claude/settings.local.json

@@ -2,5 +2,6 @@ copernicusmarine
 xarray
 netCDF4
 numpy
+scipy
 pandas
 pytest
