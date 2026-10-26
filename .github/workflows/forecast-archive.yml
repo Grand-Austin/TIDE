@@ -1,0 +1,35 @@
+# Saves the daily Mediterranean wave and current forecast. Copernicus Marine overwrites past
+# forecasts, so a day that is not saved here cannot be recovered later.
+#
+# Needs repository secrets COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD
+# (Settings > Secrets and variables > Actions). Files are kept as workflow artifacts, not in git:
+# download them from the run page, or with `gh run download`.
+name: Forecast archive
+
+on:
+  schedule:
+    - cron: "0 10 * * *"  # 10:00 UTC, after the daily MED forecast run is published
+  workflow_dispatch:
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install copernicusmarine
+      - run: python -m pipeline.fetch forecast
+        env:
+          COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+          COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+      - id: day
+        run: echo "date=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forecast-${{ steps.day.outputs.date }}
+          path: data/raw/forecast/*.nc
+          if-no-files-found: error
+          retention-days: 90
