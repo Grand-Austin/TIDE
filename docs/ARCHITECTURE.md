@@ -53,7 +53,7 @@ flowchart TB
 
 | Component | Responsibility | Input | Output | Runs |
 |---|---|---|---|---|
-| `pipeline/fetch.py` | Download Copernicus Marine products for the case area and period, crop to a box around the routes | Product and dataset IDs, bounding box, dates | Local NetCDF files in `data/raw/` (not committed) | Offline |
+| `pipeline/fetch.py` | Download Copernicus Marine products for the case area and period, crop to a box around the routes | Product and dataset IDs, bounding box, dates | Local NetCDF files in `data/raw/` (not committed). The curated summer 2026 subsets are committed in `data/copernicus/` | Offline |
 | `pipeline/simulate.py` | Move a vessel along a route over time; classify head, beam and following seas; apply current; count hours over limits | Route points, departure, sea-state lookup, limits | Simulation result per route and departure | Offline |
 | `pipeline/mine.py` | Simulate every day × departure × route; keep days where the best route changes with departure time | Simulation results | Candidate case days with their tipping points | Offline |
 | `pipeline/export_cases.py` | Write the selected days as case files | Candidate days, gridded data | `web/public/cases/<id>.json` | Offline |
