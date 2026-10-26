@@ -20,11 +20,11 @@ WAVES = (
     / "data" / "copernicus" / "cmems_mod_med_wav_my_4.2km_PT1H-i_20260701-20260930.nc"
 )
 
-# Prototype routes (web/prototype/index.html), Alcúdia -> Ciutadella. Not yet checked against the land mask.
+# Case routes, Alcúdia -> Ciutadella, from harbour exit to harbour exit. All samples on sea cells.
 ROUTES: dict[str, list[Point]] = {
-    "A": [(3.14, 39.84), (3.25, 39.88), (3.83, 40.00)],
-    "B": [(3.14, 39.84), (3.55, 40.18), (3.83, 40.00)],
-    "C": [(3.14, 39.84), (3.48, 39.78), (3.78, 39.92), (3.83, 40.00)],
+    "A": [(3.21, 39.85), (3.25, 39.88), (3.79, 39.98)],
+    "B": [(3.21, 39.85), (3.55, 40.18), (3.79, 39.98)],
+    "C": [(3.21, 39.85), (3.48, 39.78), (3.78, 39.92), (3.79, 39.98)],
 }
 
 

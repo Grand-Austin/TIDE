@@ -24,7 +24,6 @@ def test_route_through_land_cell_is_caught():
 
 
 @pytest.mark.skipif(not WAVES.exists(), reason="needs data/copernicus wave file")
-@pytest.mark.xfail(strict=True, reason="prototype routes cross land; remove this mark once the routes are redrawn")
 @pytest.mark.parametrize("name", sorted(ROUTES))
 def test_case_routes_stay_on_sea_cells(name):
     sea, lon, lat = load_mask()
