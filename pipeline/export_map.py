@@ -1,5 +1,7 @@
 """Export one day of waves, currents and wind for the animated map (web/map-spike/).
 
+Routes, simulations and flips come from the case file (pipeline/export_cases.py), not from here.
+
 Reads the files saved by `python -m pipeline.fetch day <date>` and writes compact JSON: values are scaled
 integers on regular grids, `null` on land.
 
@@ -18,7 +20,6 @@ import pandas as pd
 import xarray as xr
 
 from pipeline.fetch import DAY_DATASETS, RAW
-from pipeline.routes import ROUTES
 
 OUT = Path(__file__).resolve().parent.parent / "web" / "map-spike" / "data"
 CREDIT = (
@@ -57,7 +58,6 @@ def main() -> None:
         "waves": grid(waves, {"hs": ("VHM0", 100), "dir": ("VMDR", 1), "period": ("VTPK", 10)}),
         "current": grid(currents, {"u": ("uo", 100), "v": ("vo", 100)}),
         "wind": grid(wind, {"u": ("eastward_wind", 10), "v": ("northward_wind", 10)}),
-        "routes": ROUTES,
         "datasets": list(DAY_DATASETS),
         "credit": CREDIT,
     }

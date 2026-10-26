@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 /* Spike: one real day (Copernicus reanalysis) on a vector basemap. Wave height as a colour field,
-   wind or current as moving particles, the three case routes on top. Serve the folder over HTTP. */
+   wind or current as moving particles, routes and the best departure from the case file.
+   Serve web/ over HTTP (python -m http.server -d web) and open /map-spike/. */
 :root {
   --bg: #eef2f4; --panel: rgba(255, 255, 255, .92); --ink: #14212b; --muted: #5b6b77; --rule: #d3dbe1;
   --accent: #0b7a75; --warn: #c2410c; --particle: 255, 255, 255;
@@ -46,6 +47,9 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); 
 .strip .none { background: repeating-linear-gradient(45deg, var(--rule), var(--rule) 4px, transparent 4px, transparent 8px); color: var(--muted); }
 .strip i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); transition: left .1s linear; }
 .ticks { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--muted); }
+#stripTicks { position: relative; height: 14px; }
+#stripTicks span { position: absolute; transform: translateX(-50%); }
+#stripTicks span:first-child { transform: none; }
 #controls { left: 12px; right: 12px; bottom: 12px; margin: 0 auto; max-width: 760px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px 12px; align-items: center; }
 button { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
 button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -87,7 +91,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   <div class="decision">
     <span class="label">Best departure, by time</span>
     <div class="strip" id="strip"></div>
-    <div class="ticks"><span>06:00</span><span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span></div>
+    <div class="ticks" id="stripTicks"></div>
   </div>
 </section>
 
@@ -116,9 +120,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
   const UTC_OFFSET = 2; // Balearic summer time
   const KN = 1.94384;
-  // Best route by departure from pipeline/mine.py, default limits (beam 1.5 m, max 2.5 m, 60°). Local time.
-  const DECISION = [{ from: 6, to: 8, route: "A" }, { from: 8, to: 10, route: "C" }, { from: 10, to: 16, route: null }];
-  const ROUTE_NAMES = { A: "A direct", B: "B northern loop", C: "C southern lee" };
+  const CASE = "../public/cases/c07.json"; // routes, simulations and flips (pipeline/export_cases.py)
   // Wave height colour ramp, m -> rgb.
   const RAMP = [[0, [40, 90, 170]], [0.5, [30, 150, 190]], [1, [40, 180, 150]], [1.5, [150, 200, 80]],
                 [2, [235, 200, 60]], [2.5, [240, 140, 50]], [3, [220, 70, 60]], [4, [150, 40, 110]]];
@@ -167,14 +169,23 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   }
 
   const state = { t: 6, playing: false, flow: "wind" };
-  let D, S, map, fieldCanvas, lastFieldT = -1;
+  let D, C, S, map, fieldCanvas, lastFieldT = -1;
 
-  fetch("data/2026-09-09.json").then(r => r.json()).then(init).catch(err => {
-    document.getElementById("info").insertAdjacentHTML("beforeend", `<p class="sub">Could not load data/2026-09-09.json (${err.message}). Serve this folder over HTTP, e.g. python -m http.server.</p>`);
+  const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); });
+  Promise.all([load("data/2026-09-09.json"), load(CASE)]).then(([data, kase]) => init(data, kase)).catch(err => {
+    document.getElementById("info").insertAdjacentHTML("beforeend", `<p class="sub">Could not load the data (${err.message}). Serve web/ over HTTP: python -m http.server -d web, then open /map-spike/.</p>`);
   });
 
-  function init(data) {
-    D = data;
+  // Best route for each departure: the fastest safe one, as in pipeline/simulate.py best_route.
+  function bestByDeparture(kase) {
+    return Object.entries(kase.sims).sort(([a], [b]) => a.localeCompare(b)).map(([dep, sims]) => {
+      const safe = Object.entries(sims).filter(([, r]) => r.safe).sort(([, a], [, b]) => a.arrival.localeCompare(b.arrival));
+      return { local: new Date(dep).getUTCHours() + new Date(dep).getUTCMinutes() / 60 + UTC_OFFSET, route: safe.length ? safe[0][0] : null };
+    });
+  }
+
+  function init(data, kase) {
+    D = data; C = kase;
     S = {
       hs: sampler(D.waves, "hs"), dir: dirSampler(D.waves, "dir"), period: sampler(D.waves, "period"),
       wu: sampler(D.wind, "u"), wv: sampler(D.wind, "v"), cu: sampler(D.current, "u"), cv: sampler(D.current, "v")
@@ -252,8 +263,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   }
 
   function addRoutes() {
-    const features = Object.entries(D.routes).map(([k, pts]) => ({ type: "Feature", properties: { k, name: ROUTE_NAMES[k] }, geometry: { type: "LineString", coordinates: pts } }));
-    const ends = D.routes.A;
+    const features = Object.entries(C.routes).map(([k, r]) => ({ type: "Feature", properties: { k, name: `${k} ${r.name.toLowerCase()}` }, geometry: { type: "LineString", coordinates: r.points } }));
+    const ends = C.routes.A.points;
     map.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features } });
     map.addSource("ports", { type: "geojson", data: { type: "FeatureCollection", features: [
       { type: "Feature", properties: { name: "Alcúdia" }, geometry: { type: "Point", coordinates: ends[0] } },
@@ -287,7 +298,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
     document.getElementById("sWind").textContent = Math.round(s.wind) + " kn";
     document.getElementById("sDir").textContent = compass(s.from) + " " + Math.round(s.from) + "°";
     const marker = document.querySelector("#strip i");
-    marker.style.left = `calc(${Math.max(0, Math.min(1, (local - 6) / 10)) * 100}% - 1px)`;
+    marker.style.left = `calc(${Math.max(0, Math.min(1, (local - STRIP.from) / (STRIP.to - STRIP.from))) * 100}% - 1px)`;
     if (Math.abs(state.t - lastFieldT) > 0.02) drawField();
   }
 
@@ -297,11 +308,23 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
     document.getElementById("rampTicks").innerHTML = [0, 1, 2, 3, 4].map(v => `<span>${v}</span>`).join("");
   }
 
+  // Consecutive departures with the same best route become one segment; each departure covers 30 minutes.
   function buildStrip() {
-    document.getElementById("strip").innerHTML = DECISION.map(d => d.route
-      ? `<span style="flex:${d.to - d.from};background:${css("--route-" + d.route.toLowerCase())}" title="${ROUTE_NAMES[d.route]}">${d.route}</span>`
-      : `<span class="none" style="flex:${d.to - d.from}" title="No safe route">no safe route</span>`).join("") + "<i></i>";
+    const seq = bestByDeparture(C), segs = [];
+    for (const d of seq) {
+      const last = segs[segs.length - 1];
+      if (last && last.route === d.route) last.to = d.local + 0.5; else segs.push({ from: d.local, to: d.local + 0.5, route: d.route });
+    }
+    STRIP.from = segs[0].from; STRIP.to = segs[segs.length - 1].to;
+    document.getElementById("strip").innerHTML = segs.map(d => d.route
+      ? `<span style="flex:${d.to - d.from};background:${css("--route-" + d.route.toLowerCase())}" title="${hhmm(d.from)}-${hhmm(d.to)}: ${C.routes[d.route].name}">${d.route}</span>`
+      : `<span class="none" style="flex:${d.to - d.from}" title="${hhmm(d.from)}-${hhmm(d.to)}: no safe route">no safe route</span>`).join("") + "<i></i>";
+    const ticks = [];
+    for (let h = Math.ceil(STRIP.from / 2) * 2; h <= STRIP.to; h += 2) ticks.push(h);
+    document.getElementById("stripTicks").innerHTML = ticks.map(h =>
+      `<span style="left:${(h - STRIP.from) / (STRIP.to - STRIP.from) * 100}%">${hhmm(h)}</span>`).join("");
   }
+  const STRIP = { from: 6, to: 16 };
 
   function readout(ll) {
     const t = state.t, hs = S.hs(t, ll.lng, ll.lat), el = document.getElementById("readout");
