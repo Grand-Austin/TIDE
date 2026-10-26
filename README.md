@@ -25,7 +25,7 @@ Planned: `web/` app, `api/` (AI coach and play-test log), `docs/METHODS.md`.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pytest
+python -m pytest
 ```
 
 Copernicus Marine data needs a free account. Log in once with `copernicusmarine login`; credentials stay on your machine and must never be committed.

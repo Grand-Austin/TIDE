@@ -17,19 +17,14 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from pipeline.simulate import Limits, Point, SeaState, SeaStateAt, best_route, legs_of, simulate, tipping_points
+from pipeline.routes import ROUTES, land_share
+from pipeline.simulate import Limits, SeaState, SeaStateAt, best_route, legs_of, simulate, tipping_points
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "copernicus"
 WAVES = DATA / "cmems_mod_med_wav_my_4.2km_PT1H-i_20260701-20260930.nc"
 CURRENTS = DATA / "cmems_mod_med_phy-cur_my_4.2km_PT1H-m_20260701-20260930.nc"
 WIND = DATA / "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_20260701-20260930.nc"
 
-# Prototype routes (web/prototype/index.html), Alcúdia -> Ciutadella. Not checked against the coastline.
-ROUTES: dict[str, list[Point]] = {
-    "A": [(3.14, 39.84), (3.25, 39.88), (3.83, 40.00)],
-    "B": [(3.14, 39.84), (3.55, 40.18), (3.83, 40.00)],
-    "C": [(3.14, 39.84), (3.48, 39.78), (3.78, 39.92), (3.83, 40.00)],
-}
 DAYS = pd.date_range("2026-07-01", "2026-09-30", freq="D")
 DEPARTURES = np.arange(4.0, 14.01, 0.5)  # hours UTC, 06:00-16:00 local summer time
 SETTINGS = [(1.0, 2.0), (1.25, 2.5), (1.5, 2.5)]  # (beam_hs, max_hs), illustrative
@@ -54,15 +49,6 @@ class Grid:
             return i, j
         k = ((self._sea_cells - [i, j]) ** 2).sum(1).argmin()
         return int(self._sea_cells[k][0]), int(self._sea_cells[k][1])
-
-    def land_share(self, points: list[Point], per_leg: int = 40) -> float:
-        hits = [
-            not self.sea[int(np.abs(self.lat - y).argmin()), int(np.abs(self.lon - x).argmin())]
-            for leg in legs_of(points)
-            for f in np.linspace(0, 1, per_leg, endpoint=False)
-            for x, y in [(leg.start[0] + (leg.end[0] - leg.start[0]) * f, leg.start[1] + (leg.end[1] - leg.start[1]) * f)]
-        ]
-        return sum(hits) / len(hits)
 
     def sea_at(self, day: pd.Timestamp) -> SeaStateAt:
         """Sea state for t in hours UTC on `day`: nearest sea cell, linear in time."""
@@ -106,7 +92,7 @@ def main() -> None:
 
     print("Route  nm    share of samples on land cells")
     for k, points in ROUTES.items():
-        print(f"  {k}   {sum(l.nm for l in legs_of(points)):5.1f}  {grid.land_share(points):.0%}")
+        print(f"  {k}   {sum(l.nm for l in legs_of(points)):5.1f}  {land_share(points, grid.sea, grid.lon, grid.lat):.0%}")
 
     print("\nNo arrival deadline (flips caused by sea state only)")
     flips_by_setting = []
