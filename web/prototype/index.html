@@ -169,11 +169,13 @@ tr:last-child td { border-bottom: 0; }
 .bar.weak span:first-child { color: var(--bad); font-weight: 500; }
 .coach { border-left: 3px solid var(--track); padding: 10px 12px; background: var(--paper); display: grid; gap: 6px; font-size: 14px; }
 .ev { display: flex; flex-wrap: wrap; gap: 6px; }
+.credit { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; margin-top: 12px; }
+.credit a { color: inherit; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="banner"><b>Illustrative prototype</b><span>Coastline, routes, vessel data, thresholds and all sea-state values are made-up examples that only demonstrate the interaction. In the real product every number comes from Copernicus Marine data and every threshold cites a published seamanship source.</span></div>
+  <div class="banner"><b>Illustrative prototype</b><span>Coastline, vessel data and thresholds are made-up examples that only demonstrate the interaction. Case #07 follows the shape of a real day in Copernicus Marine data with simplified values; its forecast and case #12 are made up. In the real product every number comes from Copernicus Marine data and every threshold cites a published seamanship source.</span></div>
 
   <div class="top">
     <div class="row" style="gap:14px;align-items:baseline"><div class="brand">Sea<span>Sense</span></div><span class="tag">Solve real cases at sea. Build the judgment future mariners need.</span></div>
@@ -188,6 +190,10 @@ tr:last-child td { border-bottom: 0; }
     </div>
     <div class="panel" id="panel"></div>
   </div>
+  <p class="credit">Generated using E.U. Copernicus Marine Service Information;
+    <a href="https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I">https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I</a>,
+    <a href="https://doi.org/10.48670/mds-00375">https://doi.org/10.48670/mds-00375</a>,
+    <a href="https://doi.org/10.48670/moi-00305">https://doi.org/10.48670/moi-00305</a></p>
 </div>
 
 <script>
@@ -198,11 +204,11 @@ tr:last-child td { border-bottom: 0; }
   const LON0 = 2.25, LON1 = 4.45, LAT0 = 39.15, LAT1 = 40.30, KX = Math.cos(39.7 * Math.PI / 180);
   const MALLORCA = [[2.35,39.60],[2.45,39.74],[2.62,39.84],[2.80,39.90],[2.98,39.93],[3.20,39.96],[3.17,39.90],[3.10,39.86],[3.12,39.80],[3.22,39.76],[3.34,39.74],[3.47,39.72],[3.45,39.63],[3.38,39.54],[3.27,39.42],[3.16,39.33],[3.05,39.27],[2.94,39.35],[2.80,39.47],[2.68,39.55],[2.56,39.50],[2.46,39.48],[2.38,39.53]];
   const MENORCA = [[3.82,39.93],[3.81,39.97],[3.84,40.03],[3.93,40.06],[4.05,40.07],[4.15,40.05],[4.26,39.99],[4.32,39.90],[4.30,39.85],[4.20,39.82],[4.08,39.86],[3.96,39.90],[3.88,39.92]];
-  const PORTS = { start: { name: "Alcúdia", lon: 3.14, lat: 39.84 }, end: { name: "Ciutadella", lon: 3.83, lat: 40.00 } };
+  const PORTS = { start: { name: "Alcúdia", lon: 3.21, lat: 39.85 }, end: { name: "Ciutadella", lon: 3.79, lat: 39.98 } };
   const ROUTES = {
-    A: { name: "Direct crossing", pts: [[3.14,39.84],[3.25,39.88],[3.83,40.00]], color: "--track" },
-    B: { name: "Northern loop", pts: [[3.14,39.84],[3.55,40.18],[3.83,40.00]], color: "--route-b" },
-    C: { name: "Southern lee", pts: [[3.14,39.84],[3.48,39.78],[3.78,39.92],[3.83,40.00]], color: "--route-c" }
+    A: { name: "Direct crossing", pts: [[3.21,39.85],[3.25,39.88],[3.79,39.98]], color: "--track" },
+    B: { name: "Northern loop", pts: [[3.21,39.85],[3.55,40.18],[3.79,39.98]], color: "--route-b" },
+    C: { name: "Southern lee", pts: [[3.21,39.85],[3.48,39.78],[3.78,39.92],[3.79,39.98]], color: "--route-c" }
   };
   const SPEED = 6; // knots, illustrative training vessel
   const rad = d => d * Math.PI / 180;
@@ -225,31 +231,35 @@ tr:last-child td { border-bottom: 0; }
   const CAT_LABEL = { head: "Head seas", beam: "Beam seas", following: "Following seas", arrived: "In port" };
 
   // ---------- cases (all numbers illustrative) ----------
-  function windSeaField(onset, peak) {
+  const turn = (a, b, f) => (a + ((b - a + 540) % 360 - 180) * f + 360) % 360; // shortest way from a to b
+  // Shaped after 9 September 2026 in the Copernicus MED reanalysis and L4 wind (local time): light wind from
+  // SSE and 0.4 m waves from S in the morning; the wind swings to NE around 09:00-10:00, the waves follow
+  // to NNE and build to about 3.5 m by evening.
+  function gregalField({ swing, onset, peak, ramp }) {
     return {
-      hs: t => 0.7 + (peak - 0.7) * smooth((t - onset) / 3),
-      dir: 5, period: t => 4.5 + 1.5 * smooth((t - onset) / 3),
-      wind: t => 8 + 20 * smooth((t - onset + 0.5) / 2.5), windDir: 10,
+      hs: t => 0.4 + (peak - 0.4) * smooth((t - onset) / ramp),
+      dir: t => turn(180, 15, smooth((t - swing) / 1.5)), period: t => 4 + 3.5 * smooth((t - onset) / ramp),
+      wind: t => 6 + 21 * smooth((t - swing) / 3), windDir: t => turn(175, 38, smooth((t - swing + 1) / 1.5)),
       sst: 26.1, cur: { kn: 0.3, to: 270 }
     };
   }
   function swellField(start, peak) {
     return {
       hs: t => 0.8 + (peak - 0.8) * smooth((t - start) / 5),
-      dir: 345, period: () => 11,
-      wind: () => 6, windDir: 200,
+      dir: () => 345, period: () => 11,
+      wind: () => 6, windDir: () => 200,
       sst: 21.4, cur: { kn: 0.3, to: 270 }
     };
   }
   const CASES = {
     c07: {
-      id: "c07", no: "#07", title: "Before the north wind", date: "A day in August (illustrative)",
-      goal: "Wave direction vs heading", dots: "●●○", key: "dir",
+      id: "c07", no: "#07", title: "The Gregal morning", date: "9 September 2026 (shape from real data, values simplified)",
+      goal: "Departure window", dots: "●●○", key: "wind",
       beamLimit: 1.5, genLimit: 2.5, arriveBy: 20.5,
-      forecast: windSeaField(12.0, 2.2), actual: windSeaField(10.5, 2.6),
-      forecastNote: "Forecast: north wind from about 12:00, waves up to about 2.2 m",
-      actualNote: "Actual: the north wind arrived around 10:30, waves up to about 2.6 m",
-      lesson: "The direct route heads roughly east-northeast, so waves from the north hit the vessel on the beam. The north wind also arrived more than an hour earlier than forecast.",
+      forecast: gregalField({ swing: 10, onset: 9.5, peak: 3, ramp: 7.5 }), actual: gregalField({ swing: 9.5, onset: 9, peak: 3.8, ramp: 7.5 }),
+      forecastNote: "Forecast (illustrative; no forecast was archived for this day): light southerly wind in the morning, swinging to north-east around 10:00 and building, waves up to about 3 m",
+      actualNote: "Actual (reanalysis): light SSE wind and 0.4 m southerly waves until about 09:00; the wind swung to north-east between 09:00 and 11:00 and the waves passed 1.5 m around 12:00",
+      lesson: "At departure the sea was calm and the wind came from the south-south-east, so the warning could only come from the forecast of a north-east wind (illustrative in this prototype). The wind swung to north-east between 09:00 and 11:00. The direct route heads east-northeast, so the growing waves from the north-north-east met it on the beam. Leaving early made the direct route fine; a little later only the southern lee worked; from about 10:00 no route was safe.",
       next: "c12"
     },
     c12: {
@@ -273,7 +283,7 @@ tr:last-child td { border-bottom: 0; }
       let d = 0;
       while (d < leg.nm) {
         const fr = d / leg.nm, lon = leg.a[0] + (leg.b[0] - leg.a[0]) * fr, lat = leg.a[1] + (leg.b[1] - leg.a[1]) * fr;
-        const hs = f.hs(t) * exposure(lat), rel = angDiff(leg.hdg, f.dir), cat = category(rel);
+        const hs = f.hs(t) * exposure(lat), rel = angDiff(leg.hdg, f.dir(t)), cat = category(rel);
         const beamBad = cat === "beam" && hs > c.beamLimit, over = hs > c.genLimit;
         samples.push({ t, lon, lat, hs, rel, cat, beamBad, over, spd, period: f.period(t) });
         d += spd * dt; t += dt;
@@ -394,9 +404,9 @@ tr:last-child td { border-bottom: 0; }
     const gridPts = [];
     for (let lo = 2.4; lo < 4.4; lo += 0.16) for (let la = 39.25; la < 40.25; la += 0.12) if (!inLand(lo, la)) gridPts.push([lo, la]);
     const fs = Math.max(10, W / 72);
-    if (field && layers.has("dir")) gridPts.forEach(([lo, la]) => { const [x, y] = P(lo, la); arrow(x, y, field.dir + 180, 8 + field.hs(t) * exposure(la) * 7, css("--ink"), 1.4); });
+    if (field && layers.has("dir")) gridPts.forEach(([lo, la]) => { const [x, y] = P(lo, la); arrow(x, y, field.dir(t) + 180, 8 + field.hs(t) * exposure(la) * 7, css("--ink"), 1.4); });
     if (field && layers.has("wind")) gridPts.filter((_, i) => i % 3 === 0).forEach(([lo, la]) => {
-      const [x, y] = P(lo + 0.05, la + 0.04); arrow(x, y, field.windDir + 180, 14, css("--warn"), 1.8);
+      const [x, y] = P(lo + 0.05, la + 0.04); arrow(x, y, field.windDir(t) + 180, 14, css("--warn"), 1.8);
       ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(Math.round(field.wind(t)) + " kn", x, y + 16);
     });
     if (field && layers.has("cur")) gridPts.filter((_, i) => i % 2 === 1).forEach(([lo, la]) => {
