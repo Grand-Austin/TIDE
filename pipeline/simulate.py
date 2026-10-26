@@ -37,6 +37,7 @@ class Limits:
     beam_hs: float  # max wave height accepted in beam seas, m
     max_hs: float  # max wave height accepted on any heading, m
     arrive_by: float  # latest arrival, hours on the case day
+    beam_from: float = 60.0  # relative angle where head seas become beam seas; beam ends at 180 - beam_from
 
 
 @dataclass(frozen=True)
@@ -82,13 +83,13 @@ def legs_of(points: Sequence[Point]) -> list[Leg]:
     return legs
 
 
-def encounter(heading: float, wave_from: float) -> tuple[float, str]:
+def encounter(heading: float, wave_from: float, beam_from: float = 60.0) -> tuple[float, str]:
     """Relative angle between the bow and the incoming waves, and its category."""
     rel = abs((heading - wave_from) % 360)
     rel = 360 - rel if rel > 180 else rel
-    if rel < 60:
+    if rel < beam_from:
         return rel, "head"
-    if rel <= 120:
+    if rel <= 180 - beam_from:
         return rel, "beam"
     return rel, "following"
 
@@ -110,7 +111,7 @@ def simulate(
             lon = leg.start[0] + (leg.end[0] - leg.start[0]) * frac
             lat = leg.start[1] + (leg.end[1] - leg.start[1]) * frac
             sea = sea_at(t, lon, lat)
-            rel, category = encounter(leg.heading, sea.wave_from)
+            rel, category = encounter(leg.heading, sea.wave_from, limits.beam_from)
             speed = speed_kn + sea.current_kn * math.cos(math.radians(leg.heading - sea.current_to))
             samples.append(
                 Sample(

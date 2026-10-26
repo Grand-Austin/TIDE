@@ -38,6 +38,12 @@ def test_encounter_category(heading, wave_from, category):
     assert encounter(heading, wave_from)[1] == category
 
 
+def test_beam_sector_boundary_is_configurable():
+    assert encounter(65, 0)[1] == "beam"
+    assert encounter(65, 0, beam_from=70)[1] == "head"
+    assert encounter(112, 0, beam_from=70)[1] == "following"
+
+
 def test_calm_passage_is_safe_and_takes_distance_over_speed():
     r = simulate(NORTH, departure=8, sea_at=calm, limits=LIMITS, speed_kn=6)
     assert r.safe

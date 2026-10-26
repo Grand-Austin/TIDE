@@ -1,15 +1,17 @@
 """Preliminary flip-day check on the summer 2026 data in data/copernicus/.
 
 Simulates the three prototype routes for every day and every departure, and counts the days on which
-the best route changes with departure time. Limits are illustrative and uncited, routes are the
-prototype's rough lines, and land samples are moved to the nearest sea cell. Treat the output as a
-feasibility check, not as case statistics.
+the best route changes with departure time. Limits are illustrative and uncited, routes run
+between harbour exits on sea cells (pipeline/routes.py). Treat the output as a feasibility check, not
+as case statistics.
 
     python -m pipeline.validate_summer
+    python -m pipeline.validate_summer --beam-sector     # flip days when the head/beam boundary moves
 """
 
 from __future__ import annotations
 
+import argparse
 import math
 from pathlib import Path
 
@@ -27,6 +29,7 @@ WIND = DATA / "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_20260701-20260930.nc"
 
 DAYS = pd.date_range("2026-07-01", "2026-09-30", freq="D")
 DEPARTURES = np.arange(4.0, 14.01, 0.5)  # hours UTC, 06:00-16:00 local summer time
+BEAM_FROM = [50.0, 55.0, 60.0, 65.0, 70.0]  # degrees off the bow
 SETTINGS = [(1.0, 2.0), (1.25, 2.5), (1.5, 2.5)]  # (beam_hs, max_hs), illustrative
 KN = 1.94384  # knots per m/s
 
@@ -86,9 +89,34 @@ def best_by_departure(grid: Grid, day: pd.Timestamp, limits: Limits) -> list[tup
     ]
 
 
+def route_flip_days(grid: Grid, limits: Limits) -> list[str]:
+    """Days on which the best route changes from one route to another with departure time."""
+    return [
+        day.strftime("%m-%d")
+        for day in DAYS
+        if any(a and b for _, a, b in tipping_points(best_by_departure(grid, day, limits)))
+    ]
+
+
+def beam_sector(grid: Grid) -> None:
+    """Route flips are sensitive to where head seas end and beam seas start (60 deg by default)."""
+    print("Route-to-route flip days by head/beam boundary, no arrival deadline")
+    for beam_hs, max_hs in SETTINGS:
+        print(f"  beam_hs={beam_hs} max_hs={max_hs}")
+        for beam_from in BEAM_FROM:
+            days = route_flip_days(grid, Limits(beam_hs, max_hs, arrive_by=99.0, beam_from=beam_from))
+            print(f"    beam from {beam_from:.0f} deg: {len(days)} {days}")
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--beam-sector", action="store_true", help="vary the head/beam boundary instead")
+    args = parser.parse_args()
     waves, currents, wind = (xr.open_dataset(p) for p in (WAVES, CURRENTS, WIND))
     grid = Grid(waves, currents)
+    if args.beam_sector:
+        beam_sector(grid)
+        return
 
     print("Route  nm    share of samples on land cells")
     for k, points in ROUTES.items():
