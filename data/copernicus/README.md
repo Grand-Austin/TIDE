@@ -4,6 +4,8 @@ Four NetCDF subsets downloaded from the Copernicus Marine Data Store on 2026-10-
 
 These are the raw inputs for `pipeline/`. Do not edit them. Write derived files elsewhere, for example `data/raw/` or `web/public/cases/`.
 
+**This is the only data committed to git.** It is here so that anyone can run the pipeline without a Copernicus Marine account. Do not commit more `.nc` files. All further data (other periods, the larger display box, forecasts, in-situ data) is fetched with a script into `data/raw/`, which is git-ignored.
+
 ## Files
 
 | File | Product | Dataset ID | Content | Time step | Grid | Size |
@@ -23,6 +25,64 @@ SHA-256:
 1d0aed0abcc9d4fcfe6242d482993984bc2848da392e4e6296860b0efa332309  cmems_mod_med_phy-temp_my_4.2km_P1D-m_20260701-20260930.nc
 48737addc83a58c42d1d9c027726f9f814aeba314c82f8fa0bb287da31b4398c  cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_20260701-20260930.nc
 ```
+
+## Acknowledgement and DOIs
+
+The data is used under the [Copernicus Marine Service licence](https://marine.copernicus.eu/user-corner/service-commitments-and-licence). Section 2.4 of the licence asks that the source be credited with the DOIs of the products used, in one of these forms:
+
+- **This folder** (redistribution of the products, §2.4(b)): "E.U. Copernicus Marine Service Information" followed by the DOIs below.
+- **Case files, the web app and the pitch** (value-added products, §2.4(a)): "Generated using E.U. Copernicus Marine Service Information" followed by the DOIs below. The credit should be clearly visible on the website's home page or on the page where users access the data.
+- **Reports and papers** (§2.4(c)): "This study has been conducted using E.U. Copernicus Marine Service Information" followed by the DOIs below.
+
+| Product | DOI |
+|---|---|
+| `MEDSEA_MULTIYEAR_WAV_006_012`, interim part (MEDWAM3I) | [10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I](https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I) |
+| `MEDSEA_MULTIYEAR_PHY_006_004`, interim part (E3R1I) | [10.48670/mds-00375](https://doi.org/10.48670/mds-00375) |
+| `WIND_GLO_PHY_L4_NRT_012_004` | [10.48670/moi-00305](https://doi.org/10.48670/moi-00305) |
+
+Summer 2026 is not yet in the reprocessed part of either MED reanalysis. The global attributes confirm this: the files record their source as `MEDWAM3i` and `MFS E3R1I`. The DOIs above are therefore the interim-dataset DOIs given in the product descriptions (`copernicusmarine describe`, 2026-10-26). If data from before the interim period is added later, cite the reanalysis DOIs as well. These are [10.25423/cmcc/medsea_multiyear_wav_006_012](https://doi.org/10.25423/cmcc/medsea_multiyear_wav_006_012) for waves and [10.25423/CMCC/MEDSEA_MULTIYEAR_PHY_006_004_E3R1](https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_PHY_006_004_E3R1) for physics.
+
+Ready-to-paste credit line:
+
+> Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I, https://doi.org/10.48670/mds-00375, https://doi.org/10.48670/moi-00305
+
+## Reproducing the download
+
+Log in once with `copernicusmarine login`. The commands below request the same datasets, variables, box and period as the committed files. The bounds are padded by less than half a grid cell, so the default `inside` selection returns exactly the committed grid. The original downloads were made through the Data Store web interface, which writes files with the same layout.
+
+```bash
+OUT=data/raw/summer-2026
+
+copernicusmarine subset -i cmems_mod_med_wav_my_4.2km_PT1H-i --dataset-version 202511 \
+  -v VHM0 -v VMDR -v VTPK -v VTM02 \
+  -v VHM0_WW -v VMDR_WW -v VTM01_WW -v VHM0_SW1 -v VMDR_SW1 -v VTM01_SW1 \
+  --minimum-longitude 2.9 --maximum-longitude 4.1 --minimum-latitude 39.59 --maximum-latitude 40.28 \
+  -t 2026-06-30T23:00:00 -T 2026-09-30T23:00:00 \
+  -o $OUT -f cmems_mod_med_wav_my_4.2km_PT1H-i_20260701-20260930.nc
+
+copernicusmarine subset -i cmems_mod_med_phy-cur_my_4.2km_PT1H-m --dataset-version 202511 \
+  -v uo -v vo \
+  --minimum-longitude 2.9 --maximum-longitude 4.1 --minimum-latitude 39.59 --maximum-latitude 40.28 \
+  -t 2026-06-30T23:00:00 -T 2026-09-30T23:00:00 \
+  -o $OUT -f cmems_mod_med_phy-cur_my_4.2km_PT1H-m_20260701-20260930.nc
+
+copernicusmarine subset -i cmems_mod_med_phy-temp_my_4.2km_P1D-m --dataset-version 202511 \
+  -v thetao -v bottomT -z 0 -Z 1.5 \
+  --minimum-longitude 2.9 --maximum-longitude 4.1 --minimum-latitude 39.59 --maximum-latitude 40.28 \
+  -t 2026-06-30 -T 2026-09-30 \
+  -o $OUT -f cmems_mod_med_phy-temp_my_4.2km_P1D-m_20260701-20260930.nc
+
+copernicusmarine subset -i cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H --dataset-version 202207 \
+  -v eastward_wind -v northward_wind \
+  --minimum-longitude 2.55 --maximum-longitude 4.45 --minimum-latitude 39.3 --maximum-latitude 40.6 \
+  -t 2026-06-30T23:00:00 -T 2026-09-30T23:00:00 \
+  -o $OUT -f cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_20260701-20260930.nc
+```
+
+Two things can make a re-download differ from the committed files:
+
+- The interim parts of the MED reanalyses can be reprocessed later, so values may change while the grid stays the same.
+- A new dataset version may appear. Keep `--dataset-version` pinned to reproduce these files.
 
 ## Coverage
 
@@ -133,7 +193,7 @@ wind = wnd.interp(longitude=wav.longitude, latitude=wav.latitude)
 sst = tem.thetao.isel(depth=0)
 ```
 
-Requirements: `xarray` and `netCDF4` (already in `requirements.txt`). Interpolation with `.interp` also needs `scipy`.
+Requirements: `xarray`, `netCDF4` and `scipy` (for `.interp`), all in `requirements.txt`.
 
 ## Caveats for pipeline code
 
@@ -144,9 +204,11 @@ Requirements: `xarray` and `netCDF4` (already in `requirements.txt`). Interpolat
 5. **No forecasts.** Every file is analysis or observation data. Set `forecast_grid` to `null` and explain the simplification in `docs/METHODS.md`.
 6. **One season only.** The files cover one summer, which is the calm season; northerly (Tramontana) events are more frequent in autumn and winter. Statistics drawn from these files should say "summer 2026 only". For multi-year statistics, download the same four datasets for more years. That is about 220 MB per year for all four.
 
-## Validation result (2026-10-26)
+## Preliminary validation (2026-10-26)
 
-A quick run of `pipeline/simulate.py` used these files and the three prototype routes, with a nearest-sea-cell fallback for land samples. It covered all 92 days, with departures every 30 minutes from 04:00 to 14:00 UTC (06:00–16:00 local), no arrival deadline, a vessel speed of 6 kn and **illustrative, uncited** limits.
+> **Preliminary.** This is a feasibility check, not case statistics. It uses the prototype routes (which cross land cells) and thresholds that have no citation yet. Do not quote these numbers in the pitch or in `docs/METHODS.md`.
+
+Reproduce with `python -m pipeline.validate_summer` (about 30 s). The run used `pipeline/simulate.py` with these files and the three prototype routes, with a nearest-sea-cell fallback for land samples. It covered all 92 days, with departures every 30 minutes from 04:00 to 14:00 UTC (06:00–16:00 local), no arrival deadline, a vessel speed of 6 kn and **illustrative, uncited** limits.
 
 | beam_hs / max_hs | Days when the best route switches to another route | Days that only switch between go and no-go | No-go all day |
 |---|---|---|---|
