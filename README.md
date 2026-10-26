@@ -15,9 +15,10 @@ data/copernicus/   Copernicus Marine NetCDF subsets used by the pipeline (see it
 web/prototype/     clickable prototype with illustrative (not real) data
 docs/SCHEMA.md     JSON contracts between pipeline, web and api
 docs/ARCHITECTURE.md  components, data flow, AI coach design, deployment, known limits
+docs/METHODS.md    data, simulation, thresholds, sensitivity results
 ```
 
-Planned: `web/` app, `api/` (AI coach and play-test log), `docs/METHODS.md`.
+Planned: `web/` app, `api/` (AI coach and play-test log).
 
 ## Setup
 
