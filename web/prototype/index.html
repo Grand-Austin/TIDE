@@ -62,7 +62,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
 .brand { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
 .brand span { color: var(--track); }
-.tag { color: var(--muted); font-size: 14px; font-style: italic; }
+.tag { color: var(--muted); font-size: 14px; }
 
 .stepper { display: flex; flex-wrap: wrap; gap: 4px; }
 .stepper button {
@@ -73,7 +73,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .stepper button[aria-current="step"] { border-color: var(--track); background: var(--soft); }
 .stepper button[aria-current="step"] b { color: var(--track); }
 .stepper button:disabled { opacity: .45; cursor: not-allowed; }
-.intent { font-size: 13px; color: var(--muted); border-left: 3px solid var(--rule); padding-left: 10px; }
+.intent { font-size: 13px; color: var(--muted); border: 1px solid var(--rule); padding: 6px 10px; }
 .intent b { color: var(--ink); font-weight: 500; }
 
 .stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
@@ -179,10 +179,35 @@ tr:last-child td { border-bottom: 0; }
 .bar .t { height: 10px; background: var(--paper); border: 1px solid var(--rule); }
 .bar .t i { display: block; height: 100%; background: var(--track); }
 .bar.weak span:first-child { color: var(--bad); font-weight: 500; }
-.coach { border-left: 3px solid var(--track); padding: 10px 12px; background: var(--paper); display: grid; gap: 6px; font-size: 14px; }
+.coach { border: 1px solid var(--track); padding: 10px 12px; background: var(--paper); display: grid; gap: 6px; font-size: 14px; }
 .ev { display: flex; flex-wrap: wrap; gap: 6px; }
 .credit { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; margin-top: 12px; }
 .credit a { color: inherit; }
+
+/* Interaction states. Colour shifts take 300 ms and presses settle on a decelerating curve; only
+   transform, opacity and colours animate. */
+:root { --ease: cubic-bezier(0.22, 1, 0.36, 1); }
+.btn, .route, .chip, .layer, .case, .stepper button {
+  transition: background-color 300ms var(--ease), border-color 300ms var(--ease), color 300ms var(--ease), opacity 300ms var(--ease), transform 300ms var(--ease);
+}
+.btn:not(:disabled):hover { opacity: .88; }
+.btn.ghost:not(:disabled):hover, .routes .route:hover, .chip:hover, .layer:not(:disabled):hover, .stepper button:not(:disabled):hover { border-color: var(--track); }
+.btn:not(:disabled):active, .routes .route:active, .chip:active, .layer:not(:disabled):active, .case:not([disabled]):active, .stepper button:not(:disabled):active { transform: scale(0.98); }
+.panel.enter > * { animation: rise 500ms var(--ease) both; } /* only on a step change, not on re-renders within a step */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* Loading: placeholders shaped like the case library. */
+.skel { display: grid; gap: 12px; }
+.skel i { display: block; background: var(--paper); border: 1px solid var(--rule); animation: glimmer 2.4s linear infinite; }
+.skel .h { height: 30px; width: 55%; }
+.skel .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.skel .cards i { height: 132px; }
+@keyframes glimmer { 50% { opacity: .55; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .route, .chip, .layer, .case, .stepper button { transition: none; }
+  .panel > *, .skel i { animation: none; }
+}
 </style>
 </head>
 <body>
@@ -207,7 +232,7 @@ tr:last-child td { border-bottom: 0; }
       </div>
       <div class="mapfoot" id="mapfoot"></div>
     </div>
-    <div class="panel" id="panel"><p class="muted">Loading cases…</p></div>
+    <div class="panel" id="panel"><div class="skel" role="status" aria-label="Loading cases"><i class="h"></i><div class="cards"><i></i><i></i><i></i></div></div></div>
   </div>
   <p class="credit">Generated using E.U. Copernicus Marine Service Information;
     <a href="https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I">https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I</a>,
@@ -559,6 +584,7 @@ tr:last-child td { border-bottom: 0; }
   function go(n) {
     stopPlay();
     S.step = n; S.maxStep = Math.max(S.maxStep, n);
+    panel.classList.add("enter"); clearTimeout(go.t); go.t = setTimeout(() => panel.classList.remove("enter"), 600);
     renderStepper(); renderPanel();
   }
   document.getElementById("stepper").addEventListener("click", e => { const b = e.target.closest("button[data-step]"); if (b && !b.disabled) go(+b.dataset.step); });
@@ -796,7 +822,7 @@ tr:last-child td { border-bottom: 0; }
       CASES = Object.fromEntries(list.map(c => [c.id, c]));
       renderStepper(); renderPanel(); initMap();
     })
-    .catch(err => { panel.innerHTML = `<p>Could not load the case files (${esc(err.message)}). Serve web/ over HTTP: <span class="mono">python -m http.server -d web</span>, then open /prototype/.</p>`; });
+    .catch(err => { panel.innerHTML = `<h2>Cases did not load</h2><p>${esc(err.message)}. Opening the file directly does not work: serve web/ over HTTP with <span class="mono">python -m http.server -d web</span>, then open /prototype/.</p>`; });
 })();
 </script>
 </body>
