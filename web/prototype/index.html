@@ -245,17 +245,24 @@ tr:last-child td { border-bottom: 0; }
 (function () {
   "use strict";
 
-  const UTC_OFFSET = 2; // Balearic summer time; case files are in UTC
+  // Case files are in UTC. The UTC offset of the Balearic Islands (Europe/Madrid) on a case date: +2 in summer, +1 in winter.
+  function utcOffset(date) {
+    const tz = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", timeZoneName: "shortOffset" })
+      .formatToParts(new Date(date + "T12:00:00Z")).find(p => p.type === "timeZoneName").value; // e.g. "GMT+2"
+    return Number(tz.replace("GMT", "")) || 0;
+  }
   const KN = 1.94384;
   const CASE_IDS = ["c01", "c04", "c07", "c08"];
   const ROUTE_COLOR = { A: "--track", B: "--route-b", C: "--route-c" };
   const GOALS = { wind_vs_swell: "Wind sea vs swell", beam_seas: "Wave direction vs heading", current_time: "Current and passage time", time_window: "Departure window" };
   const EVIDENCE = { period: "period", wave_dir: "dir", current: "cur", wind: "wind", hs: "hs", sst: "sst" }; // case key_evidence -> layer id
-  // Editorial text per case. Every number in it was read from the case file; times are local.
+  // Editorial text per case; times are local. Numbers come from the case file (flips, simulations, grid means
+  // over the channel), except the wind-sea and swell heights in c01, which come from the wave model's partitions
+  // (VHM0_WW, VHM0_SW1, VTM01_SW1 in data/copernicus/) and are not shown anywhere else in the app.
   const META = {
     c01: {
       no: "#01", dots: "●●○",
-      lesson: "The wind stayed under 14 kn all day, yet from late morning a swell from the north-east arrived: by early afternoon the waves were about 1.4 to 1.7 m with a period of about 7 s, almost all of it swell (wind sea under 0.4 m). The wind alone would not have warned you; the wave period would. The direct route meets these waves on the beam, so it works only if you leave by 09:00. From 09:30 to 13:00 the southern lee is the best choice, at 13:30 and 14:00 the northern loop, and after that no route reaches Ciutadella before 21:00."
+      lesson: "Averaged over the channel, the wind stayed under 14 kn all day, yet from late morning a swell from the north-north-east arrived: by early afternoon the waves were about 1.4 to 1.7 m with a period of about 7 s, almost all of it swell (wind sea under 0.4 m). The wind alone would not have warned you; the wave period would. The direct route meets these waves on the beam, so it works only if you leave by 09:00. From 09:30 to 13:00 the southern lee is the best choice, and at 13:30 and 14:00 the northern loop. After that no route is safe: the northern loop arrives after 21:00, and the other two meet beam seas above 1.5 m."
     },
     c04: {
       no: "#04", dots: "●○○",
@@ -283,7 +290,7 @@ tr:last-child td { border-bottom: 0; }
   const hrs = h => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`; };
   const compass = d => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
   const utcHours = iso => { const d = new Date(iso); return d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600; };
-  const local = utc => utc + UTC_OFFSET;
+  const local = (utc, c = C()) => utc + c.tz;
   const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
 
   // ---------- data ----------
@@ -314,7 +321,7 @@ tr:last-child td { border-bottom: 0; }
     const lon = grid.lon, lat = grid.lat;
     return { lon0: lon[0], lat0: lat[0], dlon: (lon[lon.length - 1] - lon[0]) / (lon.length - 1), dlat: (lat[lat.length - 1] - lat[0]) / (lat.length - 1), nx: lon.length, ny: lat.length };
   }
-  function prepare(kase, wide) {
+  function prepare(kase) {
     const g = caseGrid(kase.grid);
     const deps = Object.keys(kase.sims).sort();
     const sims = {};
@@ -330,14 +337,20 @@ tr:last-child td { border-bottom: 0; }
     }
     return {
       ...kase, ...META[kase.id], deps, simsH: sims,
-      depLocal: deps.map(d => local(utcHours(d))),
+      tz: utcOffset(kase.date),
+      depLocal: deps.map(d => utcHours(d) + utcOffset(kase.date)),
       arriveBy: utcHours(kase.limits.arrive_by),
-      S: {
-        hs: sampler(wide.waves, wide.waves.hs), dir: dirSampler(wide.waves, wide.waves.dir), period: sampler(wide.waves, wide.waves.period),
-        wu: sampler(wide.wind, wide.wind.u), wv: sampler(wide.wind, wide.wind.v), cu: sampler(wide.current, wide.current.u), cv: sampler(wide.current, wide.current.v),
-        sst: sampler(g, { values: kase.grid.layers.sst.values.map(t => t.flat()) })
-      },
-      wide
+      sst: sampler(g, { values: kase.grid.layers.sst.values.map(t => t.flat()) }),
+      wide: null, S: null
+    };
+  }
+  // The day of waves, wind and currents over the Balearics (about 1.8 MB) is loaded when a case starts.
+  function attachMap(c, wide) {
+    c.wide = wide;
+    c.S = {
+      hs: sampler(wide.waves, wide.waves.hs), dir: dirSampler(wide.waves, wide.waves.dir), period: sampler(wide.waves, wide.waves.period),
+      wu: sampler(wide.wind, wide.wind.u), wv: sampler(wide.wind, wide.wind.v), cu: sampler(wide.current, wide.current.u), cv: sampler(wide.current, wide.current.v),
+      sst: c.sst
     };
   }
 
@@ -409,6 +422,15 @@ tr:last-child td { border-bottom: 0; }
   function fieldBounds(g) {
     return { west: g.lon0 - g.dlon / 2, east: g.lon0 + (g.nx - 0.5) * g.dlon, south: g.lat0 - g.dlat / 2, north: g.lat0 + (g.ny - 0.5) * g.dlat };
   }
+  // The colour field is a canvas source over the map day's wave grid, added on first use.
+  function ensureField(g) {
+    const b = fieldBounds(g), coords = [[b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]];
+    if (map.getSource("field")) { map.getSource("field").setCoordinates(coords); return; }
+    fieldCanvas = document.createElement("canvas"); fieldCanvas.width = g.nx * 6; fieldCanvas.height = g.ny * 6;
+    map.addSource("field", { type: "canvas", canvas: fieldCanvas, animate: true, coordinates: coords });
+    const firstSymbol = map.getStyle().layers.find(l => l.type === "symbol" && l.source !== "routes" && l.source !== "ports");
+    map.addLayer({ id: "field", type: "raster", source: "field", paint: { "raster-opacity": 0.7, "raster-resampling": "linear", "raster-fade-duration": 0 } }, firstSymbol && firstSymbol.id);
+  }
   function drawField() {
     const c = M.c, g = c.wide.waves, b = fieldBounds(g), key = c.id + ":" + view.t.toFixed(2);
     if (key === fieldKey) return;
@@ -434,10 +456,6 @@ tr:last-child td { border-bottom: 0; }
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     map.on("styleimagemissing", e => map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }));
     map.on("load", () => {
-      const g = CASES.c07.wide.waves, b = fieldBounds(g), firstSymbol = map.getStyle().layers.find(l => l.type === "symbol");
-      fieldCanvas = document.createElement("canvas"); fieldCanvas.width = g.nx * 6; fieldCanvas.height = g.ny * 6;
-      map.addSource("field", { type: "canvas", canvas: fieldCanvas, animate: true, coordinates: [[b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]] });
-      map.addLayer({ id: "field", type: "raster", source: "field", layout: { visibility: "none" }, paint: { "raster-opacity": 0.7, "raster-resampling": "linear", "raster-fade-duration": 0 } }, firstSymbol && firstSymbol.id);
       const empty = { type: "FeatureCollection", features: [] }, halo = dark() ? "#000" : "#fff";
       for (const id of ["routes", "tracks", "bad", "ships", "ports"]) map.addSource(id, { type: "geojson", data: empty });
       const color = ["match", ["get", "k"], "A", css("--track"), "B", css("--route-b"), css("--route-c")];
@@ -465,12 +483,13 @@ tr:last-child td { border-bottom: 0; }
   function draw() {
     if (!mapReady) return;
     const c = S.caseId ? C() : null;
-    M.c = c || CASES.c07;
+    M.c = c;
     const layers = view.layers || new Set(), focus = view.focus || null;
     view.t = view.t == null ? 6 : view.t;
-    const showField = c && layers.has("hs");
-    map.setLayoutProperty("field", "visibility", showField ? "visible" : "none");
-    document.getElementById("legend").classList.toggle("on", !!showField);
+    const showField = !!(c && c.wide && layers.has("hs"));
+    if (showField) ensureField(c.wide.waves);
+    if (map.getLayer("field")) map.setLayoutProperty("field", "visibility", showField ? "visible" : "none");
+    document.getElementById("legend").classList.toggle("on", showField);
     if (showField) drawField();
     const props = k => ({ k, dim: !!focus && focus !== k, focus: focus === k });
     map.getSource("routes").setData(fc(c ? Object.entries(c.routes).map(([k, r]) => line(r.points, props(k))) : []));
@@ -615,6 +634,14 @@ tr:last-child td { border-bottom: 0; }
     panel.querySelectorAll("[data-case]").forEach(b => b.addEventListener("click", () => startCase(b.dataset.case)));
   }
   function startCase(id) {
+    const c = CASES[id];
+    if (!c.wide) {
+      panel.innerHTML = `<div class="skel" role="status" aria-label="Loading the sea state of case ${c.no}"><i class="h"></i><div class="cards"><i></i></div></div>`;
+      load(`../public/maps/${c.date}.json`)
+        .then(wide => { attachMap(c, wide); startCase(id); })
+        .catch(err => { panel.innerHTML = `<h2>Case ${c.no} did not load</h2><p>${esc(err.message)}.</p><div class="row"><button type="button" class="btn ghost" id="lib">Back to the case library</button></div>`; document.getElementById("lib").addEventListener("click", () => go(1)); });
+      return;
+    }
     S.caseId = id; S.opened = new Set(); S.invT = 8;
     S.choice = { rk: null, dep: 8, reasons: new Set(), note: "" };
     S.maxStep = 2; go(2);
@@ -622,7 +649,7 @@ tr:last-child td { border-bottom: 0; }
 
   function pBrief() {
     const c = C();
-    view = { t: 8 - UTC_OFFSET, layers: new Set() }; setFoot(); draw();
+    view = { t: 8 - C().tz, layers: new Set() }; setFoot(); draw();
     panel.innerHTML = `<h2>Case ${c.no}<small>${c.title}</small></h2>
       <p>${dateText(c.date)}. A training sailing vessel must sail from <b>Alcúdia</b> to <b>Ciutadella</b> on Menorca. The chart shows three candidate routes between the harbour exits.</p>
       <dl class="kv">
@@ -639,7 +666,7 @@ tr:last-child td { border-bottom: 0; }
 
   function pInvestigate() {
     const left = 3 - S.opened.size;
-    view = { t: S.invT - UTC_OFFSET, layers: S.opened, stamp: "EVIDENCE" }; setFoot(); draw();
+    view = { t: S.invT - C().tz, layers: S.opened, stamp: "EVIDENCE" }; setFoot(); draw();
     panel.innerHTML = `<h2>Investigate<small>Open up to 3 pieces of evidence</small></h2>
       <div class="budget" aria-label="${left} left">${[0, 1, 2].map(i => `<i class="${i < left ? "on" : ""}"></i>`).join("")}<span class="small muted">${left} left</span></div>
       <div class="layers">${LAYERS.map(L => { const on = S.opened.has(L.id); return `<button type="button" class="layer" data-layer="${L.id}" aria-pressed="${on}" ${!on && left === 0 ? "disabled" : ""}><span>${on ? "◉" : "○"}</span><span>${L.name}</span><span class="ic">${L.unit}</span></button>`; }).join("")}</div>
@@ -653,13 +680,13 @@ tr:last-child td { border-bottom: 0; }
       S.opened.add(id); particles.reset(); pInvestigate();
     }));
     const r = document.getElementById("invT");
-    r.addEventListener("input", () => { S.invT = +r.value; document.getElementById("invClock").textContent = hhmm(S.invT); view.t = S.invT - UTC_OFFSET; draw(); });
+    r.addEventListener("input", () => { S.invT = +r.value; document.getElementById("invClock").textContent = hhmm(S.invT); view.t = S.invT - C().tz; draw(); });
     document.getElementById("toDecide").addEventListener("click", () => go(4));
   }
 
   function pDecide() {
     const c = C(), ch = S.choice;
-    view = { t: ch.dep - UTC_OFFSET, layers: S.opened, focus: ch.rk, stamp: "EVIDENCE" }; setFoot(); draw();
+    view = { t: ch.dep - C().tz, layers: S.opened, focus: ch.rk, stamp: "EVIDENCE" }; setFoot(); draw();
     const shortest = ["A", "B", "C"].sort((a, b) => c.routes[a].nm - c.routes[b].nm)[0];
     const first = c.depLocal[0], last = c.depLocal[c.depLocal.length - 1];
     panel.innerHTML = `<h2>Decide<small>Which route? When?</small></h2>
@@ -675,10 +702,10 @@ tr:last-child td { border-bottom: 0; }
       <div class="row"><button type="button" class="btn" id="submit" ${ch.rk ? "" : "disabled"}>Submit decision</button><span class="small muted">Then replay the actual sea state</span></div>`;
     panel.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { ch.rk = b.dataset.rk; pDecide(); }));
     const r = document.getElementById("dep");
-    r.addEventListener("input", () => { ch.dep = +r.value; document.getElementById("depClock").textContent = hhmm(ch.dep); view.t = ch.dep - UTC_OFFSET; draw(); });
+    r.addEventListener("input", () => { ch.dep = +r.value; document.getElementById("depClock").textContent = hhmm(ch.dep); view.t = ch.dep - C().tz; draw(); });
     panel.querySelectorAll("[data-reason]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.reason; ch.reasons.has(v) ? ch.reasons.delete(v) : ch.reasons.add(v); b.setAttribute("aria-pressed", ch.reasons.has(v)); }));
     document.getElementById("note").addEventListener("input", e => { ch.note = e.target.value; });
-    document.getElementById("submit").addEventListener("click", () => { S.replayT = ch.dep - UTC_OFFSET; S.tradeDep = ch.dep; go(5); startPlay(); });
+    document.getElementById("submit").addEventListener("click", () => { S.replayT = ch.dep - C().tz; S.tradeDep = ch.dep; go(5); startPlay(); });
   }
 
   // replay (times in UTC hours)
@@ -686,7 +713,7 @@ tr:last-child td { border-bottom: 0; }
   const sims = () => simsAt(C(), S.choice.dep);
   const tEnd = () => Math.max(...sims().map(s => s.arrive));
   function pReplay() {
-    const dep = S.choice.dep - UTC_OFFSET;
+    const dep = S.choice.dep - C().tz;
     if (S.replayT == null) S.replayT = dep;
     panel.innerHTML = `<h2>Replay<small>Departing ${hhmm(S.choice.dep)}, actual sea state</small></h2>
       <div class="gauges" id="gauges"></div>
@@ -732,7 +759,7 @@ tr:last-child td { border-bottom: 0; }
   }
   function startPlay() {
     if (reduceMotion()) { S.replayT = tEnd(); updReplay(); return; }
-    if (S.replayT >= tEnd() - 0.01) S.replayT = S.choice.dep - UTC_OFFSET;
+    if (S.replayT >= tEnd() - 0.01) S.replayT = S.choice.dep - C().tz;
     S.playing = true; lastTs = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   }
   function stopPlay() { S.playing = false; cancelAnimationFrame(raf); }
@@ -764,7 +791,7 @@ tr:last-child td { border-bottom: 0; }
     }).join("");
     const notes = c.flips.map((f, i) => {
       const at = local(utcHours(f.at));
-      if (!f.to) return `<span>From <b class="mono">${hhmm(at)}</b>: <b>no safe option</b>. The right call is not to sail. Why: ${whyNot(c, f.from, at)}.</span>`;
+      if (!f.to) return `<span>From <b class="mono">${hhmm(at)}</b>: <b>no safe option</b>. The right call is not to sail. Why: ${["A", "B", "C"].map(k => whyNot(c, k, at)).join("; ")}.</span>`;
       if (!f.from) return i === 0
         ? `<span>Until <b class="mono">${hhmm(at - 0.5)}</b> no route is safe. From <b class="mono">${hhmm(at)}</b>, <b>${f.to}</b> is the first safe option.</span>`
         : `<span>From <b class="mono">${hhmm(at)}</b>, <b>${f.to}</b> becomes safe again.</span>`;
@@ -784,7 +811,7 @@ tr:last-child td { border-bottom: 0; }
       row("Max wave height", s => s.max_hs.toFixed(1) + " m", s => s.over_hours > 0) +
       row("Beam seas over limit", s => s.beam_hours.toFixed(1) + " h", s => s.beam_hours > 0);
     const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples; });
-    view = { t: dep - UTC_OFFSET + 3, layers: new Set(["hs"]), tracks, focus: best ? best.rk : null, stamp: "ACTUAL", readAll: true };
+    view = { t: dep - C().tz + 3, layers: new Set(["hs"]), tracks, focus: best ? best.rk : null, stamp: "ACTUAL", readAll: true };
     setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>Segment over a limit</span>`); draw();
   }
 
@@ -826,12 +853,12 @@ tr:last-child td { border-bottom: 0; }
         <button type="button" class="btn ghost" id="lib">Back to the case library</button></div>`;
     if (next) document.getElementById("next").addEventListener("click", () => startCase(next.id));
     document.getElementById("lib").addEventListener("click", () => { S.caseId = null; S.maxStep = 1; go(1); });
-    view = { t: ch.dep - UTC_OFFSET + 3, layers: new Set(["hs"]), tracks: { [ch.rk]: mine.samples }, focus: ch.rk, stamp: "ACTUAL", readAll: true }; setFoot(); draw();
+    view = { t: ch.dep - C().tz + 3, layers: new Set(["hs"]), tracks: { [ch.rk]: mine.samples }, focus: ch.rk, stamp: "ACTUAL", readAll: true }; setFoot(); draw();
   }
 
   // ---------- start ----------
   const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); });
-  Promise.all(CASE_IDS.map(id => load(`../public/cases/${id}.json`).then(kase => load(`../public/maps/${kase.date}.json`).then(wide => prepare(kase, wide)))))
+  Promise.all(CASE_IDS.map(id => load(`../public/cases/${id}.json`).then(prepare)))
     .then(list => {
       CASES = Object.fromEntries(list.map(c => [c.id, c]));
       renderStepper(); renderPanel(); initMap();

@@ -94,7 +94,7 @@ Four candidates are exported as cases (`pipeline/export_cases.py`). Titles, goal
 
 | Case | Day | Kind | What the data shows | Goal |
 |---|---|---|---|---|
-| c01 The quiet swell | 1 July | route | Wind under 14 kn, but a north-east swell of 1.4 to 1.7 m (period about 7 s) arrives from late morning; wind sea stays under 0.4 m. A until 09:00, C 09:30 to 13:00, B 13:30 to 14:00 | `wind_vs_swell` |
+| c01 The quiet swell | 1 July | route | Wind under 14 kn, but a north-north-east swell of 1.4 to 1.7 m (period about 7 s) arrives from late morning; wind sea stays under 0.4 m (heights from the model's wind-sea and swell partitions). Wind under 14 kn is the channel mean; during the day single cells reach about 19 kn. A until 09:00, C 09:30 to 13:00, B 13:30 to 14:00 | `wind_vs_swell` |
 | c04 First light only | 26 July | go/no-go | Steady 16 to 18 kn north-east wind, waves growing from 1.1 m to almost 2 m. Only a 06:00 or 06:30 departure stays within the limits | `time_window` |
 | c07 The Gregal morning | 9 September | route | Wind swings from SSE to NE between 09:00 and 11:00. A until 07:30, C 08:00 to 09:30, no safe route from 10:00 | `time_window` |
 | c08 After the Gregal | 10 September | go/no-go | Wind eases from 24 kn to calm, but a 1.5 to 2 m swell keeps coming from the NNE. A and C have more than 2 h of beam seas at every departure; only B, which meets the swell head-on and then from astern, is safe from 12:00 to 14:00 | `beam_seas` |
