@@ -1,4 +1,4 @@
-"""Export one day of waves, currents and wind for the animated map (web/map-spike/).
+"""Export one day of waves, currents and wind over the Balearics for the animated maps (web/prototype/, web/map-spike/).
 
 Routes, simulations and flips come from the case file (pipeline/export_cases.py), not from here.
 
@@ -21,7 +21,7 @@ import xarray as xr
 
 from pipeline.fetch import DAY_DATASETS, RAW
 
-OUT = Path(__file__).resolve().parent.parent / "web" / "map-spike" / "data"
+OUT = Path(__file__).resolve().parent.parent / "web" / "public" / "maps"
 CREDIT = (
     "Generated using E.U. Copernicus Marine Service Information; "
     "https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I, "

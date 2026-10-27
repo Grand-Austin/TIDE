@@ -37,7 +37,7 @@ PRODUCTS = [
 ]
 # Chosen from data/candidates.json. Titles and the key evidence are editorial; the rest comes from the data.
 CASES = {
-    "c01": {"date": "2026-07-01", "title": "Three routes in one day", "goal": "beam_seas", "key_evidence": "wave_dir"},
+    "c01": {"date": "2026-07-01", "title": "The quiet swell", "goal": "wind_vs_swell", "key_evidence": "period"},
     "c07": {"date": "2026-09-09", "title": "The Gregal morning", "goal": "time_window", "key_evidence": "wind"},
 }
 

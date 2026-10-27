@@ -13,9 +13,10 @@ pipeline/          Python: fetch Copernicus data, simulate routes, mine cases, e
 tests/             pytest tests for pipeline code
 data/copernicus/   Copernicus Marine NetCDF subsets used by the pipeline (see its README)
 data/candidates.json  candidate case days from pipeline/mine.py
-web/prototype/     clickable prototype with illustrative (not real) data
+web/prototype/     clickable prototype on the real case files (python -m http.server -d web, open /prototype/)
 web/map-spike/     animated map of one real day (python -m http.server -d web, open /map-spike/)
 web/public/cases/  case files from pipeline/export_cases.py (format in docs/SCHEMA.md)
+web/public/maps/   one day of waves, currents and wind over the Balearics, from pipeline/export_map.py
 docs/SCHEMA.md     JSON contracts between pipeline, web and api
 docs/ARCHITECTURE.md  components, data flow, AI coach design, deployment, known limits
 docs/METHODS.md    data, simulation, thresholds, sensitivity results

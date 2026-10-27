@@ -7,17 +7,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
-/* Layout: chart table. Map canvas on the left like an open chart, the case file / instrument panel on the right; a stepper across the top walks one case. */
+/* Layout: chart table. Live map on the left like an open chart, the case file / instrument panel on the right;
+   a stepper across the top walks one case. Serve web/ over HTTP (python -m http.server -d web), open /prototype/. */
 :root {
   --paper: #EEF3F6;
   --surface: #FFFFFF;
   --ink: #0F2233;
   --muted: #55697B;
   --rule: #C8D4DD;
-  --sea: #D7E7F1;
-  --land: #EDE3CB;
-  --land-edge: #B9A77E;
   --track: #A8146A;
   --route-b: #245E9E;
   --route-c: #1D7466;
@@ -25,6 +24,7 @@
   --ok: #1F6B4F;
   --warn: #9A5B00;
   --soft: #F6DDEA;
+  --halo: #FFFFFF;
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -33,15 +33,13 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --paper: #0A141E; --surface: #0F1E2C; --ink: #E3EBF1; --muted: #93A7B8; --rule: #22384C;
-    --sea: #102638; --land: #2B2A22; --land-edge: #6E6448;
-    --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830;
+    --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830; --halo: #000000;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --paper: #0A141E; --surface: #0F1E2C; --ink: #E3EBF1; --muted: #93A7B8; --rule: #22384C;
-  --sea: #102638; --land: #2B2A22; --land-edge: #6E6448;
-  --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830;
+  --track: #E35BA8; --route-b: #6FA8E8; --route-c: #4FC2AD; --bad: #FF6B5E; --ok: #5CC49A; --warn: #E0A64A; --soft: #3A1830; --halo: #000000;
 }
 * { box-sizing: border-box; }
 body {
@@ -50,7 +48,7 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 56px; display: grid; gap: 14px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 h1, h2, h3 { margin: 0; line-height: 1.25; text-wrap: balance; }
 p { margin: 0; }
 button, input, textarea { font: inherit; color: inherit; }
@@ -58,7 +56,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 .label { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
-.banner { background: var(--soft); padding: 8px 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.banner { background: var(--soft); padding: 8px 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; overflow-wrap: anywhere; }
 .banner b { color: var(--track); }
 
 .top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
@@ -79,9 +77,23 @@ button, input, textarea { font: inherit; color: inherit; }
 .intent b { color: var(--ink); font-weight: 500; }
 
 .stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 920px) { .stage { grid-template-columns: 1fr; } }
-.mapbox { background: var(--surface); border: 1px solid var(--rule); display: grid; }
-.mapbox canvas { width: 100%; display: block; aspect-ratio: 1.47; max-width: 100%; }
+@media (max-width: 920px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.mapbox { background: var(--surface); border: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 1fr); position: sticky; top: 12px; }
+@media (max-width: 920px) { .mapbox { position: static; } }
+.mapwrap { position: relative; width: 100%; aspect-ratio: 1.3; }
+@media (max-width: 600px) { .mapwrap { aspect-ratio: 1; } }
+#map { position: absolute; inset: 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; width: 100%; height: 100%; }
+.stamp { position: absolute; left: 10px; top: 8px; z-index: 2; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); padding: 2px 8px; display: grid; }
+.stamp b { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: .04em; }
+.stamp span { font-size: 11px; color: var(--muted); }
+.stamp:empty { display: none; }
+.readout { position: absolute; right: 10px; top: 8px; z-index: 2; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); padding: 4px 8px; font: 12px/1.5 var(--font-data); display: none; }
+.readout.on { display: grid; }
+.legend { position: absolute; left: 10px; bottom: 30px; z-index: 2; background: var(--surface); border: 1px solid var(--rule); padding: 4px 8px; width: 160px; display: none; gap: 2px; font-size: 11px; }
+.legend.on { display: grid; }
+.legend .ramp { height: 8px; }
+.legend .ticks { display: flex; justify-content: space-between; font-family: var(--font-data); color: var(--muted); }
 .mapfoot { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); align-items: center; }
 .mapfoot .k { display: inline-flex; gap: 6px; align-items: center; }
 .sw { width: 18px; height: 3px; display: inline-block; }
@@ -140,7 +152,7 @@ textarea { width: 100%; border: 1px solid var(--rule); background: var(--surface
 
 .tblwrap { overflow-x: auto; border: 1px solid var(--rule); }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
 thead th { font-family: var(--font-display); font-weight: 600; letter-spacing: .05em; color: var(--muted); background: var(--paper); }
 td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
@@ -152,8 +164,8 @@ tr:last-child td { border-bottom: 0; }
 .cells div { height: 30px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: #fff; position: relative; }
 .cells div.none { background: repeating-linear-gradient(45deg, var(--rule) 0 4px, transparent 4px 8px); color: var(--muted); }
 .cells div.cur::after { content: ""; position: absolute; inset: -3px; border: 2px solid var(--ink); }
-.ticks { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); font-family: var(--font-data); font-size: 10px; color: var(--muted); }
-.ticks span { text-align: center; }
+.ticks21 { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); font-family: var(--font-data); font-size: 10px; color: var(--muted); }
+.ticks21 span { text-align: center; }
 .flipnote { background: var(--soft); padding: 10px 12px; font-size: 14px; display: grid; gap: 4px; }
 
 .rank { display: grid; gap: 6px; }
@@ -175,7 +187,7 @@ tr:last-child td { border-bottom: 0; }
 </head>
 <body>
 <div class="wrap">
-  <div class="banner"><b>Illustrative prototype</b><span>Coastline, vessel data and thresholds are made-up examples that only demonstrate the interaction. Case #07 follows the shape of a real day in Copernicus Marine data with simplified values; its forecast and case #12 are made up. In the real product every number comes from Copernicus Marine data and every threshold cites a published seamanship source.</span></div>
+  <div class="banner"><b>Prototype with real data</b><span>Both cases are real days in the Copernicus Marine reanalysis; every sea state, simulation and tipping point comes from <span class="mono">pipeline/export_cases.py</span>. Thresholds are teaching values (docs/METHODS.md). No forecast was archived for these days, so the evidence shows what the sea actually did. The judgment profile and coach text are placeholders.</span></div>
 
   <div class="top">
     <div class="row" style="gap:14px;align-items:baseline"><div class="brand">Sea<span>Sense</span></div><span class="tag">Solve real cases at sea. Build the judgment future mariners need.</span></div>
@@ -184,11 +196,18 @@ tr:last-child td { border-bottom: 0; }
   <p class="intent" id="intent"></p>
 
   <div class="stage" id="stage">
-    <div class="mapbox" id="mapbox">
-      <canvas id="map" aria-label="Illustrative chart of the channel between Mallorca and Menorca"></canvas>
+    <div class="mapbox">
+      <div class="mapwrap">
+        <div id="map" role="region" aria-label="Map of the channel between Mallorca and Menorca"></div>
+        <canvas class="overlay" id="particles" aria-hidden="true"></canvas>
+        <canvas class="overlay" id="notes" aria-hidden="true"></canvas>
+        <div class="stamp" id="stamp"></div>
+        <div class="readout" id="readout" aria-live="polite"></div>
+        <div class="legend" id="legend"><span class="label">Wave height (m)</span><div class="ramp" id="ramp"></div><div class="ticks"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span></div></div>
+      </div>
       <div class="mapfoot" id="mapfoot"></div>
     </div>
-    <div class="panel" id="panel"></div>
+    <div class="panel" id="panel"><p class="muted">Loading cases…</p></div>
   </div>
   <p class="credit">Generated using E.U. Copernicus Marine Service Information;
     <a href="https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I">https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_WAV_006_012_MEDWAM3I</a>,
@@ -196,286 +215,343 @@ tr:last-child td { border-bottom: 0; }
     <a href="https://doi.org/10.48670/moi-00305">https://doi.org/10.48670/moi-00305</a></p>
 </div>
 
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 (function () {
   "use strict";
 
-  // ---------- geometry (illustrative coastline, not survey data) ----------
-  const LON0 = 2.25, LON1 = 4.45, LAT0 = 39.15, LAT1 = 40.30, KX = Math.cos(39.7 * Math.PI / 180);
-  const MALLORCA = [[2.35,39.60],[2.45,39.74],[2.62,39.84],[2.80,39.90],[2.98,39.93],[3.20,39.96],[3.17,39.90],[3.10,39.86],[3.12,39.80],[3.22,39.76],[3.34,39.74],[3.47,39.72],[3.45,39.63],[3.38,39.54],[3.27,39.42],[3.16,39.33],[3.05,39.27],[2.94,39.35],[2.80,39.47],[2.68,39.55],[2.56,39.50],[2.46,39.48],[2.38,39.53]];
-  const MENORCA = [[3.82,39.93],[3.81,39.97],[3.84,40.03],[3.93,40.06],[4.05,40.07],[4.15,40.05],[4.26,39.99],[4.32,39.90],[4.30,39.85],[4.20,39.82],[4.08,39.86],[3.96,39.90],[3.88,39.92]];
-  const PORTS = { start: { name: "Alcúdia", lon: 3.21, lat: 39.85 }, end: { name: "Ciutadella", lon: 3.79, lat: 39.98 } };
-  const ROUTES = {
-    A: { name: "Direct crossing", pts: [[3.21,39.85],[3.25,39.88],[3.79,39.98]], color: "--track" },
-    B: { name: "Northern loop", pts: [[3.21,39.85],[3.55,40.18],[3.79,39.98]], color: "--route-b" },
-    C: { name: "Southern lee", pts: [[3.21,39.85],[3.48,39.78],[3.78,39.92],[3.79,39.98]], color: "--route-c" }
+  const UTC_OFFSET = 2; // Balearic summer time; case files are in UTC
+  const KN = 1.94384;
+  const CASE_IDS = ["c01", "c07"];
+  const ROUTE_COLOR = { A: "--track", B: "--route-b", C: "--route-c" };
+  const GOALS = { wind_vs_swell: "Wind sea vs swell", beam_seas: "Wave direction vs heading", current_time: "Current and passage time", time_window: "Departure window" };
+  const EVIDENCE = { period: "period", wave_dir: "dir", current: "cur", wind: "wind", hs: "hs", sst: "sst" }; // case key_evidence -> layer id
+  // Editorial text per case. Every number in it was read from the case file; times are local.
+  const META = {
+    c01: {
+      no: "#01", dots: "●●○", next: "c07",
+      lesson: "The wind stayed under 14 kn all day, yet from late morning a swell from the north-east arrived: by early afternoon the waves were about 1.4 to 1.7 m with a period of about 7 s, almost all of it swell (wind sea under 0.4 m). The wind alone would not have warned you; the wave period would. The direct route meets these waves on the beam, so it works only if you leave by 09:00. From 09:30 to 13:00 the southern lee is the best choice, at 13:30 and 14:00 the northern loop, and after that no route reaches Ciutadella before 21:00."
+    },
+    c07: {
+      no: "#07", dots: "●●●", next: "c01",
+      lesson: "At 08:00 the sea was calm and the wind light from the south-south-east. Between 09:00 and 11:00 the wind swung to north-east, the Gregal, and reached about 25 kn by early afternoon; the waves from the north-north-east passed 1.5 m around noon. The direct route heads east-north-east, so these waves met it on the beam: it was safe only if you left by 07:30. Leaving between 08:00 and 09:30, only the southern lee stayed within the limits. From 10:00 no route was safe, and the right call was not to sail."
+    }
   };
-  const SPEED = 6; // knots, illustrative training vessel
+  const RAMP = [[0, [40, 90, 170]], [0.5, [30, 150, 190]], [1, [40, 180, 150]], [1.5, [150, 200, 80]],
+                [2, [235, 200, 60]], [2.5, [240, 140, 50]], [3, [220, 70, 60]], [4, [150, 40, 110]]];
+
   const rad = d => d * Math.PI / 180;
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-  const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
-  function legsOf(pts) {
-    const legs = [];
-    for (let i = 0; i < pts.length - 1; i++) {
-      const [lo1, la1] = pts[i], [lo2, la2] = pts[i + 1];
-      const mid = (la1 + la2) / 2;
-      const dx = (lo2 - lo1) * 60 * Math.cos(rad(mid)), dy = (la2 - la1) * 60;
-      legs.push({ a: pts[i], b: pts[i + 1], nm: Math.hypot(dx, dy), hdg: (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360 });
-    }
-    return legs;
-  }
-  for (const k in ROUTES) { ROUTES[k].legs = legsOf(ROUTES[k].pts); ROUTES[k].nm = ROUTES[k].legs.reduce((s, l) => s + l.nm, 0); }
-  const exposure = lat => clamp((lat - 39.7) / 0.4, 0.35, 1.25); // illustrative: more open water further north
-  const angDiff = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; };
-  const category = rel => rel < 60 ? "head" : rel <= 120 ? "beam" : "following";
-  const CAT_LABEL = { head: "Head seas", beam: "Beam seas", following: "Following seas", arrived: "In port" };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const dark = () => document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const hhmm = h => { const m = Math.round(((h % 24) + 24) % 24 * 60); return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+  const hrs = h => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`; };
+  const compass = d => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+  const utcHours = iso => { const d = new Date(iso); return d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600; };
+  const local = utc => utc + UTC_OFFSET;
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
 
-  // ---------- cases (all numbers illustrative) ----------
-  const turn = (a, b, f) => (a + ((b - a + 540) % 360 - 180) * f + 360) % 360; // shortest way from a to b
-  // Shaped after 9 September 2026 in the Copernicus MED reanalysis and L4 wind (local time): light wind from
-  // SSE and 0.4 m waves from S in the morning; the wind swings to NE around 09:00-10:00, the waves follow
-  // to NNE and build to about 3.5 m by evening.
-  function gregalField({ swing, onset, peak, ramp }) {
-    return {
-      hs: t => 0.4 + (peak - 0.4) * smooth((t - onset) / ramp),
-      dir: t => turn(180, 15, smooth((t - swing) / 1.5)), period: t => 4 + 3.5 * smooth((t - onset) / ramp),
-      wind: t => 6 + 21 * smooth((t - swing) / 3), windDir: t => turn(175, 38, smooth((t - swing + 1) / 1.5)),
-      sst: 26.1, cur: { kn: 0.3, to: 270 }
+  // ---------- data ----------
+  // Bilinear in space, linear in time; land corners are left out and the weights renormalised.
+  function sampler(g, L) {
+    const vals = L.values, scale = L.scale || 1, nt = vals.length;
+    return (t, lon, lat) => {
+      const x = (lon - g.lon0) / g.dlon, y = (lat - g.lat0) / g.dlat;
+      if (x < 0 || y < 0 || x > g.nx - 1 || y > g.ny - 1) return null;
+      const i = Math.min(Math.floor(x), g.nx - 2), j = Math.min(Math.floor(y), g.ny - 2), fx = x - i, fy = y - j;
+      const k = clamp(Math.floor(t), 0, nt - 2), ft = clamp(t - k, 0, 1);
+      let sum = 0, wsum = 0;
+      for (const [di, dj, w] of [[0, 0, (1 - fx) * (1 - fy)], [1, 0, fx * (1 - fy)], [0, 1, (1 - fx) * fy], [1, 1, fx * fy]]) {
+        const idx = (j + dj) * g.nx + i + di, a = vals[k][idx], b = vals[k + 1][idx];
+        if (a === null || b === null || w === 0) continue;
+        sum += w * (a + (b - a) * ft); wsum += w;
+      }
+      return wsum > 0.25 ? sum / wsum / scale : null;
     };
   }
-  function swellField(start, peak) {
-    return {
-      hs: t => 0.8 + (peak - 0.8) * smooth((t - start) / 5),
-      dir: () => 345, period: () => 11,
-      wind: () => 6, windDir: () => 200,
-      sst: 21.4, cur: { kn: 0.3, to: 270 }
-    };
+  function dirSampler(g, L) {
+    const comp = f => ({ scale: 100, values: L.values.map(r => r.map(d => d === null ? null : f(rad(d)) * 100)) });
+    const s = sampler(g, comp(Math.sin)), c = sampler(g, comp(Math.cos));
+    return (t, lon, lat) => { const a = s(t, lon, lat), b = c(t, lon, lat); return a === null || b === null ? null : (Math.atan2(a, b) * 180 / Math.PI + 360) % 360; };
   }
-  const CASES = {
-    c07: {
-      id: "c07", no: "#07", title: "The Gregal morning", date: "9 September 2026 (shape from real data, values simplified)",
-      goal: "Departure window", dots: "●●○", key: "wind",
-      beamLimit: 1.5, genLimit: 2.5, arriveBy: 20.5,
-      forecast: gregalField({ swing: 10, onset: 9.5, peak: 3, ramp: 7.5 }), actual: gregalField({ swing: 9.5, onset: 9, peak: 3.8, ramp: 7.5 }),
-      forecastNote: "Forecast (illustrative; no forecast was archived for this day): light southerly wind in the morning, swinging to north-east around 10:00 and building, waves up to about 3 m",
-      actualNote: "Actual (reanalysis): light SSE wind and 0.4 m southerly waves until about 09:00; the wind swung to north-east between 09:00 and 11:00 and the waves passed 1.5 m around 12:00",
-      lesson: "At departure the sea was calm and the wind came from the south-south-east, so the warning could only come from the forecast of a north-east wind (illustrative in this prototype). The wind swung to north-east between 09:00 and 11:00. The direct route heads east-northeast, so the growing waves from the north-north-east met it on the beam. Leaving early made the direct route fine; a little later only the southern lee worked; from about 10:00 no route was safe.",
-      next: "c12"
-    },
-    c12: {
-      id: "c12", no: "#12", title: "The quiet swell", date: "A day in October (illustrative)",
-      goal: "Wind sea vs swell", dots: "●●●", key: "period",
-      beamLimit: 0.8, genLimit: 2.5, arriveBy: 20.5,
-      forecast: swellField(11.5, 1.6), actual: swellField(11.0, 1.7),
-      forecastNote: "Forecast: north-northwest swell, period about 11 s, building in the afternoon",
-      actualNote: "Actual: the swell built about half an hour earlier, up to about 1.7 m",
-      lesson: "There was almost no wind and the waves looked barely over a metre, but a swell period of about 11 s carries a lot of energy. In this illustrative rule set, the beam-sea limit for long-period swell is lower (0.8 m).",
-      next: null
-    }
-  };
-
-  // ---------- simulation ----------
-  function simulate(c, which, rk, dep) {
-    const f = c[which], route = ROUTES[rk], dt = 1 / 12, samples = [];
-    let t = dep;
-    for (const leg of route.legs) {
-      const spd = SPEED + f.cur.kn * Math.cos(rad(leg.hdg - f.cur.to));
-      let d = 0;
-      while (d < leg.nm) {
-        const fr = d / leg.nm, lon = leg.a[0] + (leg.b[0] - leg.a[0]) * fr, lat = leg.a[1] + (leg.b[1] - leg.a[1]) * fr;
-        const hs = f.hs(t) * exposure(lat), rel = angDiff(leg.hdg, f.dir(t)), cat = category(rel);
-        const beamBad = cat === "beam" && hs > c.beamLimit, over = hs > c.genLimit;
-        samples.push({ t, lon, lat, hs, rel, cat, beamBad, over, spd, period: f.period(t) });
-        d += spd * dt; t += dt;
+  // Case grid ([time][lat][lon], real units) in the flat format of the map files.
+  function caseGrid(grid) {
+    const lon = grid.lon, lat = grid.lat;
+    return { lon0: lon[0], lat0: lat[0], dlon: (lon[lon.length - 1] - lon[0]) / (lon.length - 1), dlat: (lat[lat.length - 1] - lat[0]) / (lat.length - 1), nx: lon.length, ny: lat.length };
+  }
+  function prepare(kase, wide) {
+    const g = caseGrid(kase.grid);
+    const deps = Object.keys(kase.sims).sort();
+    const sims = {};
+    for (const dep of deps) {
+      sims[dep] = {};
+      for (const [k, r] of Object.entries(kase.sims[dep])) {
+        const end = kase.routes[k].points[kase.routes[k].points.length - 1], arrive = utcHours(r.arrival);
+        sims[dep][k] = {
+          ...r, rk: k, dep: utcHours(dep), arrive, eta: arrive - utcHours(dep),
+          samples: r.track.map(s => ({ ...s, t: utcHours(s.t) })).concat([{ t: arrive, lon: end[0], lat: end[1], hs: 0, category: "arrived", bad: false }])
+        };
       }
     }
-    const last = route.pts[route.pts.length - 1];
-    samples.push({ t, lon: last[0], lat: last[1], hs: 0, rel: 0, cat: "arrived", beamBad: false, over: false, spd: 0, period: f.period(t), arrived: true });
-    const beamH = samples.filter(s => s.beamBad).length * dt, overH = samples.filter(s => s.over).length * dt;
-    const maxHs = Math.max(...samples.map(s => s.hs)), arrive = t, late = arrive > c.arriveBy;
-    const safe = beamH === 0 && overH === 0 && !late;
-    const score = (safe ? 0 : 100) + beamH * 10 + overH * 10 + (late ? 20 : 0) + (arrive - dep);
-    return { rk, dep, arrive, eta: arrive - dep, beamH, overH, maxHs, late, safe, score, samples };
+    return {
+      ...kase, ...META[kase.id], deps, simsH: sims,
+      depLocal: deps.map(d => local(utcHours(d))),
+      arriveBy: utcHours(kase.limits.arrive_by),
+      S: {
+        hs: sampler(wide.waves, wide.waves.hs), dir: dirSampler(wide.waves, wide.waves.dir), period: sampler(wide.waves, wide.waves.period),
+        wu: sampler(wide.wind, wide.wind.u), wv: sampler(wide.wind, wide.wind.v), cu: sampler(wide.current, wide.current.u), cv: sampler(wide.current, wide.current.v),
+        sst: sampler(g, { values: kase.grid.layers.sst.values.map(t => t.flat()) })
+      },
+      wide
+    };
   }
-  function allSims(c, dep) { return ["A", "B", "C"].map(k => simulate(c, "actual", k, dep)); }
-  function bestAt(c, dep) {
-    const s = allSims(c, dep).filter(x => x.safe).sort((a, b) => a.eta - b.eta);
+
+  // ---------- simulations from the case file ----------
+  const depKey = (c, localH) => c.deps[clamp(Math.round((localH - c.depLocal[0]) * 2), 0, c.deps.length - 1)];
+  const simsAt = (c, localH) => ["A", "B", "C"].map(k => c.simsH[depKey(c, localH)][k]);
+  function bestAt(c, localH) {
+    const s = simsAt(c, localH).filter(x => x.safe).sort((a, b) => a.eta - b.eta);
     return s.length ? s[0] : null;
   }
-  const STRIP = Array.from({ length: 21 }, (_, i) => 5 + i * 0.5);
-  function flips(c) {
-    const out = []; let prev;
-    STRIP.forEach((h, i) => {
-      const b = bestAt(c, h), k = b ? b.rk : null;
-      if (i > 0 && k !== prev) out.push({ at: h, from: prev, to: k });
-      prev = k;
-    });
-    return out;
-  }
-  function whyNot(c, rk, dep) {
-    const s = simulate(c, "actual", rk, dep);
-    if (s.beamH > 0) return `${rk} would spend about ${s.beamH.toFixed(1)} h in beam seas above ${c.beamLimit} m`;
-    if (s.overH > 0) return `${rk} would meet waves above ${c.genLimit} m`;
-    if (s.late) return `${rk} cannot reach port before ${hhmm(c.arriveBy)}`;
+  function whyNot(c, rk, localH) {
+    const s = c.simsH[depKey(c, localH)][rk];
+    if (s.beam_hours > 0) return `${rk} would spend about ${s.beam_hours.toFixed(1)} h in beam seas above ${c.limits.beam_hs} m`;
+    if (s.over_hours > 0) return `${rk} would meet waves above ${c.limits.max_hs} m`;
+    if (s.late) return `${rk} cannot reach port before ${hhmm(local(c.arriveBy))}`;
     return `${rk} is slower than the new best option`;
   }
-  const hhmm = h => { const m = Math.round(h * 60); return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
-  const hrs = h => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`; };
+  const score = s => (s.safe ? 0 : 100) + s.beam_hours * 10 + s.over_hours * 10 + (s.late ? 20 : 0) + s.eta;
+  function sampleAt(sim, t) {
+    const sm = sim.samples; if (t <= sm[0].t) return sm[0];
+    for (let i = 1; i < sm.length; i++) if (sm[i].t >= t) {
+      const a = sm[i - 1], b = sm[i], f = (t - a.t) / (b.t - a.t || 1);
+      return { ...a, lon: a.lon + (b.lon - a.lon) * f, lat: a.lat + (b.lat - a.lat) * f, arrived: b.category === "arrived" && f >= 1 };
+    }
+    return { ...sm[sm.length - 1], arrived: true };
+  }
 
   // ---------- state ----------
   const LAYERS = [
     { id: "hs", name: "Wave height", unit: "m" },
     { id: "dir", name: "Wave direction", unit: "°" },
-    { id: "period", name: "Swell period", unit: "s" },
+    { id: "period", name: "Wave period", unit: "s" },
     { id: "cur", name: "Current", unit: "kn" },
     { id: "wind", name: "Wind", unit: "kn" },
     { id: "sst", name: "Sea temperature", unit: "°C" }
   ];
-  const REASONS = ["Wave height", "Wave direction", "Swell period", "Current", "Wind", "Shortest distance", "Arrival time"];
+  const REASONS = ["Wave height", "Wave direction", "Wave period", "Current", "Wind", "Shortest distance", "Arrival time"];
   const STEPS = [
-    { n: 1, name: "Cases", intent: "<b>This step shows:</b> every case is a real historical day. In the real product, a program mines Copernicus history for days when the best route flips." },
+    { n: 1, name: "Cases", intent: "<b>This step shows:</b> every case is a real day. <span class='mono'>pipeline/mine.py</span> searches the Copernicus record for days when the best route flips." },
     { n: 2, name: "Briefing", intent: "<b>This step shows:</b> the task, the vessel and the rules. The student decides which route and when to depart." },
-    { n: 3, name: "Investigate", intent: "<b>This step shows:</b> the detective part. Only 3 of 6 evidence layers can be opened, so students must decide which data matters. They see the forecast." },
+    { n: 3, name: "Investigate", intent: "<b>This step shows:</b> the detective part. Only 3 of 6 evidence layers can be opened, so students must decide which data matters. Hover the map to read the opened layers." },
     { n: 4, name: "Decide", intent: "<b>This step shows:</b> pick a route, a departure time and the reasons. The reasons are recorded for the case report." },
     { n: 5, name: "Replay", intent: "<b>This step shows:</b> three vessels leave at your departure time and sail through the actual sea state. Red segments exceed a limit." },
     { n: 6, name: "Tipping point", intent: "<b>This step shows:</b> the core scene. Drag the departure time to see when the best route flips, and why." },
     { n: 7, name: "Report", intent: "<b>This step shows:</b> the evidence you missed, your judgment profile and coach feedback, then a next case that targets your weak spot." }
   ];
   const S = { step: 1, maxStep: 1, caseId: null, opened: new Set(), invT: 8, choice: { rk: null, dep: 8, reasons: new Set(), note: "" }, replayT: null, playing: false, tradeDep: 8, done: new Set() };
+  let CASES = {};
   const C = () => CASES[S.caseId];
 
   // ---------- map ----------
-  const canvas = document.getElementById("map"), ctx = canvas.getContext("2d");
-  let W = 0, H = 0, view = { mode: "plain" };
-  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const P = (lon, lat) => [(lon - LON0) * KX / ((LON1 - LON0) * KX) * W, (LAT1 - lat) / (LAT1 - LAT0) * H];
-  function resize() {
-    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-    W = r.width; H = r.width / 1.47;
-    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    draw();
+  // view: { t (UTC h), layers: Set, tracks: {k: samples up to now}, focus, ships, stamp, readAll }
+  let view = { layers: new Set() };
+  const mapEl = document.getElementById("map"), partCv = document.getElementById("particles"), noteCv = document.getElementById("notes");
+  let map = null, mapReady = false, fieldCanvas = null, fieldKey = "";
+  const M = { c: null };
+
+  function rampColor(v) {
+    if (v <= RAMP[0][0]) return RAMP[0][1];
+    for (let i = 1; i < RAMP.length; i++) if (v <= RAMP[i][0]) {
+      const [a, ca] = RAMP[i - 1], [b, cb] = RAMP[i], f = (v - a) / (b - a);
+      return ca.map((x, k) => x + (cb[k] - x) * f);
+    }
+    return RAMP[RAMP.length - 1][1];
   }
-  function poly(pts) { ctx.beginPath(); pts.forEach(([lo, la], i) => { const [x, y] = P(lo, la); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); }
-  function inLand(lon, lat) {
-    const test = pts => { let ins = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) ins = !ins; } return ins; };
-    return test(MALLORCA) || test(MENORCA);
+  const max = RAMP[RAMP.length - 1][0];
+  document.getElementById("ramp").style.background = `linear-gradient(90deg, ${RAMP.map(([v, c]) => `rgb(${c.join(",")}) ${v / max * 100}%`).join(", ")})`;
+
+  function fieldBounds(g) {
+    return { west: g.lon0 - g.dlon / 2, east: g.lon0 + (g.nx - 0.5) * g.dlon, south: g.lat0 - g.dlat / 2, north: g.lat0 + (g.ny - 0.5) * g.dlat };
   }
-  function arrow(x, y, deg, len, color, w) {
-    const a = rad(deg), dx = Math.sin(a) * len, dy = -Math.cos(a) * len;
-    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
-    ctx.beginPath(); ctx.moveTo(x - dx / 2, y - dy / 2); ctx.lineTo(x + dx / 2, y + dy / 2); ctx.stroke();
-    const hx = x + dx / 2, hy = y + dy / 2, s = Math.max(4, len * 0.28);
+  function drawField() {
+    const c = M.c, g = c.wide.waves, b = fieldBounds(g), key = c.id + ":" + view.t.toFixed(2);
+    if (key === fieldKey) return;
+    fieldKey = key;
+    const ctx = fieldCanvas.getContext("2d"), W = fieldCanvas.width, H = fieldCanvas.height, img = ctx.createImageData(W, H);
+    for (let py = 0; py < H; py++) {
+      const lat = b.north - (py + 0.5) / H * (b.north - b.south);
+      for (let px = 0; px < W; px++) {
+        const v = c.S.hs(view.t, b.west + (px + 0.5) / W * (b.east - b.west), lat), o = (py * W + px) * 4;
+        if (v === null) continue;
+        const col = rampColor(v);
+        img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function initMap() {
+    map = new maplibregl.Map({
+      container: mapEl, style: `https://tiles.openfreemap.org/styles/${dark() ? "dark" : "positron"}`,
+      bounds: [[3.12, 39.72], [3.92, 40.24]], fitBoundsOptions: { padding: 24 }, attributionControl: { compact: true }
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    map.on("styleimagemissing", e => map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }));
+    map.on("load", () => {
+      const g = CASES.c07.wide.waves, b = fieldBounds(g), firstSymbol = map.getStyle().layers.find(l => l.type === "symbol");
+      fieldCanvas = document.createElement("canvas"); fieldCanvas.width = g.nx * 6; fieldCanvas.height = g.ny * 6;
+      map.addSource("field", { type: "canvas", canvas: fieldCanvas, animate: true, coordinates: [[b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]] });
+      map.addLayer({ id: "field", type: "raster", source: "field", layout: { visibility: "none" }, paint: { "raster-opacity": 0.7, "raster-resampling": "linear", "raster-fade-duration": 0 } }, firstSymbol && firstSymbol.id);
+      const empty = { type: "FeatureCollection", features: [] }, halo = dark() ? "#000" : "#fff";
+      for (const id of ["routes", "tracks", "bad", "ships", "ports"]) map.addSource(id, { type: "geojson", data: empty });
+      const color = ["match", ["get", "k"], "A", css("--track"), "B", css("--route-b"), css("--route-c")];
+      const dim = ["case", ["get", "dim"], 0.3, 1];
+      map.addLayer({ id: "routes", type: "line", source: "routes", paint: { "line-color": color, "line-width": ["case", ["get", "focus"], 3.5, 2.5], "line-opacity": dim, "line-dasharray": [2, 1.5] } });
+      map.addLayer({ id: "route-labels", type: "symbol", source: "routes", layout: { "symbol-placement": "line-center", "text-field": ["get", "k"], "text-size": 18, "text-font": ["Noto Sans Bold"] }, paint: { "text-color": color, "text-halo-color": halo, "text-halo-width": 2, "text-opacity": dim } });
+      map.addLayer({ id: "tracks", type: "line", source: "tracks", paint: { "line-color": color, "line-width": 3.5, "line-opacity": dim }, layout: { "line-cap": "round" } });
+      map.addLayer({ id: "bad", type: "line", source: "bad", paint: { "line-color": css("--bad"), "line-width": 7, "line-opacity": 0.85 }, layout: { "line-cap": "round" } });
+      map.addLayer({ id: "ports", type: "circle", source: "ports", paint: { "circle-radius": 5, "circle-color": css("--ink"), "circle-stroke-color": halo, "circle-stroke-width": 2 } });
+      map.addLayer({ id: "port-labels", type: "symbol", source: "ports", layout: { "text-field": ["get", "name"], "text-size": 12, "text-offset": [0, 1.2], "text-font": ["Noto Sans Bold"] }, paint: { "text-color": css("--ink"), "text-halo-color": halo, "text-halo-width": 2 } });
+      map.addLayer({ id: "ships", type: "circle", source: "ships", paint: { "circle-radius": ["case", ["get", "mine"], 8, 6], "circle-color": color, "circle-stroke-color": ["case", ["get", "mine"], css("--ink"), halo], "circle-stroke-width": ["case", ["get", "mine"], 3, 2] } });
+      // The compact attribution starts expanded; on small maps start it collapsed (the ⓘ button opens it).
+      if (mapEl.clientWidth < 600) mapEl.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
+      mapReady = true; particles.reset(); draw();
+    });
+    map.on("move", () => { particles.clear(); drawNotes(); });
+    map.on("mousemove", e => readout(e.lngLat));
+    map.on("mouseout", () => document.getElementById("readout").classList.remove("on"));
+    new ResizeObserver(() => { map.resize(); particles.reset(); drawNotes(); }).observe(mapEl);
+    requestAnimationFrame(loop);
+  }
+
+  const fc = features => ({ type: "FeatureCollection", features });
+  const line = (coords, props) => ({ type: "Feature", properties: props, geometry: { type: "LineString", coordinates: coords } });
+  function draw() {
+    if (!mapReady) return;
+    const c = S.caseId ? C() : null;
+    M.c = c || CASES.c07;
+    const layers = view.layers || new Set(), focus = view.focus || null;
+    view.t = view.t == null ? 6 : view.t;
+    const showField = c && layers.has("hs");
+    map.setLayoutProperty("field", "visibility", showField ? "visible" : "none");
+    document.getElementById("legend").classList.toggle("on", !!showField);
+    if (showField) drawField();
+    const props = k => ({ k, dim: !!focus && focus !== k, focus: focus === k });
+    map.getSource("routes").setData(fc(c ? Object.entries(c.routes).map(([k, r]) => line(r.points, props(k))) : []));
+    const tracks = view.tracks || {};
+    map.getSource("tracks").setData(fc(Object.entries(tracks).filter(([, s]) => s.length > 1).map(([k, s]) => line(s.map(p => [p.lon, p.lat]), props(k)))));
+    const bad = [];
+    for (const s of Object.values(tracks)) for (let i = 1; i < s.length; i++) if (s[i - 1].bad) bad.push(line([[s[i - 1].lon, s[i - 1].lat], [s[i].lon, s[i].lat]], {}));
+    map.getSource("bad").setData(fc(bad));
+    map.getSource("ships").setData(fc((view.ships || []).map(sh => ({ type: "Feature", properties: { k: sh.k, mine: sh.mine }, geometry: { type: "Point", coordinates: [sh.s.lon, sh.s.lat] } }))));
+    const ends = c ? c.routes.A.points : null;
+    map.getSource("ports").setData(fc(ends ? [["Alcúdia", ends[0]], ["Ciutadella", ends[ends.length - 1]]].map(([name, p]) => ({ type: "Feature", properties: { name }, geometry: { type: "Point", coordinates: p } })) : []));
+    document.getElementById("stamp").innerHTML = c && view.stamp ? `<b>${view.stamp} · ${hhmm(local(view.t))}</b><span>Copernicus reanalysis, local time</span>` : "";
+    drawNotes();
+  }
+
+  // Wave direction arrows and period / temperature labels on a sparse grid of sea points.
+  function drawNotes() {
+    const ctx = noteCv.getContext("2d"), r = mapEl.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (noteCv.width !== Math.round(r.width * dpr)) { noteCv.width = Math.round(r.width * dpr); noteCv.height = Math.round(r.height * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height);
+    const c = S.caseId ? C() : null, layers = view.layers || new Set();
+    if (!mapReady || !c || !["dir", "period", "sst"].some(l => layers.has(l))) return;
+    const step = 64, t = view.t;
+    ctx.font = `500 11px ${css("--font-data")}`; ctx.textAlign = "center"; ctx.lineWidth = 3;
+    for (let y = step / 2; y < r.height; y += step) for (let x = step / 2; x < r.width; x += step) {
+      const ll = map.unproject([x, y]), hs = c.S.hs(t, ll.lng, ll.lat);
+      if (hs === null) continue;
+      if (layers.has("dir")) arrow(ctx, x, y, c.S.dir(t, ll.lng, ll.lat) + 180, 10 + hs * 8);
+      const labels = [];
+      if (layers.has("period")) labels.push(c.S.period(t, ll.lng, ll.lat).toFixed(0) + " s");
+      if (layers.has("sst")) { const v = c.S.sst(t, ll.lng, ll.lat); if (v !== null) labels.push(v.toFixed(1) + "°"); }
+      labels.forEach((txt, i) => {
+        ctx.strokeStyle = css("--halo"); ctx.strokeText(txt, x, y + 20 + i * 13);
+        ctx.fillStyle = css("--ink"); ctx.fillText(txt, x, y + 20 + i * 13);
+      });
+    }
+  }
+  function arrow(ctx, x, y, deg, len) {
+    const a = rad(deg), dx = Math.sin(a) * len, dy = -Math.cos(a) * len, hx = x + dx / 2, hy = y + dy / 2, s = Math.max(4, len * 0.3);
+    ctx.strokeStyle = css("--halo"); ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x - dx / 2, y - dy / 2); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.strokeStyle = css("--ink"); ctx.fillStyle = css("--ink"); ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x - dx / 2, y - dy / 2); ctx.lineTo(hx, hy); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(hx, hy);
     ctx.lineTo(hx - Math.sin(a - 0.45) * s, hy + Math.cos(a - 0.45) * s);
     ctx.lineTo(hx - Math.sin(a + 0.45) * s, hy + Math.cos(a + 0.45) * s);
     ctx.closePath(); ctx.fill();
   }
-  function hsColor(v, alphaMax) {
-    const x = clamp(v / 2.8, 0, 1);
-    const stops = [[70, 140, 200], [60, 110, 200], [130, 70, 170], [200, 40, 60]];
-    const p = x * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(p)), f = p - i;
-    const c = stops[i].map((s, k) => Math.round(s + (stops[i + 1][k] - s) * f));
-    return `rgba(${c[0]},${c[1]},${c[2]},${(0.12 + x * alphaMax).toFixed(3)})`;
+
+  function readout(ll) {
+    const el = document.getElementById("readout"), c = S.caseId ? C() : null;
+    const layers = view.readAll ? new Set(LAYERS.map(L => L.id)) : (view.layers || new Set());
+    if (!c || !layers.size) { el.classList.remove("on"); return; }
+    const t = view.t, x = ll.lng, y = ll.lat, rows = [];
+    if (c.S.hs(t, x, y) === null) { el.classList.remove("on"); return; }
+    if (layers.has("hs")) rows.push(`waves  ${c.S.hs(t, x, y).toFixed(1)} m`);
+    if (layers.has("dir")) rows.push(`from   ${compass(c.S.dir(t, x, y))} ${Math.round(c.S.dir(t, x, y))}°`);
+    if (layers.has("period")) rows.push(`period ${c.S.period(t, x, y).toFixed(1)} s`);
+    if (layers.has("wind")) { const u = c.S.wu(t, x, y), v = c.S.wv(t, x, y); if (u !== null) rows.push(`wind   ${Math.round(Math.hypot(u, v) * KN)} kn from ${compass(Math.atan2(-u, -v) * 180 / Math.PI)}`); }
+    if (layers.has("cur")) { const u = c.S.cu(t, x, y), v = c.S.cv(t, x, y); if (u !== null) rows.push(`current ${(Math.hypot(u, v) * KN).toFixed(1)} kn to ${compass(Math.atan2(u, v) * 180 / Math.PI)}`); }
+    if (layers.has("sst")) { const v = c.S.sst(t, x, y); if (v !== null) rows.push(`sea    ${v.toFixed(1)} °C`); }
+    el.innerHTML = rows.map(r => `<span>${r}</span>`).join("");
+    el.classList.toggle("on", rows.length > 0);
   }
-  function draw() {
-    if (!W) return;
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = css("--sea"); ctx.fillRect(0, 0, W, H);
-    const c = S.caseId ? C() : null;
-    const field = c ? c[view.field || "forecast"] : null, t = view.t;
-    const layers = view.layers || new Set();
-    if (field && layers.has("hs")) {
-      const step = 0.04;
-      for (let lo = LON0; lo < LON1; lo += step) for (let la = LAT0; la < LAT1; la += step) {
-        const v = field.hs(t) * exposure(la + step / 2);
-        const [x1, y1] = P(lo, la + step), [x2, y2] = P(lo + step, la);
-        ctx.fillStyle = hsColor(v, 0.5); ctx.fillRect(x1, y1, x2 - x1 + 0.5, y2 - y1 + 0.5);
-      }
-    }
-    if (field && layers.has("sst")) {
-      ctx.fillStyle = "rgba(220,120,40,0.10)"; ctx.fillRect(0, 0, W, H);
-    }
-    ctx.fillStyle = css("--land"); ctx.strokeStyle = css("--land-edge"); ctx.lineWidth = 1;
-    poly(MALLORCA); ctx.fill(); ctx.stroke(); poly(MENORCA); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = css("--muted"); ctx.font = `600 ${Math.max(11, W / 60)}px ${css("--font-display")}`; ctx.textAlign = "center";
-    let [mx, my] = P(2.85, 39.62); ctx.fillText("MALLORCA", mx, my);
-    [mx, my] = P(4.08, 39.96); ctx.fillText("MENORCA", mx, my);
-    const gridPts = [];
-    for (let lo = 2.4; lo < 4.4; lo += 0.16) for (let la = 39.25; la < 40.25; la += 0.12) if (!inLand(lo, la)) gridPts.push([lo, la]);
-    const fs = Math.max(10, W / 72);
-    if (field && layers.has("dir")) gridPts.forEach(([lo, la]) => { const [x, y] = P(lo, la); arrow(x, y, field.dir(t) + 180, 8 + field.hs(t) * exposure(la) * 7, css("--ink"), 1.4); });
-    if (field && layers.has("wind")) gridPts.filter((_, i) => i % 3 === 0).forEach(([lo, la]) => {
-      const [x, y] = P(lo + 0.05, la + 0.04); arrow(x, y, field.windDir(t) + 180, 14, css("--warn"), 1.8);
-      ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(Math.round(field.wind(t)) + " kn", x, y + 16);
-    });
-    if (field && layers.has("cur")) gridPts.filter((_, i) => i % 2 === 1).forEach(([lo, la]) => {
-      const [x, y] = P(lo, la - 0.04); arrow(x, y, field.cur.to, 10, css("--route-c"), 1.2);
-    });
-    if (field && layers.has("period")) gridPts.filter((_, i) => i % 4 === 0).forEach(([lo, la]) => {
-      const [x, y] = P(lo + 0.03, la - 0.03);
-      ctx.fillStyle = css("--route-b"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText(field.period(t).toFixed(0) + " s", x, y);
-    });
-    if (field && layers.has("sst")) gridPts.filter((_, i) => i % 5 === 2).forEach(([lo, la]) => {
-      const [x, y] = P(lo, la);
-      ctx.fillStyle = css("--warn"); ctx.font = `500 ${fs}px ${css("--font-data")}`; ctx.fillText((field.sst + (la - 39.7) * -0.6).toFixed(1) + "°C", x, y);
-    });
-    // routes
-    if (c) for (const k of ["A", "B", "C"]) {
-      const r = ROUTES[k], col = css(r.color), dim = view.focus && view.focus !== k;
-      const track = view.tracks && view.tracks[k];
-      ctx.globalAlpha = dim ? 0.35 : 1;
-      ctx.setLineDash(track ? [] : [7, 5]); ctx.lineWidth = view.focus === k ? 3.5 : 2.5; ctx.strokeStyle = col;
-      ctx.beginPath(); r.pts.forEach(([lo, la], i) => { const [x, y] = P(lo, la); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
-      ctx.setLineDash([]);
-      if (track) {
-        ctx.lineWidth = 6; ctx.strokeStyle = css("--bad");
-        for (let i = 1; i < track.length; i++) if (track[i - 1].beamBad || track[i - 1].over) {
-          const [x1, y1] = P(track[i - 1].lon, track[i - 1].lat), [x2, y2] = P(track[i].lon, track[i].lat);
-          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+  // Wind (light) and current (route-c colour) particles with fading trails.
+  const particles = (() => {
+    const ctx = partCv.getContext("2d");
+    let list = [], dpr = 1, w = 0, h = 0;
+    const flows = () => ["wind", "cur"].filter(f => view.layers && view.layers.has(f));
+    const spawn = p => { p.x = Math.random() * w; p.y = Math.random() * h; p.age = Math.floor(Math.random() * 80); p.max = 50 + Math.random() * 60; return p; };
+    return {
+      reset() {
+        const r = mapEl.getBoundingClientRect(); dpr = window.devicePixelRatio || 1; w = r.width; h = r.height;
+        partCv.width = Math.round(w * dpr); partCv.height = Math.round(h * dpr);
+        list = Array.from({ length: Math.round(w * h / 420) }, (_, i) => spawn({ flow: i % 2 }));
+        this.clear();
+      },
+      clear() { ctx.clearRect(0, 0, partCv.width, partCv.height); },
+      step() {
+        const fl = flows(), c = S.caseId ? C() : null;
+        ctx.globalCompositeOperation = "destination-in"; ctx.fillStyle = "rgba(0,0,0,0.9)"; ctx.fillRect(0, 0, partCv.width, partCv.height);
+        ctx.globalCompositeOperation = "source-over";
+        if (!mapReady || !c || !fl.length) return;
+        const zoom = Math.pow(2, (map.getZoom() - 9) / 2);
+        for (const [idx, flow] of fl.entries()) {
+          ctx.lineWidth = 1.3 * dpr;
+          // Light trails over the colour field or the dark basemap, dark trails over the light basemap.
+          ctx.strokeStyle = flow === "wind" ? (dark() || view.layers.has("hs") ? "rgba(255,255,255,.85)" : "rgba(15,34,51,.45)") : css("--route-c");
+          const k = (flow === "wind" ? 0.25 : 6) * zoom, fu = flow === "wind" ? c.S.wu : c.S.cu, fv = flow === "wind" ? c.S.wv : c.S.cv;
+          ctx.beginPath();
+          for (const p of list) {
+            if (fl.length > 1 && p.flow !== idx) continue;
+            const ll = map.unproject([p.x, p.y]), u = fu(view.t, ll.lng, ll.lat), v = fv(view.t, ll.lng, ll.lat);
+            if (u === null || v === null || ++p.age > p.max) { spawn(p); p.age = 0; continue; }
+            const nx = p.x + u * k, ny = p.y - v * k;
+            ctx.moveTo(p.x * dpr, p.y * dpr); ctx.lineTo(nx * dpr, ny * dpr);
+            p.x = nx; p.y = ny;
+          }
+          ctx.stroke();
         }
       }
-      const lab = r.pts[Math.floor(r.pts.length / 2)], lp = r.pts.length === 3 ? [(r.pts[1][0] + r.pts[2][0]) / 2, (r.pts[1][1] + r.pts[2][1]) / 2] : lab;
-      const [lx, ly] = P(lp[0], lp[1] + (k === "C" ? -0.05 : 0.05));
-      ctx.fillStyle = col; ctx.font = `700 ${Math.max(14, W / 40)}px ${css("--font-display")}`; ctx.fillText(k, lx, ly);
-      ctx.globalAlpha = 1;
-    }
-    // ports
-    for (const p of [PORTS.start, PORTS.end]) {
-      const [x, y] = P(p.lon, p.lat);
-      ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
-      ctx.font = `500 ${Math.max(11, W / 64)}px ${css("--font-body")}`; ctx.textAlign = p === PORTS.start ? "right" : "left";
-      ctx.fillText(p.name, x + (p === PORTS.start ? -8 : 8), y + 4); ctx.textAlign = "center";
-    }
-    // ships
-    if (view.ships) for (const sh of view.ships) {
-      const [x, y] = P(sh.s.lon, sh.s.lat);
-      ctx.fillStyle = css(ROUTES[sh.k].color); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(x, y, sh.mine ? 8 : 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      if (sh.mine) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
-    }
-    // stamp
-    if (c && view.field) {
-      ctx.textAlign = "left"; ctx.fillStyle = css("--ink"); ctx.font = `600 ${Math.max(13, W / 52)}px ${css("--font-display")}`;
-      ctx.fillText(`${view.field === "forecast" ? "FORECAST" : "ACTUAL"} · ${hhmm(t)}`, 12, 22);
-      ctx.fillStyle = css("--muted"); ctx.font = `400 ${Math.max(10, W / 80)}px ${css("--font-body")}`;
-      ctx.fillText("Illustrative chart and data", 12, 40);
-    }
-    ctx.textAlign = "center";
-  }
-  new ResizeObserver(resize).observe(canvas);
-  const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  mq.addEventListener && mq.addEventListener("change", draw);
-  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    };
+  })();
+  function loop() { if (!reduceMotion()) particles.step(); requestAnimationFrame(loop); }
 
   function setFoot(extra) {
-    const k = r => `<span class="k"><span class="sw" style="background:var(${ROUTES[r].color})"></span>${r} ${ROUTES[r].name} · <span class="mono">${ROUTES[r].nm.toFixed(1)} nm</span></span>`;
-    document.getElementById("mapfoot").innerHTML = (S.caseId ? ["A", "B", "C"].map(k).join("") : "<span>Mallorca–Menorca channel (illustrative)</span>") + (extra || "");
+    const c = S.caseId ? C() : null;
+    const k = r => `<span class="k"><span class="sw" style="background:var(${ROUTE_COLOR[r]})"></span>${r} ${c.routes[r].name} · <span class="mono">${c.routes[r].nm.toFixed(1)} nm</span></span>`;
+    document.getElementById("mapfoot").innerHTML = (c ? ["A", "B", "C"].map(k).join("") : "<span>Mallorca–Menorca channel</span>") + (extra || "");
   }
 
   // ---------- render ----------
   const panel = document.getElementById("panel");
-  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
   function renderStepper() {
     document.getElementById("stepper").innerHTML = STEPS.map(s => `<button type="button" data-step="${s.n}" ${s.n === S.step ? 'aria-current="step"' : ""} ${s.n > S.maxStep ? "disabled" : ""}><b>${s.n}</b>${s.name}</button>`).join("");
     document.getElementById("intent").innerHTML = STEPS[S.step - 1].intent;
@@ -486,25 +562,22 @@ tr:last-child td { border-bottom: 0; }
     renderStepper(); renderPanel();
   }
   document.getElementById("stepper").addEventListener("click", e => { const b = e.target.closest("button[data-step]"); if (b && !b.disabled) go(+b.dataset.step); });
-
-  function renderPanel() {
-    const f = [null, pLibrary, pBrief, pInvestigate, pDecide, pReplay, pTrade, pReport][S.step];
-    f();
-  }
+  function renderPanel() { [null, pLibrary, pBrief, pInvestigate, pDecide, pReplay, pTrade, pReport][S.step](); }
+  const dateText = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
   function pLibrary() {
-    view = { mode: "plain" }; setFoot(); draw();
+    view = { layers: new Set(), t: 6 }; setFoot(); draw();
     const card = c => `<button type="button" class="case" data-case="${c.id}">
       <span class="no">Case ${c.no}</span><span class="t">${c.title}</span>
-      <span class="small muted">${c.date}</span>
-      <span class="small">Practises: ${c.goal}</span>
+      <span class="small muted">${dateText(c.date)}</span>
+      <span class="small">Practises: ${GOALS[c.goal]}</span>
       <span class="small"><span class="dots">${c.dots}</span> difficulty ${S.done.has(c.id) ? '· <span class="pill ok">Solved</span>' : ""}</span>
     </button>`;
     panel.innerHTML = `<h2>Case library<small>Every case is a real day at sea.</small></h2>
-      <div class="cases">${card(CASES.c07)}${card(CASES.c12)}
-        <button type="button" class="case" disabled><span class="no">Case #03</span><span class="t">More cases</span><span class="small muted">The real product mines these from years of historical data</span></button>
+      <div class="cases">${CASE_IDS.map(id => card(CASES[id])).join("")}
+        <button type="button" class="case" disabled><span class="no">More</span><span class="t">More cases</span><span class="small muted">mine.py ranks 21 candidate days in summer 2026; autumn and winter data will add more</span></button>
       </div>
-      <p class="small muted">Start with #07. After the report, the coach recommends #12.</p>`;
+      <p class="small muted">Start with #01. After the report, the coach recommends #07.</p>`;
     panel.querySelectorAll("[data-case]").forEach(b => b.addEventListener("click", () => startCase(b.dataset.case)));
   }
   function startCase(id) {
@@ -515,14 +588,15 @@ tr:last-child td { border-bottom: 0; }
 
   function pBrief() {
     const c = C();
-    view = { mode: "plain", field: "forecast", t: 8, layers: new Set() }; setFoot(); draw();
+    view = { t: 8 - UTC_OFFSET, layers: new Set() }; setFoot(); draw();
     panel.innerHTML = `<h2>Case ${c.no}<small>${c.title}</small></h2>
-      <p>${c.date}. A training sailing vessel must sail from <b>Alcúdia</b> to <b>Ciutadella</b> on Menorca. The chart shows three candidate routes.</p>
+      <p>${dateText(c.date)}. A training sailing vessel must sail from <b>Alcúdia</b> to <b>Ciutadella</b> on Menorca. The chart shows three candidate routes between the harbour exits.</p>
       <dl class="kv">
-        <dt>Vessel</dt><dd>Training sailing vessel under sail and engine, about <span class="mono">${SPEED} kn</span></dd>
-        <dt>Beam-sea limit</dt><dd><span class="mono">${c.beamLimit} m</span> (illustrative)</dd>
-        <dt>Any heading</dt><dd>No sailing in waves above <span class="mono">${c.genLimit} m</span> (illustrative)</dd>
-        <dt>Arrival</dt><dd>In port before <span class="mono">${hhmm(c.arriveBy)}</span> (illustrative)</dd>
+        <dt>Vessel</dt><dd>Training sailing vessel under sail and engine, about <span class="mono">${c.vessel.speed_kn} kn</span></dd>
+        <dt>Beam-sea limit</dt><dd><span class="mono">${c.limits.beam_hs} m</span> (teaching value)</dd>
+        <dt>Any heading</dt><dd>No sailing in waves above <span class="mono">${c.limits.max_hs} m</span> (teaching value)</dd>
+        <dt>Arrival</dt><dd>In port before <span class="mono">${hhmm(local(c.arriveBy))}</span></dd>
+        <dt>Departures</dt><dd>Every 30 minutes from <span class="mono">${hhmm(c.depLocal[0])}</span> to <span class="mono">${hhmm(c.depLocal[c.depLocal.length - 1])}</span></dd>
       </dl>
       <div class="coach"><span class="label">Your task</span><p>Which route, and what time do you depart? Give your reasons.</p></div>
       <div class="row"><button type="button" class="btn" id="toInv">Start investigating</button></div>`;
@@ -530,68 +604,61 @@ tr:last-child td { border-bottom: 0; }
   }
 
   function pInvestigate() {
-    const c = C();
     const left = 3 - S.opened.size;
-    view = { mode: "inv", field: "forecast", t: S.invT, layers: S.opened }; setFoot(); draw();
+    view = { t: S.invT - UTC_OFFSET, layers: S.opened, stamp: "EVIDENCE" }; setFoot(); draw();
     panel.innerHTML = `<h2>Investigate<small>Open up to 3 pieces of evidence</small></h2>
       <div class="budget" aria-label="${left} left">${[0, 1, 2].map(i => `<i class="${i < left ? "on" : ""}"></i>`).join("")}<span class="small muted">${left} left</span></div>
       <div class="layers">${LAYERS.map(L => { const on = S.opened.has(L.id); return `<button type="button" class="layer" data-layer="${L.id}" aria-pressed="${on}" ${!on && left === 0 ? "disabled" : ""}><span>${on ? "◉" : "○"}</span><span>${L.name}</span><span class="ic">${L.unit}</span></button>`; }).join("")}</div>
-      <div class="slider"><div class="row"><span class="label">Forecast time</span><span class="clock" id="invClock">${hhmm(S.invT)}</span></div>
-        <input type="range" id="invT" min="5" max="20" step="0.25" value="${S.invT}" aria-label="Forecast time"></div>
-      <p class="small muted">${c.forecastNote}. Drag the time to see how the sea changes.</p>
+      <div class="slider"><div class="row"><span class="label">Time of day</span><span class="clock" id="invClock">${hhmm(S.invT)}</span></div>
+        <input type="range" id="invT" min="6" max="20" step="0.25" value="${S.invT}" aria-label="Time of day"></div>
+      <p class="small muted">No forecast was archived for this day, so the evidence is the reanalysis: what the sea actually did, hour by hour. Cases from 26 October 2026 on show the forecast issued that morning. Hover the map to read the opened layers.</p>
       <div class="row"><button type="button" class="btn" id="toDecide" ${S.opened.size ? "" : "disabled"}>Done investigating, decide</button></div>`;
     panel.querySelectorAll("[data-layer]").forEach(b => b.addEventListener("click", () => {
       const id = b.dataset.layer;
-      if (S.opened.has(id)) return; // opening is final: budget is spent
-      if (S.opened.size >= 3) return;
-      S.opened.add(id); pInvestigate();
+      if (S.opened.has(id) || S.opened.size >= 3) return; // opening is final: budget is spent
+      S.opened.add(id); particles.reset(); pInvestigate();
     }));
     const r = document.getElementById("invT");
-    r.addEventListener("input", () => { S.invT = +r.value; document.getElementById("invClock").textContent = hhmm(S.invT); view.t = S.invT; draw(); });
+    r.addEventListener("input", () => { S.invT = +r.value; document.getElementById("invClock").textContent = hhmm(S.invT); view.t = S.invT - UTC_OFFSET; draw(); });
     document.getElementById("toDecide").addEventListener("click", () => go(4));
   }
 
   function pDecide() {
-    const ch = S.choice;
-    view = { mode: "dec", field: "forecast", t: ch.dep, layers: S.opened, focus: ch.rk }; setFoot(); draw();
-    const shortest = ["A", "B", "C"].sort((a, b) => ROUTES[a].nm - ROUTES[b].nm)[0];
+    const c = C(), ch = S.choice;
+    view = { t: ch.dep - UTC_OFFSET, layers: S.opened, focus: ch.rk, stamp: "EVIDENCE" }; setFoot(); draw();
+    const shortest = ["A", "B", "C"].sort((a, b) => c.routes[a].nm - c.routes[b].nm)[0];
+    const first = c.depLocal[0], last = c.depLocal[c.depLocal.length - 1];
     panel.innerHTML = `<h2>Decide<small>Which route? When?</small></h2>
       <div class="routes">${["A", "B", "C"].map(k => `<button type="button" class="route" data-rk="${k}" aria-pressed="${ch.rk === k}">
-        <span class="L" style="color:var(${ROUTES[k].color})">${k}</span>
-        <span><b>${ROUTES[k].name}</b><br><span class="meta mono">${ROUTES[k].nm.toFixed(1)} nm · about ${hrs(ROUTES[k].nm / SPEED)}</span></span>
+        <span class="L" style="color:var(${ROUTE_COLOR[k]})">${k}</span>
+        <span><b>${c.routes[k].name}</b><br><span class="meta mono">${c.routes[k].nm.toFixed(1)} nm · about ${hrs(c.routes[k].nm / c.vessel.speed_kn)}</span></span>
         <span>${k === shortest ? '<span class="pill">Shortest</span>' : ""}</span></button>`).join("")}</div>
       <div class="slider"><div class="row"><span class="label">Departure</span><span class="clock" id="depClock">${hhmm(ch.dep)}</span></div>
-        <input type="range" id="dep" min="5" max="15" step="0.25" value="${ch.dep}" aria-label="Departure time"></div>
+        <input type="range" id="dep" min="${first}" max="${last}" step="0.5" value="${ch.dep}" aria-label="Departure time"></div>
       <div><span class="label">Your reasons (pick any)</span><div class="chips">${REASONS.map(r => `<button type="button" class="chip" data-reason="${r}" aria-pressed="${ch.reasons.has(r)}">${r}</button>`).join("")}</div></div>
       <label class="small" for="note">Anything else (optional)</label>
       <textarea id="note" placeholder="e.g. Waves were low, so I took the shortest route">${esc(ch.note)}</textarea>
       <div class="row"><button type="button" class="btn" id="submit" ${ch.rk ? "" : "disabled"}>Submit decision</button><span class="small muted">Then replay the actual sea state</span></div>`;
     panel.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { ch.rk = b.dataset.rk; pDecide(); }));
     const r = document.getElementById("dep");
-    r.addEventListener("input", () => { ch.dep = +r.value; document.getElementById("depClock").textContent = hhmm(ch.dep); view.t = ch.dep; draw(); });
+    r.addEventListener("input", () => { ch.dep = +r.value; document.getElementById("depClock").textContent = hhmm(ch.dep); view.t = ch.dep - UTC_OFFSET; draw(); });
     panel.querySelectorAll("[data-reason]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.reason; ch.reasons.has(v) ? ch.reasons.delete(v) : ch.reasons.add(v); b.setAttribute("aria-pressed", ch.reasons.has(v)); }));
     document.getElementById("note").addEventListener("input", e => { ch.note = e.target.value; });
-    document.getElementById("submit").addEventListener("click", () => { S.replayT = ch.dep; S.tradeDep = ch.dep; go(5); startPlay(); });
+    document.getElementById("submit").addEventListener("click", () => { S.replayT = ch.dep - UTC_OFFSET; S.tradeDep = ch.dep; go(5); startPlay(); });
   }
 
-  // replay
+  // replay (times in UTC hours)
   let raf = 0, lastTs = 0;
-  function sims() { return allSims(C(), S.choice.dep); }
-  function sampleAt(sim, t) {
-    const sm = sim.samples; if (t <= sm[0].t) return sm[0];
-    for (let i = 1; i < sm.length; i++) if (sm[i].t >= t) return sm[i - 1];
-    return sm[sm.length - 1];
-  }
+  const sims = () => simsAt(C(), S.choice.dep);
+  const tEnd = () => Math.max(...sims().map(s => s.arrive));
   function pReplay() {
-    const c = C(), ss = sims();
-    const tEnd = Math.max(...ss.map(s => s.arrive));
-    if (S.replayT == null) S.replayT = S.choice.dep;
+    const dep = S.choice.dep - UTC_OFFSET;
+    if (S.replayT == null) S.replayT = dep;
     panel.innerHTML = `<h2>Replay<small>Departing ${hhmm(S.choice.dep)}, actual sea state</small></h2>
       <div class="gauges" id="gauges"></div>
       <div class="slider"><div class="row"><span class="label">Time</span><span class="clock" id="rpClock"></span></div>
-        <input type="range" id="rpT" min="${S.choice.dep}" max="${tEnd.toFixed(3)}" step="0.05" value="${S.replayT}" aria-label="Replay time"></div>
-      <div class="row"><button type="button" class="btn ghost" id="play">${S.playing ? "Pause" : "Play"}</button>
-        <span class="small muted">${c.forecastNote}. <b>${c.actualNote}</b></span></div>
+        <input type="range" id="rpT" min="${dep}" max="${tEnd().toFixed(3)}" step="0.05" value="${S.replayT}" aria-label="Replay time"></div>
+      <div class="row"><button type="button" class="btn ghost" id="play">${S.playing ? "Pause" : "Play"}</button></div>
       <div id="rpStatus" class="small"></div>
       <div class="row"><button type="button" class="btn" id="toTrade">See trade-offs and the tipping point</button></div>`;
     document.getElementById("rpT").addEventListener("input", e => { stopPlay(); S.replayT = +e.target.value; updReplay(); });
@@ -601,50 +668,50 @@ tr:last-child td { border-bottom: 0; }
   }
   function updReplay() {
     if (S.step !== 5) return;
-    const ss = sims(), mine = ss.find(s => s.rk === S.choice.rk);
-    const t = S.replayT, cur = sampleAt(mine, t);
-    const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples.filter(x => x.t <= t + 1e-6); });
-    view = { mode: "rp", field: "actual", t, layers: new Set(["hs"]), tracks, focus: S.choice.rk, ships: ss.map(s => ({ k: s.rk, s: sampleAt(s, t), mine: s.rk === S.choice.rk })) };
+    const c = C(), ss = sims(), mine = ss.find(s => s.rk === S.choice.rk), t = S.replayT, cur = sampleAt(mine, t);
+    const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples.filter(x => x.t <= t + 1e-6).concat([sampleAt(s, t)]); });
+    view = { t, layers: new Set(["hs", "wind"]), tracks, focus: S.choice.rk, ships: ss.map(s => ({ k: s.rk, s: sampleAt(s, t), mine: s.rk === S.choice.rk })), stamp: "ACTUAL", readAll: true };
     setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>Segment over a limit</span>`); draw();
     const g = document.getElementById("gauges"); if (!g) return;
-    const bad = cur.beamBad || cur.over;
-    g.innerHTML = `<div class="${cur.over ? "bad" : ""}"><span class="label">Wave height</span><b>${cur.arrived ? "—" : cur.hs.toFixed(1) + " m"}</b></div>
-      <div class="${cur.beamBad ? "bad" : ""}"><span class="label">Encounter</span><b>${CAT_LABEL[cur.cat]}${cur.beamBad ? " ⚠" : ""}</b></div>
-      <div><span class="label">Period</span><b>${cur.period.toFixed(0)} s</b></div>
-      <div><span class="label">Speed</span><b>${cur.arrived ? "—" : cur.spd.toFixed(1) + " kn"}</b></div>`;
-    document.getElementById("rpClock").textContent = hhmm(t);
-    const st = document.getElementById("rpStatus");
+    const u = c.S.wu(t, cur.lon, cur.lat), v = c.S.wv(t, cur.lon, cur.lat), per = c.S.period(t, cur.lon, cur.lat);
+    const labels = { head: "Head seas", beam: "Beam seas", following: "Following seas", arrived: "In port" };
+    const beamBad = cur.bad && cur.category === "beam";
+    g.innerHTML = `<div class="${cur.bad && !beamBad ? "bad" : ""}"><span class="label">Wave height</span><b>${cur.arrived ? "—" : cur.hs.toFixed(1) + " m"}</b></div>
+      <div class="${beamBad ? "bad" : ""}"><span class="label">Encounter</span><b>${labels[cur.arrived ? "arrived" : cur.category]}${beamBad ? " ⚠" : ""}</b></div>
+      <div><span class="label">Period</span><b>${per === null ? "—" : per.toFixed(0) + " s"}</b></div>
+      <div><span class="label">Wind</span><b>${u === null ? "—" : Math.round(Math.hypot(u, v) * KN) + " kn " + compass(Math.atan2(-u, -v) * 180 / Math.PI)}</b></div>`;
+    document.getElementById("rpClock").textContent = hhmm(local(t));
     const arrivedAll = ss.every(s => t >= s.arrive - 1e-6);
-    st.innerHTML = arrivedAll
-      ? `Your route ${S.choice.rk}: ${mine.safe ? '<span class="pill ok">Within limits all the way</span>' : '<span class="pill bad">Dangerous segments</span>'} about <span class="mono">${mine.beamH.toFixed(1)}</span> h in beam seas over the limit, in port at ${hhmm(mine.arrive)}${mine.late ? " (after the arrival deadline)" : ""}.`
-      : (bad ? `<span class="pill bad">Your vessel is in a dangerous segment</span>` : "");
+    document.getElementById("rpStatus").innerHTML = arrivedAll
+      ? `Your route ${S.choice.rk}: ${mine.safe ? '<span class="pill ok">Within limits all the way</span>' : '<span class="pill bad">Dangerous segments</span>'} about <span class="mono">${mine.beam_hours.toFixed(1)}</span> h in beam seas over the limit, in port at ${hhmm(local(mine.arrive))}${mine.late ? " (after the arrival deadline)" : ""}.`
+      : (cur.bad ? `<span class="pill bad">Your vessel is in a dangerous segment</span>` : "");
   }
   function frame(ts) {
     if (!S.playing) return;
     const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
-    const ss = sims(), tEnd = Math.max(...ss.map(s => s.arrive));
-    S.replayT = Math.min(tEnd, S.replayT + dt * 0.9);
+    const end = tEnd();
+    S.replayT = Math.min(end, S.replayT + dt * 0.9);
     const r = document.getElementById("rpT"); if (r) r.value = S.replayT;
     updReplay();
-    if (S.replayT >= tEnd) { stopPlay(); const b = document.getElementById("play"); if (b) b.textContent = "Play"; return; }
+    if (S.replayT >= end) { stopPlay(); const b = document.getElementById("play"); if (b) b.textContent = "Play"; return; }
     raf = requestAnimationFrame(frame);
   }
   function startPlay() {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { const ss = sims(); S.replayT = Math.max(...ss.map(s => s.arrive)); updReplay(); return; }
-    const ss = sims(), tEnd = Math.max(...ss.map(s => s.arrive));
-    if (S.replayT >= tEnd - 0.01) S.replayT = S.choice.dep;
+    if (reduceMotion()) { S.replayT = tEnd(); updReplay(); return; }
+    if (S.replayT >= tEnd() - 0.01) S.replayT = S.choice.dep - UTC_OFFSET;
     S.playing = true; lastTs = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   }
   function stopPlay() { S.playing = false; cancelAnimationFrame(raf); }
 
   // trade-off + tipping point
   function pTrade() {
+    const c = C(), first = c.depLocal[0], last = c.depLocal[c.depLocal.length - 1];
     panel.innerHTML = `<h2>Tipping point<small>Drag the departure time</small></h2>
       <div class="slider"><div class="row"><span class="label">Departure</span><span class="clock" id="tdClock"></span></div>
-        <input type="range" id="td" min="5" max="15" step="0.25" value="${S.tradeDep}" aria-label="Departure time"></div>
-      <div class="strip"><span class="label">Decision map · best route for each departure time (illustrative data)</span>
-        <div class="cells" id="cells"></div>
-        <div class="ticks">${STRIP.map((h, i) => `<span>${i % 2 === 0 ? String(h).padStart(2, "0") : ""}</span>`).join("")}</div></div>
+        <input type="range" id="td" min="${first}" max="${last}" step="0.5" value="${S.tradeDep}" aria-label="Departure time"></div>
+      <div class="strip"><span class="label">Decision map · best route for each departure time</span>
+        <div class="cells" id="cells" style="grid-template-columns:repeat(${c.deps.length},minmax(0,1fr))"></div>
+        <div class="ticks21" style="grid-template-columns:repeat(${c.deps.length},minmax(0,1fr))">${c.depLocal.map((h, i) => `<span>${i % 2 === 0 ? String(Math.floor(h)).padStart(2, "0") : ""}</span>`).join("")}</div></div>
       <div class="flipnote" id="flipnote"></div>
       <div class="rank" id="rank"></div>
       <div class="tblwrap"><table><thead><tr><th>Measure</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody id="tb"></tbody></table></div>
@@ -654,73 +721,82 @@ tr:last-child td { border-bottom: 0; }
     updTrade();
   }
   function updTrade() {
-    const c = C(), dep = S.tradeDep, ss = allSims(c, dep), best = bestAt(c, dep), fl = flips(c);
+    const c = C(), dep = S.tradeDep, ss = simsAt(c, dep), best = bestAt(c, dep);
     document.getElementById("tdClock").textContent = hhmm(dep);
-    const ci = Math.round((clamp(dep, 5, 15) - 5) / 0.5);
-    document.getElementById("cells").innerHTML = STRIP.map((h, i) => {
+    const ci = c.depLocal.indexOf(dep);
+    document.getElementById("cells").innerHTML = c.depLocal.map((h, i) => {
       const b = bestAt(c, h);
-      return b ? `<div style="background:var(${ROUTES[b.rk].color})" class="${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: ${b.rk}">${b.rk}</div>` : `<div class="none ${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: no safe option">✕</div>`;
+      return b ? `<div style="background:var(${ROUTE_COLOR[b.rk]})" class="${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: ${b.rk}">${b.rk}</div>` : `<div class="none ${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: no safe option">✕</div>`;
     }).join("");
-    const notes = fl.map(f => f.to
-      ? `<span>Around <b class="mono">${hhmm(f.at)}</b> the best route changes from <b>${f.from || "none"}</b> to <b>${f.to}</b>. Why: ${f.from ? whyNot(c, f.from, f.at) : ""}.</span>`
-      : `<span>From <b class="mono">${hhmm(f.at)}</b>: <b>no safe option</b>. The right call is not to sail today. Why: ${whyNot(c, f.from, f.at)}.</span>`);
+    const notes = c.flips.map(f => {
+      const at = local(utcHours(f.at));
+      if (!f.to) return `<span>From <b class="mono">${hhmm(at)}</b>: <b>no safe option</b>. The right call is not to sail. Why: ${whyNot(c, f.from, at)}.</span>`;
+      if (!f.from) return `<span>From <b class="mono">${hhmm(at)}</b>, <b>${f.to}</b> becomes safe again.</span>`;
+      return `<span>Around <b class="mono">${hhmm(at)}</b> the best route changes from <b>${f.from}</b> to <b>${f.to}</b>. Why: ${whyNot(c, f.from, at)}.</span>`;
+    });
     document.getElementById("flipnote").innerHTML = `<span class="label">Tipping points</span>${notes.join("") || "<span>The best option stays the same all day.</span>"}`;
-    const order = ss.slice().sort((a, b) => a.score - b.score);
-    document.getElementById("rank").innerHTML = order.map(s => `<div class="route" ${s.rk === S.choice.rk ? 'aria-pressed="true"' : ""}>
-      <span class="L" style="color:var(${ROUTES[s.rk].color})">${s.rk}</span>
-      <span><b>${ROUTES[s.rk].name}</b>${s.rk === S.choice.rk ? ' <span class="small muted">(your choice)</span>' : ""}<br><span class="meta mono">${hhmm(dep)} → ${hhmm(s.arrive)}</span></span>
+    document.getElementById("rank").innerHTML = ss.slice().sort((a, b) => score(a) - score(b)).map(s => `<div class="route" ${s.rk === S.choice.rk ? 'aria-pressed="true"' : ""}>
+      <span class="L" style="color:var(${ROUTE_COLOR[s.rk]})">${s.rk}</span>
+      <span><b>${c.routes[s.rk].name}</b>${s.rk === S.choice.rk ? ' <span class="small muted">(your choice)</span>' : ""}<br><span class="meta mono">${hhmm(dep)} → ${hhmm(local(s.arrive))}</span></span>
       <span>${s.safe ? (best && best.rk === s.rk ? '<span class="pill ok">Best</span>' : '<span class="pill ok">Safe</span>') : '<span class="pill bad">At risk</span>'}</span></div>`).join("");
     const by = k => ss.find(s => s.rk === k);
     const row = (name, fn, badFn) => `<tr><td>${name}</td>${["A", "B", "C"].map(k => { const s = by(k); return `<td class="${badFn && badFn(s) ? "bad" : ""}">${fn(s)}</td>`; }).join("")}</tr>`;
     document.getElementById("tb").innerHTML =
-      row("Distance", s => ROUTES[s.rk].nm.toFixed(1) + " nm") +
+      row("Distance", s => c.routes[s.rk].nm.toFixed(1) + " nm") +
       row("Passage time", s => hrs(s.eta)) +
-      row("Arrival", s => hhmm(s.arrive), s => s.late) +
-      row("Max wave height", s => s.maxHs.toFixed(1) + " m", s => s.overH > 0) +
-      row("Beam seas over limit", s => s.beamH.toFixed(1) + " h", s => s.beamH > 0);
+      row("Arrival", s => hhmm(local(s.arrive)), s => s.late) +
+      row("Max wave height", s => s.max_hs.toFixed(1) + " m", s => s.over_hours > 0) +
+      row("Beam seas over limit", s => s.beam_hours.toFixed(1) + " h", s => s.beam_hours > 0);
     const tracks = {}; ss.forEach(s => { tracks[s.rk] = s.samples; });
-    view = { mode: "td", field: "actual", t: dep + 3, layers: new Set(), tracks, focus: best ? best.rk : null };
+    view = { t: dep - UTC_OFFSET + 3, layers: new Set(["hs"]), tracks, focus: best ? best.rk : null, stamp: "ACTUAL", readAll: true };
     setFoot(`<span class="k"><span class="sw" style="background:var(--bad);height:5px"></span>Segment over a limit</span>`); draw();
   }
 
   // report
   function pReport() {
-    const c = C(), ch = S.choice, mine = simulate(c, "actual", ch.rk, ch.dep), best = bestAt(c, ch.dep), fl = flips(c);
+    const c = C(), ch = S.choice, mine = c.simsH[depKey(c, ch.dep)][ch.rk], best = bestAt(c, ch.dep);
     S.done.add(c.id);
-    const keyL = LAYERS.find(L => L.id === c.key), missedKey = !S.opened.has(c.key);
+    const keyId = EVIDENCE[c.key_evidence], keyL = LAYERS.find(L => L.id === keyId), missedKey = !S.opened.has(keyId);
     const prof = [
-      { name: "Wind sea vs swell", v: S.opened.has("period") ? 80 : 30 },
-      { name: "Wave direction vs heading", v: (S.opened.has("dir") ? 45 : 10) + (mine.beamH === 0 ? 40 : 0) },
-      { name: "Current and passage time", v: S.opened.has("cur") ? 75 : 35 },
-      { name: "Departure window", v: mine.safe ? 80 : 30 }
+      { goal: "wind_vs_swell", v: S.opened.has("period") ? 80 : 30 },
+      { goal: "beam_seas", v: (S.opened.has("dir") ? 45 : 10) + (mine.beam_hours === 0 ? 40 : 0) },
+      { goal: "current_time", v: S.opened.has("cur") ? 75 : 35 },
+      { goal: "time_window", v: mine.safe ? 80 : 30 }
     ];
-    const weak = prof.find(p => p.name === c.goal);
-    const firstFlip = fl.find(f => f.from === (bestAt(c, 5) || {}).rk);
+    const weak = prof.find(p => p.goal === c.goal);
+    const firstFlip = c.flips.find(f => f.from && f.to !== f.from);
     const reasons = [...ch.reasons];
     let coach = `<p>Your reasons: ${reasons.length ? reasons.join(", ") : "none selected"}${ch.note ? `. You also wrote: “${esc(ch.note)}”` : ""}.</p>`;
     coach += mine.safe
-      ? `<p>Departing <span class="mono">${hhmm(ch.dep)}</span> on route ${ch.rk} stays within every limit and reaches port at <span class="mono">${hhmm(mine.arrive)}</span>. Good call.</p>`
-      : `<p>Departing <span class="mono">${hhmm(ch.dep)}</span> on route ${ch.rk}, the vessel meets waves up to <span class="mono">${mine.maxHs.toFixed(1)} m</span> and spends about <span class="mono">${mine.beamH.toFixed(1)}</span> h in beam seas over the limit${mine.late ? ", and misses the arrival deadline" : ""}.</p>`;
+      ? `<p>Departing <span class="mono">${hhmm(ch.dep)}</span> on route ${ch.rk} stays within every limit and reaches port at <span class="mono">${hhmm(local(mine.arrive))}</span>. Good call.</p>`
+      : `<p>Departing <span class="mono">${hhmm(ch.dep)}</span> on route ${ch.rk}, the vessel meets waves up to <span class="mono">${mine.max_hs.toFixed(1)} m</span> and spends about <span class="mono">${mine.beam_hours.toFixed(1)}</span> h in beam seas over the limit${mine.late ? ", and misses the arrival deadline" : ""}.</p>`;
     coach += missedKey
       ? `<p>The key evidence in this case was ${keyL.name.toLowerCase()}, and you did not open it. ${c.lesson}</p>`
       : `<p>You opened the key evidence, ${keyL.name.toLowerCase()}. ${c.lesson}</p>`;
-    if (best && best.rk !== ch.rk) coach += `<p>Departing at the same time, a better choice was <b>${best.rk} ${ROUTES[best.rk].name}</b>, in port at <span class="mono">${hhmm(best.arrive)}</span>.</p>`;
-    if (!best) coach += `<p>At this departure time all three routes carry risk. A better decision was to change the time or not sail today.</p>`;
-    if (firstFlip) coach += `<p>Before <span class="mono">${hhmm(firstFlip.at)}</span>, ${firstFlip.from} was still the best option. After that, the decision needed a second look.</p>`;
+    if (best && best.rk !== ch.rk) coach += `<p>Departing at the same time, a better choice was <b>${best.rk} ${c.routes[best.rk].name}</b>, in port at <span class="mono">${hhmm(local(best.arrive))}</span>.</p>`;
+    if (!best) coach += `<p>At this departure time all three routes carry risk. A better decision was to change the time or not sail.</p>`;
+    if (firstFlip) coach += `<p>Before <span class="mono">${hhmm(local(utcHours(firstFlip.at)))}</span>, ${firstFlip.from} was the best option. After that, the decision needed a second look.</p>`;
     const next = c.next && CASES[c.next];
     panel.innerHTML = `<h2>Case report<small>Case ${c.no}</small></h2>
-      <p>Your decision: <b>${ch.rk} ${ROUTES[ch.rk].name}</b>, departing <span class="mono">${hhmm(ch.dep)}</span> ${mine.safe ? '<span class="pill ok">Safe</span>' : '<span class="pill bad">At risk</span>'}</p>
-      <div><span class="label">Evidence you opened</span><div class="ev">${LAYERS.filter(L => S.opened.has(L.id)).map(L => `<span class="pill ${L.id === c.key ? "ok" : ""}">${L.name}${L.id === c.key ? " ✓ key" : ""}</span>`).join("") || '<span class="small muted">None</span>'}${missedKey ? `<span class="pill bad">${keyL.name} ✕ key evidence not opened</span>` : ""}</div></div>
-      <div><span class="label">Judgment profile (illustrative scores)</span><div class="bars">${prof.map(p => `<div class="bar ${p === weak && p.v < 60 ? "weak" : ""}"><span>${p.name}</span><span class="t"><i style="width:${clamp(p.v, 0, 100)}%"></i></span><span class="mono">${clamp(p.v, 0, 100)}</span></div>`).join("")}</div></div>
+      <p>Your decision: <b>${ch.rk} ${c.routes[ch.rk].name}</b>, departing <span class="mono">${hhmm(ch.dep)}</span> ${mine.safe ? '<span class="pill ok">Safe</span>' : '<span class="pill bad">At risk</span>'}</p>
+      <div><span class="label">Evidence you opened</span><div class="ev">${LAYERS.filter(L => S.opened.has(L.id)).map(L => `<span class="pill ${L.id === keyId ? "ok" : ""}">${L.name}${L.id === keyId ? " ✓ key" : ""}</span>`).join("") || '<span class="small muted">None</span>'}${missedKey ? `<span class="pill bad">${keyL.name} ✕ key evidence not opened</span>` : ""}</div></div>
+      <div><span class="label">Judgment profile (placeholder scores)</span><div class="bars">${prof.map(p => `<div class="bar ${p === weak && p.v < 60 ? "weak" : ""}"><span>${GOALS[p.goal]}</span><span class="t"><i style="width:${clamp(p.v, 0, 100)}%"></i></span><span class="mono">${clamp(p.v, 0, 100)}</span></div>`).join("")}</div></div>
       <div class="coach"><span class="label">Coach feedback (template text in this prototype; in the product, code computes the facts and AI only phrases them)</span>${coach}</div>
-      <div class="row">${next ? `<button type="button" class="btn" id="next">Next: Case ${next.no} ${next.title} (practises ${next.goal.toLowerCase()})</button>` : ""}
+      <div class="row">${next ? `<button type="button" class="btn" id="next">Next: Case ${next.no} ${next.title} (practises ${GOALS[next.goal].toLowerCase()})</button>` : ""}
         <button type="button" class="btn ghost" id="lib">Back to the case library</button></div>`;
     if (next) document.getElementById("next").addEventListener("click", () => startCase(next.id));
     document.getElementById("lib").addEventListener("click", () => { S.caseId = null; S.maxStep = 1; go(1); });
-    view = { mode: "rep", field: "actual", t: ch.dep + 3, layers: new Set(), tracks: { [ch.rk]: mine.samples }, focus: ch.rk }; setFoot(); draw();
+    view = { t: ch.dep - UTC_OFFSET + 3, layers: new Set(["hs"]), tracks: { [ch.rk]: mine.samples }, focus: ch.rk, stamp: "ACTUAL", readAll: true }; setFoot(); draw();
   }
 
-  renderStepper(); renderPanel(); resize();
+  // ---------- start ----------
+  const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); });
+  Promise.all(CASE_IDS.map(id => load(`../public/cases/${id}.json`).then(kase => load(`../public/maps/${kase.date}.json`).then(wide => prepare(kase, wide)))))
+    .then(list => {
+      CASES = Object.fromEntries(list.map(c => [c.id, c]));
+      renderStepper(); renderPanel(); initMap();
+    })
+    .catch(err => { panel.innerHTML = `<p>Could not load the case files (${esc(err.message)}). Serve web/ over HTTP: <span class="mono">python -m http.server -d web</span>, then open /prototype/.</p>`; });
 })();
 </script>
 </body>
