@@ -212,7 +212,7 @@ tr:last-child td { border-bottom: 0; }
 </head>
 <body>
 <div class="wrap">
-  <div class="banner"><b>Prototype with real data</b><span>Both cases are real days in the Copernicus Marine reanalysis; every sea state, simulation and tipping point comes from <span class="mono">pipeline/export_cases.py</span>. Thresholds are teaching values (docs/METHODS.md). No forecast was archived for these days, so the evidence shows what the sea actually did. The judgment profile and coach text are placeholders.</span></div>
+  <div class="banner"><b>Prototype with real data</b><span>All cases are real days in the Copernicus Marine reanalysis; every sea state, simulation and tipping point comes from <span class="mono">pipeline/export_cases.py</span>. Thresholds are teaching values (docs/METHODS.md). No forecast was archived for these days, so the evidence shows what the sea actually did. The judgment profile and coach text are placeholders.</span></div>
 
   <div class="top">
     <div class="row" style="gap:14px;align-items:baseline"><div class="brand">Sea<span>Sense</span></div><span class="tag">Solve real cases at sea. Build the judgment future mariners need.</span></div>
@@ -247,19 +247,27 @@ tr:last-child td { border-bottom: 0; }
 
   const UTC_OFFSET = 2; // Balearic summer time; case files are in UTC
   const KN = 1.94384;
-  const CASE_IDS = ["c01", "c07"];
+  const CASE_IDS = ["c01", "c04", "c07", "c08"];
   const ROUTE_COLOR = { A: "--track", B: "--route-b", C: "--route-c" };
   const GOALS = { wind_vs_swell: "Wind sea vs swell", beam_seas: "Wave direction vs heading", current_time: "Current and passage time", time_window: "Departure window" };
   const EVIDENCE = { period: "period", wave_dir: "dir", current: "cur", wind: "wind", hs: "hs", sst: "sst" }; // case key_evidence -> layer id
   // Editorial text per case. Every number in it was read from the case file; times are local.
   const META = {
     c01: {
-      no: "#01", dots: "●●○", next: "c07",
+      no: "#01", dots: "●●○",
       lesson: "The wind stayed under 14 kn all day, yet from late morning a swell from the north-east arrived: by early afternoon the waves were about 1.4 to 1.7 m with a period of about 7 s, almost all of it swell (wind sea under 0.4 m). The wind alone would not have warned you; the wave period would. The direct route meets these waves on the beam, so it works only if you leave by 09:00. From 09:30 to 13:00 the southern lee is the best choice, at 13:30 and 14:00 the northern loop, and after that no route reaches Ciutadella before 21:00."
     },
+    c04: {
+      no: "#04", dots: "●○○",
+      lesson: "A steady north-east wind of 16 to 18 kn blew through the morning, and the waves from the north-east grew from about 1.1 m at dawn to almost 2 m by late afternoon. Only an early start works: at 06:00 or 06:30 the direct route stays within the limits, and at 06:00 the southern lee does too. Leave later and every route spends time in beam seas above 1.5 m. The direct route misses by only 10 to 50 minutes, exactly the kind of small margin that is tempting to accept. The northern loop meets these waves on the beam for 1 to 2.7 hours whenever you leave."
+    },
     c07: {
-      no: "#07", dots: "●●●", next: "c01",
+      no: "#07", dots: "●●●",
       lesson: "At 08:00 the sea was calm and the wind light from the south-south-east. Between 09:00 and 11:00 the wind swung to north-east, the Gregal, and reached about 25 kn by early afternoon; the waves from the north-north-east passed 1.5 m around noon. The direct route heads east-north-east, so these waves met it on the beam: it was safe only if you left by 07:30. Leaving between 08:00 and 09:30, only the southern lee stayed within the limits. From 10:00 no route was safe, and the right call was not to sail."
+    },
+    c08: {
+      no: "#08", dots: "●●○",
+      lesson: "The day after the Gregal the wind eased from about 24 kn in the morning to almost nothing by evening, but the waves did not go with it. Over 3 m at dawn, they settled into a swell of about 1.5 to 2 m with a period of 8 to 9 s, still coming from the north-north-east. The direct route and the southern lee meet it on the beam for more than 2 hours whatever the departure time. The long northern loop meets it head-on and then from astern, so it never has beam seas; it only had to wait until the waves along it dropped below 2.5 m. That opened a window from 12:00 to 14:00. From 14:30 the passage of almost 7 hours no longer reaches Ciutadella before 21:00."
     }
   };
   const RAMP = [[0, [40, 90, 170]], [0.5, [30, 150, 190]], [1, [40, 180, 150]], [1.5, [150, 200, 80]],
@@ -601,9 +609,9 @@ tr:last-child td { border-bottom: 0; }
     </button>`;
     panel.innerHTML = `<h2>Case library<small>Every case is a real day at sea.</small></h2>
       <div class="cases">${CASE_IDS.map(id => card(CASES[id])).join("")}
-        <button type="button" class="case" disabled><span class="no">More</span><span class="t">More cases</span><span class="small muted">mine.py ranks 21 candidate days in summer 2026; autumn and winter data will add more</span></button>
+        <button type="button" class="case" disabled><span class="no">More</span><span class="t">More cases</span><span class="small muted">Summer 2026 has no day where the current changes the decision; autumn and winter data will add cases for current and passage time</span></button>
       </div>
-      <p class="small muted">Start with #01. After the report, the coach recommends #07.</p>`;
+      <p class="small muted">Start with #01. After each report, the coach recommends an unsolved case that practises your weakest goal.</p>`;
     panel.querySelectorAll("[data-case]").forEach(b => b.addEventListener("click", () => startCase(b.dataset.case)));
   }
   function startCase(id) {
@@ -754,10 +762,12 @@ tr:last-child td { border-bottom: 0; }
       const b = bestAt(c, h);
       return b ? `<div style="background:var(${ROUTE_COLOR[b.rk]})" class="${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: ${b.rk}">${b.rk}</div>` : `<div class="none ${i === ci ? "cur" : ""}" title="Depart ${hhmm(h)}: no safe option">✕</div>`;
     }).join("");
-    const notes = c.flips.map(f => {
+    const notes = c.flips.map((f, i) => {
       const at = local(utcHours(f.at));
       if (!f.to) return `<span>From <b class="mono">${hhmm(at)}</b>: <b>no safe option</b>. The right call is not to sail. Why: ${whyNot(c, f.from, at)}.</span>`;
-      if (!f.from) return `<span>From <b class="mono">${hhmm(at)}</b>, <b>${f.to}</b> becomes safe again.</span>`;
+      if (!f.from) return i === 0
+        ? `<span>Until <b class="mono">${hhmm(at - 0.5)}</b> no route is safe. From <b class="mono">${hhmm(at)}</b>, <b>${f.to}</b> is the first safe option.</span>`
+        : `<span>From <b class="mono">${hhmm(at)}</b>, <b>${f.to}</b> becomes safe again.</span>`;
       return `<span>Around <b class="mono">${hhmm(at)}</b> the best route changes from <b>${f.from}</b> to <b>${f.to}</b>. Why: ${whyNot(c, f.from, at)}.</span>`;
     });
     document.getElementById("flipnote").innerHTML = `<span class="label">Tipping points</span>${notes.join("") || "<span>The best option stays the same all day.</span>"}`;
@@ -802,13 +812,17 @@ tr:last-child td { border-bottom: 0; }
     if (best && best.rk !== ch.rk) coach += `<p>Departing at the same time, a better choice was <b>${best.rk} ${c.routes[best.rk].name}</b>, in port at <span class="mono">${hhmm(local(best.arrive))}</span>.</p>`;
     if (!best) coach += `<p>At this departure time all three routes carry risk. A better decision was to change the time or not sail.</p>`;
     if (firstFlip) coach += `<p>Before <span class="mono">${hhmm(local(utcHours(firstFlip.at)))}</span>, ${firstFlip.from} was the best option. After that, the decision needed a second look.</p>`;
-    const next = c.next && CASES[c.next];
+    // Next case: an unsolved case for the weakest goal that has one; otherwise any unsolved case.
+    const unsolved = CASE_IDS.filter(id => !S.done.has(id)).map(id => CASES[id]);
+    const target = prof.slice().sort((a, b) => a.v - b.v).find(p => unsolved.some(u => u.goal === p.goal));
+    const next = target ? unsolved.find(u => u.goal === target.goal) : unsolved[0];
+    const why = target ? `your weakest goal, ${GOALS[target.goal].toLowerCase()}` : `${GOALS[next ? next.goal : c.goal].toLowerCase()}`;
     panel.innerHTML = `<h2>Case report<small>Case ${c.no}</small></h2>
       <p>Your decision: <b>${ch.rk} ${c.routes[ch.rk].name}</b>, departing <span class="mono">${hhmm(ch.dep)}</span> ${mine.safe ? '<span class="pill ok">Safe</span>' : '<span class="pill bad">At risk</span>'}</p>
       <div><span class="label">Evidence you opened</span><div class="ev">${LAYERS.filter(L => S.opened.has(L.id)).map(L => `<span class="pill ${L.id === keyId ? "ok" : ""}">${L.name}${L.id === keyId ? " ✓ key" : ""}</span>`).join("") || '<span class="small muted">None</span>'}${missedKey ? `<span class="pill bad">${keyL.name} ✕ key evidence not opened</span>` : ""}</div></div>
       <div><span class="label">Judgment profile (placeholder scores)</span><div class="bars">${prof.map(p => `<div class="bar ${p === weak && p.v < 60 ? "weak" : ""}"><span>${GOALS[p.goal]}</span><span class="t"><i style="width:${clamp(p.v, 0, 100)}%"></i></span><span class="mono">${clamp(p.v, 0, 100)}</span></div>`).join("")}</div></div>
       <div class="coach"><span class="label">Coach feedback (template text in this prototype; in the product, code computes the facts and AI only phrases them)</span>${coach}</div>
-      <div class="row">${next ? `<button type="button" class="btn" id="next">Next: Case ${next.no} ${next.title} (practises ${GOALS[next.goal].toLowerCase()})</button>` : ""}
+      <div class="row">${next ? `<button type="button" class="btn" id="next">Next: Case ${next.no} ${next.title} (practises ${why})</button>` : '<span class="small muted">You have solved every case.</span>'}
         <button type="button" class="btn ghost" id="lib">Back to the case library</button></div>`;
     if (next) document.getElementById("next").addEventListener("click", () => startCase(next.id));
     document.getElementById("lib").addEventListener("click", () => { S.caseId = null; S.maxStep = 1; go(1); });
