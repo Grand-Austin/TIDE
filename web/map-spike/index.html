@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeaSense live map</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+/* Spike: one real day (Copernicus reanalysis) on a vector basemap. Wave height as a colour field,
+   wind or current as moving particles, routes and the best departure from the case file.
+   Serve web/ over HTTP (python -m http.server -d web) and open /map-spike/. */
+:root {
+  --bg: #eef2f4; --panel: rgba(255, 255, 255, .92); --ink: #14212b; --muted: #5b6b77; --rule: #d3dbe1;
+  --accent: #0b7a75; --warn: #c2410c; --particle: 255, 255, 255;
+  --route-a: #0b7a75; --route-b: #6d4bc4; --route-c: #c2410c;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1418; --panel: rgba(16, 24, 30, .9); --ink: #e6edf1; --muted: #93a4b0; --rule: #2a3741;
+    --accent: #3cc6bd; --warn: #fb923c; --particle: 255, 255, 255;
+    --route-a: #3cc6bd; --route-b: #a78bfa; --route-c: #fb923c;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1418; --panel: rgba(16, 24, 30, .9); --ink: #e6edf1; --muted: #93a4b0; --rule: #2a3741;
+  --accent: #3cc6bd; --warn: #fb923c; --particle: 255, 255, 255;
+  --route-a: #3cc6bd; --route-b: #a78bfa; --route-c: #fb923c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 var(--font); }
+#map { position: fixed; inset: 0; }
+#particles { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+.card { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; backdrop-filter: blur(6px); }
+#info { top: 12px; left: 12px; width: min(340px, calc(100vw - 24px)); display: grid; gap: 8px; }
+#info h1 { margin: 0; font-size: 15px; font-weight: 650; }
+#info .sub { color: var(--muted); font-size: 12px; }
+.clock { font: 600 34px/1 var(--mono); letter-spacing: -.02em; }
+.clock small { font: 500 12px var(--font); color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stats div { display: grid; gap: 2px; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.stats b { font: 600 15px var(--mono); }
+.decision { display: grid; gap: 4px; }
+.strip { position: relative; display: flex; height: 22px; border-radius: 4px; overflow: hidden; font: 600 11px var(--mono); }
+.strip span { display: grid; place-items: center; color: #fff; }
+.strip .none { background: repeating-linear-gradient(45deg, var(--rule), var(--rule) 4px, transparent 4px, transparent 8px); color: var(--muted); }
+.strip i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); transition: left .1s linear; }
+.ticks { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--muted); }
+#stripTicks { position: relative; height: 14px; }
+#stripTicks span { position: absolute; transform: translateX(-50%); }
+#stripTicks span:first-child { transform: none; }
+#controls { left: 12px; right: 12px; bottom: 12px; margin: 0 auto; max-width: 760px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px 12px; align-items: center; }
+button { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+#play { width: 40px; height: 36px; font-size: 16px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.seg { display: flex; gap: 4px; }
+#legend { right: 12px; top: 12px; display: grid; gap: 6px; width: 190px; }
+.ramp { height: 10px; border-radius: 3px; }
+#readout { right: 12px; top: 90px; width: 190px; font: 12px var(--mono); display: none; gap: 2px; }
+#readout.on { display: grid; }
+#credit { grid-column: 1 / -1; margin: 0; font-size: 10px; line-height: 1.3; color: var(--muted); overflow-wrap: anywhere; }
+#credit a { color: inherit; }
+.maplibregl-ctrl-bottom-right { bottom: calc(var(--controls-h, 90px) + 16px); }
+@media (max-width: 640px) {
+  #legend { top: auto; right: auto; left: 12px; bottom: calc(var(--controls-h, 150px) + 20px); width: 150px; padding: 8px 10px; }
+  #readout { display: none !important; }
+  #info { padding: 10px; gap: 6px; }
+  .clock { font-size: 26px; }
+  #controls { grid-template-columns: auto 1fr; }
+  #controls .seg { grid-column: 1 / -1; }
+}
+</style>
+</head>
+<body>
+<div id="map" role="region" aria-label="Map of the Balearic Islands with wave height, wind and the three case routes"></div>
+<canvas id="particles" aria-hidden="true"></canvas>
+
+<section id="info" class="card" aria-live="polite">
+  <div>
+    <h1>9 September 2026 · the Gregal arrives</h1>
+    <div class="sub">Alcúdia → Ciutadella · Copernicus Marine reanalysis</div>
+  </div>
+  <div class="clock" id="clock">08:00<small>local (UTC+2)</small></div>
+  <div class="stats">
+    <div><span class="label">Waves</span><b id="sHs">–</b></div>
+    <div><span class="label">Wind</span><b id="sWind">–</b></div>
+    <div><span class="label">From</span><b id="sDir">–</b></div>
+  </div>
+  <div class="decision">
+    <span class="label">Best departure, by time</span>
+    <div class="strip" id="strip"></div>
+    <div class="ticks" id="stripTicks"></div>
+  </div>
+</section>
+
+<section id="legend" class="card">
+  <span class="label">Wave height (m)</span>
+  <div class="ramp" id="ramp"></div>
+  <div class="ticks" id="rampTicks"></div>
+  <span class="label" id="particleLabel">Particles: wind</span>
+</section>
+<section id="readout" class="card" aria-live="polite"></section>
+
+<section id="controls" class="card">
+  <button type="button" id="play" aria-label="Play">▶</button>
+  <input type="range" id="time" min="2" max="23" step="0.25" value="8" aria-label="Time of day, local">
+  <div class="seg" role="group" aria-label="Particles show">
+    <button type="button" data-flow="wind" aria-pressed="true">Wind</button>
+    <button type="button" data-flow="current" aria-pressed="false">Current</button>
+  </div>
+  <p id="credit"></p>
+</section>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const UTC_OFFSET = 2; // Balearic summer time
+  const KN = 1.94384;
+  const CASE = "../public/cases/c07.json"; // routes, simulations and flips (pipeline/export_cases.py)
+  // Wave height colour ramp, m -> rgb.
+  const RAMP = [[0, [40, 90, 170]], [0.5, [30, 150, 190]], [1, [40, 180, 150]], [1.5, [150, 200, 80]],
+                [2, [235, 200, 60]], [2.5, [240, 140, 50]], [3, [220, 70, 60]], [4, [150, 40, 110]]];
+
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const dark = () => document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const hhmm = h => { const m = Math.round(((h % 24) + 24) % 24 * 60); return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+  const compass = d => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+
+  function rampColor(v) {
+    if (v <= RAMP[0][0]) return RAMP[0][1];
+    for (let i = 1; i < RAMP.length; i++) {
+      if (v <= RAMP[i][0]) {
+        const [a, ca] = RAMP[i - 1], [b, cb] = RAMP[i], f = (v - a) / (b - a);
+        return ca.map((c, k) => c + (cb[k] - c) * f);
+      }
+    }
+    return RAMP[RAMP.length - 1][1];
+  }
+
+  // Bilinear in space, linear in time; missing (land) corners are left out and the weights renormalised.
+  function sampler(g, layer) {
+    const L = g[layer], scale = L.scale, vals = L.values, nt = vals.length;
+    return (t, lon, lat) => {
+      const x = (lon - g.lon0) / g.dlon, y = (lat - g.lat0) / g.dlat;
+      if (x < 0 || y < 0 || x > g.nx - 1 || y > g.ny - 1) return null;
+      const i = Math.min(Math.floor(x), g.nx - 2), j = Math.min(Math.floor(y), g.ny - 2), fx = x - i, fy = y - j;
+      const k = Math.max(0, Math.min(Math.floor(t), nt - 2)), ft = Math.max(0, Math.min(1, t - k));
+      let sum = 0, wsum = 0;
+      for (const [di, dj, w] of [[0, 0, (1 - fx) * (1 - fy)], [1, 0, fx * (1 - fy)], [0, 1, (1 - fx) * fy], [1, 1, fx * fy]]) {
+        const idx = (j + dj) * g.nx + i + di, a = vals[k][idx], b = vals[k + 1][idx];
+        if (a === null || b === null || w === 0) continue;
+        sum += w * (a + (b - a) * ft); wsum += w;
+      }
+      return wsum > 0.25 ? sum / wsum / scale : null;
+    };
+  }
+  // Directions need vector averaging.
+  function dirSampler(g, layer) {
+    const L = g[layer], sin = { scale: 100, values: L.values.map(r => r.map(d => d === null ? null : Math.sin(d * Math.PI / 180) * 100)) },
+      cos = { scale: 100, values: L.values.map(r => r.map(d => d === null ? null : Math.cos(d * Math.PI / 180) * 100)) };
+    const s = sampler({ ...g, s: sin }, "s"), c = sampler({ ...g, c: cos }, "c");
+    return (t, lon, lat) => { const a = s(t, lon, lat), b = c(t, lon, lat); return a === null || b === null ? null : (Math.atan2(a, b) * 180 / Math.PI + 360) % 360; };
+  }
+
+  const state = { t: 6, playing: false, flow: "wind" };
+  let D, C, S, map, fieldCanvas, lastFieldT = -1;
+
+  const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); });
+  Promise.all([load("data/2026-09-09.json"), load(CASE)]).then(([data, kase]) => init(data, kase)).catch(err => {
+    document.getElementById("info").insertAdjacentHTML("beforeend", `<p class="sub">Could not load the data (${err.message}). Serve web/ over HTTP: python -m http.server -d web, then open /map-spike/.</p>`);
+  });
+
+  // Best route for each departure: the fastest safe one, as in pipeline/simulate.py best_route.
+  function bestByDeparture(kase) {
+    return Object.entries(kase.sims).sort(([a], [b]) => a.localeCompare(b)).map(([dep, sims]) => {
+      const safe = Object.entries(sims).filter(([, r]) => r.safe).sort(([, a], [, b]) => a.arrival.localeCompare(b.arrival));
+      return { local: new Date(dep).getUTCHours() + new Date(dep).getUTCMinutes() / 60 + UTC_OFFSET, route: safe.length ? safe[0][0] : null };
+    });
+  }
+
+  function init(data, kase) {
+    D = data; C = kase;
+    S = {
+      hs: sampler(D.waves, "hs"), dir: dirSampler(D.waves, "dir"), period: sampler(D.waves, "period"),
+      wu: sampler(D.wind, "u"), wv: sampler(D.wind, "v"), cu: sampler(D.current, "u"), cv: sampler(D.current, "v")
+    };
+    document.getElementById("credit").innerHTML = D.credit.replace(/https:\/\/doi\.org\/\S+?(?=,|$)/g, u => `<a href="${u}">${u}</a>`);
+    buildLegend(); buildStrip();
+
+    const g = D.waves, west = g.lon0 - g.dlon / 2, east = g.lon0 + (g.nx - 0.5) * g.dlon,
+      south = g.lat0 - g.dlat / 2, north = g.lat0 + (g.ny - 0.5) * g.dlat;
+    const wide = window.innerWidth > 640;
+    const controls = document.getElementById("controls");
+    new ResizeObserver(() => document.documentElement.style.setProperty("--controls-h", controls.offsetHeight + "px")).observe(controls);
+    fieldCanvas = document.createElement("canvas");
+    fieldCanvas.width = g.nx * 6; fieldCanvas.height = g.ny * 6;
+    drawField();
+
+    map = new maplibregl.Map({
+      container: "map",
+      style: `https://tiles.openfreemap.org/styles/${dark() ? "dark" : "positron"}`,
+      bounds: wide ? [[2.75, 39.55], [4.25, 40.25]] : [[3.05, 39.7], [3.95, 40.2]],
+      fitBoundsOptions: { padding: wide ? { top: 40, bottom: 130, left: 360, right: 210 } : { top: 250, bottom: 230, left: 10, right: 10 } },
+      maxBounds: [[west - 1, south - 1], [east + 1, north + 1]], attributionControl: { compact: true }
+    });
+    if (wide) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    // Some basemap styles reference sprite icons they do not ship; an empty image keeps the console clean.
+    map.on("styleimagemissing", e => map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }));
+    map.on("load", () => {
+      const firstSymbol = map.getStyle().layers.find(l => l.type === "symbol");
+      map.addSource("field", { type: "canvas", canvas: fieldCanvas, animate: true, coordinates: [[west, north], [east, north], [east, south], [west, south]] });
+      map.addLayer({ id: "field", type: "raster", source: "field", paint: { "raster-opacity": 0.72, "raster-resampling": "linear", "raster-fade-duration": 0 } }, firstSymbol && firstSymbol.id);
+      addRoutes();
+      particles.reset();
+      update();
+      if (!reduceMotion) setPlaying(true);
+    });
+    map.on("move", () => particles.clear());
+    map.on("mousemove", e => readout(e.lngLat));
+    map.on("mouseout", () => document.getElementById("readout").classList.remove("on"));
+    window.addEventListener("resize", () => particles.reset());
+
+    document.getElementById("time").addEventListener("input", e => setTimeLocal(+e.target.value));
+    document.getElementById("play").addEventListener("click", () => setPlaying(!state.playing));
+    document.querySelectorAll("[data-flow]").forEach(b => b.addEventListener("click", () => {
+      state.flow = b.dataset.flow;
+      document.querySelectorAll("[data-flow]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      document.getElementById("particleLabel").textContent = `Particles: ${state.flow}`;
+      particles.reset();
+    }));
+    requestAnimationFrame(frame);
+  }
+
+  // The slider shows local time; state.t is UTC hours on the day.
+  function setTimeLocal(local) { state.t = Math.max(0, Math.min(D.times.length - 1, local - UTC_OFFSET)); update(); }
+
+  function setPlaying(on) {
+    state.playing = on;
+    const b = document.getElementById("play");
+    b.textContent = on ? "❚❚" : "▶"; b.setAttribute("aria-label", on ? "Pause" : "Play");
+  }
+
+  function drawField() {
+    const g = D.waves, ctx = fieldCanvas.getContext("2d"), W = fieldCanvas.width, H = fieldCanvas.height;
+    const img = ctx.createImageData(W, H), west = g.lon0 - g.dlon / 2, north = g.lat0 + (g.ny - 0.5) * g.dlat;
+    for (let py = 0; py < H; py++) {
+      const lat = north - (py + 0.5) / H * g.ny * g.dlat;
+      for (let px = 0; px < W; px++) {
+        const v = S.hs(state.t, west + (px + 0.5) / W * g.nx * g.dlon, lat), o = (py * W + px) * 4;
+        if (v === null) { img.data[o + 3] = 0; continue; }
+        const c = rampColor(v);
+        img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    lastFieldT = state.t;
+  }
+
+  function addRoutes() {
+    const features = Object.entries(C.routes).map(([k, r]) => ({ type: "Feature", properties: { k, name: `${k} ${r.name.toLowerCase()}` }, geometry: { type: "LineString", coordinates: r.points } }));
+    const ends = C.routes.A.points;
+    map.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features } });
+    map.addSource("ports", { type: "geojson", data: { type: "FeatureCollection", features: [
+      { type: "Feature", properties: { name: "Alcúdia" }, geometry: { type: "Point", coordinates: ends[0] } },
+      { type: "Feature", properties: { name: "Ciutadella" }, geometry: { type: "Point", coordinates: ends[ends.length - 1] } }] } });
+    const color = ["match", ["get", "k"], "A", css("--route-a"), "B", css("--route-b"), css("--route-c")];
+    map.addLayer({ id: "routes-casing", type: "line", source: "routes", paint: { "line-color": dark() ? "#000" : "#fff", "line-width": 6, "line-opacity": 0.6 }, layout: { "line-cap": "round", "line-join": "round" } });
+    map.addLayer({ id: "routes", type: "line", source: "routes", paint: { "line-color": color, "line-width": 3 }, layout: { "line-cap": "round", "line-join": "round" } });
+    map.addLayer({ id: "route-labels", type: "symbol", source: "routes", layout: { "symbol-placement": "line-center", "text-field": ["get", "name"], "text-size": 12, "text-font": ["Noto Sans Bold"] },
+      paint: { "text-color": color, "text-halo-color": dark() ? "#000" : "#fff", "text-halo-width": 2 } });
+    map.addLayer({ id: "ports", type: "circle", source: "ports", paint: { "circle-radius": 5, "circle-color": css("--ink"), "circle-stroke-color": dark() ? "#000" : "#fff", "circle-stroke-width": 2 } });
+    map.addLayer({ id: "port-labels", type: "symbol", source: "ports", layout: { "text-field": ["get", "name"], "text-size": 12, "text-offset": [0, 1.2], "text-font": ["Noto Sans Bold"] },
+      paint: { "text-color": css("--ink"), "text-halo-color": dark() ? "#000" : "#fff", "text-halo-width": 2 } });
+  }
+
+  // Channel summary at the current time: mean over sea cells between the two islands.
+  function channelStats() {
+    let hs = 0, n = 0, u = 0, v = 0, m = 0;
+    for (let lon = 3.2; lon <= 3.8; lon += 0.05) for (let lat = 39.8; lat <= 40.1; lat += 0.05) {
+      const h = S.hs(state.t, lon, lat); if (h !== null) { hs += h; n++; }
+      const a = S.wu(state.t, lon, lat), b = S.wv(state.t, lon, lat); if (a !== null && b !== null) { u += a; v += b; m++; }
+    }
+    return { hs: hs / n, wind: Math.hypot(u / m, v / m) * KN, from: (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360 };
+  }
+
+  function update() {
+    const local = state.t + UTC_OFFSET;
+    document.getElementById("time").value = local;
+    document.getElementById("clock").firstChild.textContent = hhmm(local);
+    const s = channelStats();
+    document.getElementById("sHs").textContent = s.hs.toFixed(1) + " m";
+    document.getElementById("sWind").textContent = Math.round(s.wind) + " kn";
+    document.getElementById("sDir").textContent = compass(s.from) + " " + Math.round(s.from) + "°";
+    const marker = document.querySelector("#strip i");
+    marker.style.left = `calc(${Math.max(0, Math.min(1, (local - STRIP.from) / (STRIP.to - STRIP.from))) * 100}% - 1px)`;
+    if (Math.abs(state.t - lastFieldT) > 0.02) drawField();
+  }
+
+  function buildLegend() {
+    const max = RAMP[RAMP.length - 1][0];
+    document.getElementById("ramp").style.background = `linear-gradient(90deg, ${RAMP.map(([v, c]) => `rgb(${c.join(",")}) ${v / max * 100}%`).join(", ")})`;
+    document.getElementById("rampTicks").innerHTML = [0, 1, 2, 3, 4].map(v => `<span>${v}</span>`).join("");
+  }
+
+  // Consecutive departures with the same best route become one segment; each departure covers 30 minutes.
+  function buildStrip() {
+    const seq = bestByDeparture(C), segs = [];
+    for (const d of seq) {
+      const last = segs[segs.length - 1];
+      if (last && last.route === d.route) last.to = d.local + 0.5; else segs.push({ from: d.local, to: d.local + 0.5, route: d.route });
+    }
+    STRIP.from = segs[0].from; STRIP.to = segs[segs.length - 1].to;
+    document.getElementById("strip").innerHTML = segs.map(d => d.route
+      ? `<span style="flex:${d.to - d.from};background:${css("--route-" + d.route.toLowerCase())}" title="${hhmm(d.from)}-${hhmm(d.to)}: ${C.routes[d.route].name}">${d.route}</span>`
+      : `<span class="none" style="flex:${d.to - d.from}" title="${hhmm(d.from)}-${hhmm(d.to)}: no safe route">no safe route</span>`).join("") + "<i></i>";
+    const ticks = [];
+    for (let h = Math.ceil(STRIP.from / 2) * 2; h <= STRIP.to; h += 2) ticks.push(h);
+    document.getElementById("stripTicks").innerHTML = ticks.map(h =>
+      `<span style="left:${(h - STRIP.from) / (STRIP.to - STRIP.from) * 100}%">${hhmm(h)}</span>`).join("");
+  }
+  const STRIP = { from: 6, to: 16 };
+
+  function readout(ll) {
+    const t = state.t, hs = S.hs(t, ll.lng, ll.lat), el = document.getElementById("readout");
+    const wu = S.wu(t, ll.lng, ll.lat), wv = S.wv(t, ll.lng, ll.lat), cu = S.cu(t, ll.lng, ll.lat), cv = S.cv(t, ll.lng, ll.lat);
+    if (hs === null && wu === null) { el.classList.remove("on"); return; }
+    const rows = [`<span class="label">${ll.lat.toFixed(2)}°N ${ll.lng.toFixed(2)}°E</span>`];
+    if (hs !== null) rows.push(`waves  ${hs.toFixed(1)} m from ${compass(S.dir(t, ll.lng, ll.lat))}`, `period ${S.period(t, ll.lng, ll.lat).toFixed(1)} s`);
+    if (wu !== null) rows.push(`wind   ${Math.round(Math.hypot(wu, wv) * KN)} kn from ${compass(Math.atan2(-wu, -wv) * 180 / Math.PI)}`);
+    if (cu !== null) rows.push(`current ${(Math.hypot(cu, cv) * KN).toFixed(1)} kn to ${compass(Math.atan2(cu, cv) * 180 / Math.PI)}`);
+    el.innerHTML = rows.map(r => `<span>${r}</span>`).join("");
+    el.classList.add("on");
+  }
+
+  // Particles live in lon/lat, move in screen pixels each frame, and leave fading trails.
+  const particles = (() => {
+    const cv = document.getElementById("particles"), ctx = cv.getContext("2d");
+    let list = [], dpr = 1;
+    const velocity = (lon, lat) => {
+      const u = state.flow === "wind" ? S.wu(state.t, lon, lat) : S.cu(state.t, lon, lat);
+      const v = state.flow === "wind" ? S.wv(state.t, lon, lat) : S.cv(state.t, lon, lat);
+      return u === null || v === null ? null : [u, v];
+    };
+    const spawn = p => {
+      const b = map.getBounds();
+      p.lon = b.getWest() + Math.random() * (b.getEast() - b.getWest());
+      p.lat = b.getSouth() + Math.random() * (b.getNorth() - b.getSouth());
+      p.age = Math.floor(Math.random() * 80); p.max = 60 + Math.random() * 60;
+      return p;
+    };
+    return {
+      reset() {
+        dpr = window.devicePixelRatio || 1;
+        cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+        cv.style.width = innerWidth + "px"; cv.style.height = innerHeight + "px";
+        const n = Math.round(innerWidth * innerHeight / (state.flow === "wind" ? 350 : 220));
+        list = Array.from({ length: Math.min(n, 6000) }, () => spawn({}));
+        this.clear();
+      },
+      clear() { ctx.clearRect(0, 0, cv.width, cv.height); },
+      step() {
+        if (!map) return;
+        ctx.globalCompositeOperation = "destination-in";
+        ctx.fillStyle = "rgba(0,0,0,0.93)"; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.lineWidth = 1.4 * dpr; ctx.strokeStyle = `rgba(${css("--particle")}, 0.85)`;
+        const k = (state.flow === "wind" ? 0.22 : 5) * dpr * Math.pow(2, (map.getZoom() - 8) / 2);
+        ctx.beginPath();
+        for (const p of list) {
+          const vel = velocity(p.lon, p.lat);
+          if (!vel || ++p.age > p.max) { spawn(p); p.age = 0; continue; }
+          const a = map.project([p.lon, p.lat]), bx = a.x + vel[0] * k / dpr, by = a.y - vel[1] * k / dpr;
+          const ll = map.unproject([bx, by]);
+          ctx.moveTo(a.x * dpr, a.y * dpr); ctx.lineTo(bx * dpr, by * dpr);
+          p.lon = ll.lng; p.lat = ll.lat;
+        }
+        ctx.stroke();
+      }
+    };
+  })();
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (state.playing) {
+      state.t += dt / 1.5; // one hour every 1.5 s, looping 06:00-20:00 local
+      if (state.t > 18) state.t = 4;
+      update();
+    }
+    if (!reduceMotion) particles.step();
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>
