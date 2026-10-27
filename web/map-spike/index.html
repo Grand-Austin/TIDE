@@ -172,7 +172,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   let D, C, S, map, fieldCanvas, lastFieldT = -1;
 
   const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); });
-  Promise.all([load("data/2026-09-09.json"), load(CASE)]).then(([data, kase]) => init(data, kase)).catch(err => {
+  Promise.all([load("../public/maps/2026-09-09.json"), load(CASE)]).then(([data, kase]) => init(data, kase)).catch(err => {
     document.getElementById("info").insertAdjacentHTML("beforeend", `<p class="sub">Could not load the data (${err.message}). Serve web/ over HTTP: python -m http.server -d web, then open /map-spike/.</p>`);
   });
 

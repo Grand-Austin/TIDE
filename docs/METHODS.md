@@ -88,6 +88,21 @@ What holds in every combination: the direct route works only for an early depart
 
 `python -m pipeline.mine` writes [`data/candidates.json`](../data/candidates.json). A day is a candidate only if the sea itself changes the decision: flips whose only cause is the arrival deadline are excluded. At the default limits (1.5 m, 2.5 m, 60°, arrival by 19:00 UTC) no day flips because of the deadline alone. Of the 21 candidates, two flip from one route to another at the default limits: 1 July (in 14 of 15 combinations) and 9 September (13 of 15). Five more are go/no-go days, and 14 flip only under other settings.
 
+### Cases
+
+Four candidates are exported as cases (`pipeline/export_cases.py`). Titles, goals and key evidence are chosen by hand after reading the data; every number in the case texts comes from the case file. Times below are local (UTC+2).
+
+| Case | Day | Kind | What the data shows | Goal |
+|---|---|---|---|---|
+| c01 The quiet swell | 1 July | route | Wind under 14 kn, but a north-north-east swell of 1.4 to 1.7 m (period about 7 s) arrives from late morning; wind sea stays under 0.4 m (heights from the model's wind-sea and swell partitions). Wind under 14 kn is the channel mean; during the day single cells reach about 19 kn. A until 09:00, C 09:30 to 13:00, B 13:30 to 14:00 | `wind_vs_swell` |
+| c04 First light only | 26 July | go/no-go | Steady 16 to 18 kn north-east wind, waves growing from 1.1 m to almost 2 m. Only a 06:00 or 06:30 departure stays within the limits | `time_window` |
+| c07 The Gregal morning | 9 September | route | Wind swings from SSE to NE between 09:00 and 11:00. A until 07:30, C 08:00 to 09:30, no safe route from 10:00 | `time_window` |
+| c08 After the Gregal | 10 September | go/no-go | Wind eases from 24 kn to calm, but a 1.5 to 2 m swell keeps coming from the NNE. A and C have more than 2 h of beam seas at every departure; only B, which meets the swell head-on and then from astern, is safe from 12:00 to 14:00 | `beam_seas` |
+
+1 July and 9 September are the most robust days. 2, 3 July and 17 September are left out because they repeat the c08 pattern (no safe route until the swell drops, then only B) or flip mostly because of the deadline.
+
+No summer candidate has a flip caused by current (reason `slower`): averaged over the channel, surface currents never exceed 0.8 kn in summer 2026 (99 % of grid values are under 0.9 kn), too little to change which route is faster. The `current_time` goal has no case until autumn and winter data are mined.
+
 ### Other numbers
 
 With `beam_hs` 1.5 m, `max_hs` 2.5 m and arrival by 19:00 UTC:
