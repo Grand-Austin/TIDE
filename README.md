@@ -12,6 +12,7 @@ SeaSense is a decision-training platform for navigation students, built for the 
 pipeline/          Python: fetch Copernicus data, simulate routes, mine cases, export case files
 tests/             pytest tests for pipeline code
 data/copernicus/   Copernicus Marine NetCDF subsets used by the pipeline (see its README)
+data/candidates.json  candidate case days from pipeline/mine.py
 web/prototype/     clickable prototype with illustrative (not real) data
 docs/SCHEMA.md     JSON contracts between pipeline, web and api
 docs/ARCHITECTURE.md  components, data flow, AI coach design, deployment, known limits

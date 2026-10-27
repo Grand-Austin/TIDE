@@ -84,6 +84,10 @@ On 9 September the main case route A meets the waves at 61–68°, just past the
 
 What holds in every combination: the direct route works only for an early departure, and from 10:00 local at the latest no route is safe (from 08:00 with the strictest setting). What depends on the boundary: whether the southern lee route C opens a short window in between. With a narrow head sector (50–55°), C also meets beam seas and the window closes. Case texts should present the "leave early or not at all" decision as the robust finding and the A-to-C switch as setting-dependent.
 
+### Candidate days
+
+`python -m pipeline.mine` writes [`data/candidates.json`](../data/candidates.json). A day is a candidate only if the sea itself changes the decision: flips whose only cause is the arrival deadline are excluded. At the default limits (1.5 m, 2.5 m, 60°, arrival by 19:00 UTC) no day flips because of the deadline alone. Of the 21 candidates, two flip from one route to another at the default limits: 1 July (in 14 of 15 combinations) and 9 September (13 of 15). Five more are go/no-go days, and 14 flip only under other settings.
+
 ### Other numbers
 
 With `beam_hs` 1.5 m, `max_hs` 2.5 m and arrival by 19:00 UTC:
