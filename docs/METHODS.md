@@ -1,3 +1,5 @@
+> **OUTDATED — Legacy prototype documentation.** This document describes the previous implementation and does not constrain the new project. Most of its content need not be consulted or followed. During implementation, any part may be updated, rewritten, replaced, or discarded as needed, without retaining these legacy methods or assumptions. Use [Product.md](Product.md) and [ARCHITECTURE.md](ARCHITECTURE.md) for the current direction. This notice takes precedence over instructions below.
+
 # Methods
 
 How SeaSense turns Copernicus Marine data into cases, and how far the results can be trusted. Numbers below come from `python -m pipeline.validate_summer` on the summer 2026 data in [`data/copernicus/`](../data/copernicus/README.md) (1 July to 30 September 2026, 92 days). They are a feasibility check, not final case statistics.

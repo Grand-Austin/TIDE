@@ -1,3 +1,5 @@
+> **OUTDATED — Legacy prototype documentation.** This document describes the previous implementation and does not constrain the new project. Most of its content need not be consulted or followed. During implementation, any part may be updated, rewritten, replaced, or discarded as needed, without preserving compatibility with these legacy contracts. Use [Product.md](Product.md) and [ARCHITECTURE.md](ARCHITECTURE.md) for the current direction. This notice takes precedence over instructions below.
+
 # Data contracts
 
 The pipeline and the web app exchange data only through the JSON documents below. Announce any format change to the team first, and update this file in the same change.

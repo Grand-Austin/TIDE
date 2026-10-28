@@ -1,3 +1,11 @@
+# AI and IDE specific files
+AGENTS.md
+.vscode/
+.agents/
+.codex/
+
+archive/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -228,3 +236,7 @@ node_modules/
 .vercel/
 .DS_Store
 .claude/settings.local.json
+
+# TIDE generated data and local game output
+data/processed/
+data/runs/

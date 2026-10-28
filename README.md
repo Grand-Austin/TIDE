@@ -1,28 +1,49 @@
-# SeaSense
+# TIDE
 
-*Solve real cases at sea. Build the judgment future mariners need.*
+*Observe sea conditions, command a vessel, and learn from the consequences.*
 
-SeaSense is a decision-training platform for navigation students, built for the Copernicus Marine Service Hackathon 2026 (theme: advancing ocean research, knowledge, skills and innovation). Each case is a real historical day in the Mallorca–Menorca channel, mined from Copernicus Marine data. Students investigate the evidence, choose a route and departure time, then replay what the sea actually did and find the point where their decision should have changed.
+TIDE is a maritime training-game prototype. Players command a vessel in historical marine conditions through repeated heading and speed decisions. The target architecture uses a Director Agent to orchestrate local simulation tools and game rules. A Copilot translates natural-language input into actions.
 
-> SeaSense is a training tool. It is not a navigation or safety decision tool.
+The new game packages are a workspace template, not an implemented game. Existing pipeline code and browser prototypes belong to the earlier route-selection experiment. See [Product.md](docs/Product.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md), and [PLAN.md](PLAN.md) for the current direction.
+
+> TIDE is a training prototype, not a navigation or safety decision tool.
 
 ## Repository layout
 
-```
-pipeline/          Python: fetch Copernicus data, simulate routes, mine cases, export case files
-tests/             pytest tests for pipeline code
-data/copernicus/   Copernicus Marine NetCDF subsets used by the pipeline (see its README)
-data/candidates.json  candidate case days from pipeline/mine.py
-web/prototype/     clickable prototype on the real case files (python -m http.server -d web, open /prototype/)
-web/map-spike/     animated map of one real day (python -m http.server -d web, open /map-spike/)
-web/public/cases/  case files from pipeline/export_cases.py (format in docs/SCHEMA.md)
-web/public/maps/   one day of waves, currents and wind over the Balearics, from pipeline/export_map.py
-docs/SCHEMA.md     JSON contracts between pipeline, web and api
-docs/ARCHITECTURE.md  components, data flow, AI coach design, deployment, known limits
-docs/METHODS.md    data, simulation, thresholds, sensitivity results
+```text
+pipeline/             Offline data processing; evolves into scenario construction
+game/                 Python runtime core
+  simulation/         Environment sampling, vessel dynamics, exposure, and events
+  rules/              Mission objectives, time limits, and game cargo loss
+  director/           Agent-orchestrated game loop and local execution tools
+  copilot/            Natural-language intent to heading and speed actions
+scenarios/            Curated scenario definitions, briefings, and data references
+data/
+  copernicus/         Existing committed environmental subsets
+  vessels/            Vessel metadata, model references, and source documentation
+  raw/                Additional downloads and external model files (ignored)
+  processed/          Generated environmental and vessel-model products (ignored)
+  runs/               Local trajectories, event logs, and trial results (ignored)
+web/
+  game/               Reserved for the new frontend demo
+  prototype/          Existing route-selection prototype
+  map-spike/          Existing map experiment
+  public/             Existing case and map exports
+tests/                Tests for pipeline and game capabilities
+docs/                 Current product and architecture; legacy methods and schema
+archive/              Historical discussion and reference material
+PLAN.md               Implementation checklist
 ```
 
-Planned: `web/` app, `api/` (AI coach and play-test log).
+### Ownership and implementation order
+
+- **Offline preparation:** `pipeline/` reads source data and produces scenario inputs. Scenario Builder assistance belongs here.
+- **Runtime capabilities:** `game/simulation/` and `game/rules/` contain reusable local calculations. Both the pipeline and Director can call them; runtime code must not depend on the offline pipeline.
+- **Game flow:** `game/director/` receives actions and invokes tools. Local validation, state updates, and pause handling do not require a separate Session Controller service.
+- **Player input:** `game/copilot/` produces the same heading and speed actions as direct controls. `web/game/` presents the game; it does not duplicate simulation logic.
+- **Verification:** `tests/` follows the implementation boundaries. Existing tests continue to exercise the earlier pipeline.
+
+Follow [PLAN.md](PLAN.md): build and verify the toolkit, prepare one manual scenario, add rules, connect the Director, automate scenario construction, then build the frontend and Copilot. Shared action and state definitions can live directly in `game/` when implemented. No API framework or frontend framework is selected by this template.
 
 ## Setup
 

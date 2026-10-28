@@ -1,106 +1,71 @@
-# Architecture
+# TIDE Prototype Architecture
 
-SeaSense has three parts: an offline **pipeline** that turns Copernicus Marine data into case files, a static **web app** that plays the cases and analyses each decision, and a small **API** that phrases coach feedback and stores anonymous play-test logs. Data formats between the parts are defined in [`SCHEMA.md`](SCHEMA.md).
+This document defines the target prototype through module inputs, actions, and outputs. It follows [Product.md](Product.md); 
 
-## Design principles
+## 1. Module Contracts
 
-1. **Facts come from code, never from the language model.** Sea states, risks, tipping points and recommendations are computed deterministically. The AI coach only phrases an analysis result it is given, and every number it writes is checked against that input.
-2. **Every case is a real day.** Cases are selected from historical data by a documented rule, not written by hand. A case that does not show an interesting decision is dropped, not edited.
-3. **The product works without the AI.** If the coach call fails or times out, the app shows template feedback built from the same analysis result.
-4. **Precompute everything that can be precomputed.** The web app reads static JSON. No Copernicus request happens while a student plays.
-5. **No personal data.** Play-test logs use a random session id and contain decisions only.
+| Module | Accepts | Performs | Produces |
+| --- | --- | --- | --- |
+| **Scenario construction** | Environmental data sources, vessel data, and mission requirements. | Collects and processes data, finds candidate windows, assembles missions, runs trials, and packages results. A Scenario Builder Agent assists with interpretation, review, and briefing preparation. | A versioned **scenario package**. |
+| **Game engine: Orchestrator / Director Agent** | A scenario package, current state, player actions, and tool results. | Loads the mission, invokes validation and simulation tools, receives events, presents results, and requests the next action. | Game progression, tool calls, checkpoints, and mission completion. |
+| **Numerical simulation / physics toolkit** | Vessel state, heading and speed commands, environmental fields, vessel parameters, and stopping conditions. | Samples the environment, calculates movement and response, accumulates exposure, and detects events. | Updated vessel state, a trajectory segment, response and exposure metrics, and a stopping reason. |
+| **Mission and game rules** | Mission settings, simulation results, elapsed time, and accumulated game state. | Maps exposure to game cargo loss, tracks progress, and checks objectives and limits. | Updated game metrics and mission events, such as escape or timeout. |
+| **Copilot Agent** | Player text or voice input, permitted information, and assistance settings. | Converts intent into executable heading and speed commands or a bounded motion plan.  | Structured actions |
+| **Player interface** | Visible state, environmental information, checkpoints, and Agent responses. | Displays the map, instruments, and mission status. Collects controls, natural-language input, and pause/resume requests. | Player actions and interaction requests. |
 
-## Overview
+Local code performs data processing, numerical calculations, rule evaluation, state storage, and logging. Agents invoke these capabilities.
+
+## 2. Main Connections
 
 ```mermaid
 flowchart TB
-  subgraph offline["Offline · Python · pipeline/"]
-    CM[(Copernicus Marine<br/>waves, currents, wind, SST)] --> F[fetch.py<br/>download and crop]
-    F --> SIM[simulate.py<br/>route simulation]
-    SIM --> MINE[mine.py<br/>find tipping-point days]
-    MINE --> EXP[export_cases.py]
-    SIM --> STATS[stats.py<br/>research statistics]
-  end
-
-  EXP -->|cases/*.json| PLAYER
-
-  subgraph web["Web app · static · web/"]
-    PLAYER[Case player<br/>brief · investigate · decide · replay · tipping point]
-    PLAYER -->|decision record| AN[analysis.js<br/>compare with best option]
-    AN --> LM[learner.js<br/>goal mastery]
-    LM --> REC[recommend.js<br/>next case]
-    AN --> TPL[coachFallback.js<br/>template feedback]
-    REPORT[Case report]
-    REC --> REPORT
-    TPL --> REPORT
-  end
-
-  subgraph api["API · serverless · api/"]
-    COACH[coach.js<br/>LLM call + number check]
-    LOG[log.js<br/>anonymous play-test log]
-    LLM[(LLM provider)]
-    DB[(Log store)]
-    COACH --> LLM
-    LOG --> DB
-  end
-
-  AN -->|analysis result| COACH
-  COACH -->|feedback or template| REPORT
-  PLAYER -->|decision record| LOG
+    SOURCES[Environmental and vessel data] --> BUILD[Scenario pipeline + Builder assistance]
+    BUILD --> PACKAGE[Scenario package]
+    PACKAGE --> DIRECTOR[Director Agent: game engine]
+    PLAYER[Player interface] -->|Direct actions| DIRECTOR
+    PLAYER <-->|Text or voice| COPILOT[Copilot Agent]
+    COPILOT -->|Actions and trial requests| DIRECTOR
+    DIRECTOR -->|Results| COPILOT
+    DIRECTOR -->|Action, state, and stopping conditions| SIM[Simulation toolkit]
+    SIM -->|State, metrics, and events| DIRECTOR
+    DIRECTOR -->|Simulation results| RULES[Mission and game rules]
+    RULES -->|Game metrics and mission events| DIRECTOR
+    DIRECTOR -->|Visible state and request for action| PLAYER
+    DIRECTOR --> RECORD[Recording and debrief]
+    RECORD --> PLAYER
 ```
 
-## Components
+The Director owns game-flow decisions. Local execution functions validate calls, commit computed state, and handle immediate pause requests. A separate Session Controller is unnecessary; any retained controller is a thin execution layer.
 
-| Component | Responsibility | Input | Output | Runs |
-|---|---|---|---|---|
-| `pipeline/fetch.py` | Download Copernicus Marine products for the case area and period, crop to a box around the routes | Product and dataset IDs, bounding box, dates | Local NetCDF files in `data/raw/` (not committed). The curated summer 2026 subsets are committed in `data/copernicus/` | Offline |
-| `pipeline/simulate.py` | Move a vessel along a route over time; classify head, beam and following seas; apply current; count hours over limits | Route points, departure, sea-state lookup, limits | Simulation result per route and departure | Offline |
-| `pipeline/mine.py` | Simulate every day × departure × route; keep days where the best route changes with departure time | Simulation results | Candidate case days with their tipping points | Offline |
-| `pipeline/export_cases.py` | Write the selected days as case files | Candidate days, gridded data | `web/public/cases/<id>.json` | Offline |
-| `pipeline/stats.py` | Summary statistics for the pitch, e.g. share of days when the shortest route is not the best | Mining results | Numbers for `docs/METHODS.md` | Offline |
-| Case player | The seven screens: case library, briefing, investigation, decision, replay, tipping point, report | Case file | Decision record | Browser |
-| `analysis.js` | Compare the decision with the best option at the same departure; find missed key evidence and the weak learning goal | Case file, decision record | Analysis result | Browser |
-| `learner.js` | Keep mastery per learning goal across cases | Analysis results | Learner profile (local storage) | Browser |
-| `recommend.js` | Pick the next unplayed case that targets the weakest goal | Learner profile, case index | Next case id | Browser |
-| `coachFallback.js` | Build feedback text from the analysis result without AI | Analysis result | Feedback text | Browser |
-| `api/coach.js` | Ask the LLM to phrase the analysis result; reject output whose numbers are not in the input | Analysis result | Coach response | Serverless |
-| `api/log.js` | Store anonymous decision records for play-test analysis | Decision record | Stored row | Serverless |
+## 3. Shared Inputs and Results
 
-## Data flow for one case
+| Object | Contents |
+| --- | --- |
+| **Scenario package** | Area and historical time window, environmental fields, information-release times, vessel model and loading condition, initial state |
+| **Player action** | Two parameter: Target heading and speed. Controls and Copilot output use the same format. |
+| **Game state** | Simulation time, vessel position and motion, active command, accumulated exposure, game cargo status, and mission progress. |
+| **Advance result** | New state, trajectory segment, calculated metrics, events, and the reason simulation stopped. |
+| **Checkpoint** | A request for a decision, accompanied by visible state, relevant evidence, and the reason for interruption. |
 
-1. The player loads `cases/<id>.json`.
-2. During investigation the student opens up to three evidence layers. The map shows the forecast grid if the case has one, otherwise the analysis grid up to the departure time.
-3. On submit, the player creates a decision record and sends it to `api/log` (fire and forget).
-4. Replay and the tipping-point screen read the precomputed `sims` and `flips` from the case file.
-5. `analysis.js` builds the analysis result. `learner.js` updates the profile and `recommend.js` picks the next case.
-6. The report shows template feedback immediately, then replaces it with the coach response if `api/coach` answers within the timeout.
+These are conceptual contracts, not a finalized API schema. Local code maintains authoritative state; Agent text does not substitute for calculated state updates.
 
-## AI coach
+## 4. Runtime Loop
 
-- **Input**: the analysis result only. No raw sea-state data, no free-form chat.
-- **Instructions**: respond to the student's own reasons, name the missed evidence, explain the risk, state when the decision should have been reconsidered, point to the next case. Use only numbers present in the input. About 120 words.
-- **Output**: JSON with `feedback` and `numbers_used`.
-- **Check**: extract every number and time from `feedback`; if any is missing from the input, or the call exceeds the timeout, return the template text with `source: "template"`.
-- **Cost**: one call per finished case.
+1. The Director loads a scenario package and initializes state through local functions.
+2. The interface presents the briefing and available information. The player submits an action directly or through the Copilot.
+3. The Director calls validation tools and invokes simulation with the accepted action and stopping conditions.
+4. Simulation advances locally until an event, action completion, manual pause, or maximum advance interval. It returns state, metrics, and a stopping reason.
+5. The Director invokes game rules to update cargo loss and mission progress, then records the results.
+6. The Director presents the decision context and requests an action. Where the active plan permits continuation, it can invoke another advance segment.
+7. The loop continues until mission completion. Recording and debrief produce the replay and report.
 
-## Deployment
+Event detection runs in local code, without an Agent call at every numerical step. A game-rule limit that requires an immediate stop is also evaluated locally during advancement.
 
-| Part | Where | Notes |
-|---|---|---|
-| Web app and case files | Static hosting (e.g. Vercel or GitHub Pages) | Case files ship with the site |
-| API | Serverless functions next to the web app | LLM API key in the platform's environment variables, never in the repo |
-| Log store | A single table in a hosted database or key-value store | Session id and decision fields only |
-| Pipeline | A team member's machine | Copernicus credentials stay local via `copernicusmarine login` |
+## 5. Essential Boundaries
 
-## Known limits
-
-- **Coastal resolution.** Regional Copernicus products resolve the open channel but not harbours and bays. Simulation covers open-water legs only; harbour approach and exit are not assessed.
-- **Forecast versus analysis.** If issued forecasts for past days are not available, the investigation step uses analysis data up to departure time. This is a simplification and is stated in `docs/METHODS.md`.
-- **Vessel model.** Speed is constant through the water plus the current component along the heading. Wave-induced speed loss is added only if a published formula is used and cited.
-- **Thresholds.** Beam-sea and wave-height limits must cite a published seamanship source. Until then, the prototype labels them as illustrative.
-
-## Open decisions
-
-- LLM provider for the coach.
-- Hosting platform and log store.
-- Whether archived forecasts are available for the chosen product, which decides how the investigation step works.
+- **Fixed environment, changing trajectory.** Historical fields remain fixed. Actions change where and when the vessel encounters them.
+- **Orchestration and calculation.** The Director selects tool calls and progression. Tools calculate motion, exposure, and game outcomes.
+- **Information access.** The interface and Copilot receive released information. Recommendations cannot use hidden future reconstruction.
+- **Trials and execution.** Trials use a copy of state. They reuse calculation tools without moving the live vessel.
+- **Physical and game metrics.** An explicit rule maps response or exposure to game cargo loss. This is not a validated prediction of real container failure.
+- **Extensibility.** New scenarios and improved models reuse the contracts. Agents can only request capabilities supported by available tools.
