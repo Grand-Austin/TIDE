@@ -83,10 +83,40 @@ def test_small_unforced_roll_energy_decays(vessel):
     assert energy(result.y[:,-1]) < energy(x)
 
 
-def test_vertical_oscillation_does_not_push_the_ship_forward(vessel):
-    # Heave and pitch velocity alone must not accelerate surge, sway or yaw: that coupling
-    # produced a spurious forward force in head seas and ran the ship past its speed limit.
-    x = np.zeros(12)
-    x[2], x[4] = 2.0, 0.05
-    acceleration = derivative(x, np.zeros(6), vessel, (0, 0))[:6]
-    np.testing.assert_allclose(acceleration[[0, 1, 5]], 0, atol=1e-12)
+def test_free_rigid_body_has_zero_inertial_acceleration(vessel, monkeypatch):
+    monkeypatch.setattr('game.simulation.dynamics._ittc_coefficient', lambda *_: 0.0)
+    monkeypatch.setattr('game.simulation.dynamics.crossflow', lambda *_: np.zeros(6))
+
+    rigid_mass = np.diag([
+        vessel.main['m'], vessel.main['m'], vessel.main['m'],
+        vessel.main['m']*vessel.main['k44']**2,
+        vessel.main['m']*vessel.main['k55']**2,
+        vessel.main['m']*vessel.main['k66']**2,
+    ])
+    vessel.M = rigid_mass
+    vessel.Minv = np.linalg.inv(rigid_mass)
+    vessel.MA = np.zeros((6, 6))
+    vessel.D = np.zeros((6, 6))
+    vessel.G = np.zeros((6, 6))
+
+    nu = np.array([3, 0, 0.2, 0, 0.005, 0])
+    x = np.r_[nu, np.zeros(6)]
+    dx = derivative(x, np.zeros(6), vessel, (0, 0))
+    np.testing.assert_allclose(
+        dx[:3] + np.cross(nu[3:], nu[:3]), 0, atol=1e-12
+    )
+
+
+def test_applied_force_coriolis_does_no_work(vessel, monkeypatch):
+    monkeypatch.setattr('game.simulation.dynamics._ittc_coefficient', lambda *_: 0.0)
+    monkeypatch.setattr('game.simulation.dynamics.crossflow', lambda *_: np.zeros(6))
+
+    vessel.D = np.zeros((6, 6))
+    vessel.G = np.zeros((6, 6))
+    mass = np.linalg.inv(vessel.Minv)
+
+    nu = np.array([1, 2, 3, .1, .2, .3])
+    tau = np.array([1, -2, 1, 0, 0, 0])
+    x = np.r_[nu, np.zeros(6)]
+    dx = derivative(x, tau, vessel, (0, 0))
+    assert nu @ mass @ dx[:6] == pytest.approx(0, rel=1e-10, abs=1e-8)

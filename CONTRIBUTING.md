@@ -37,5 +37,5 @@ Plan: [PLAN.md](PLAN.md). Current state and decisions: [STATUS.md](STATUS.md).
 uv sync --locked
 uv run python -m pipeline.prepare_vessel   # once per clone
 uv run python -m pytest
-uv run python -m game                      # play; --plain for line commands
+uv run python -m game                      # play in the full-screen terminal UI
 ```

@@ -36,6 +36,8 @@ Use the existing three-hour historical window and fixed S175 design-waterline mo
 
   The frozen Menorca scenario keeps its validated 0.30. Revalidate 0.14 on full-length storm missions.
 
+  These cargo trials predate the full-coupling and mean-wave-surge repair documented in `MOTION_VALIDATION.md`. They are historical calibration evidence; the current motion requires renewed cargo balance checks.
+
 TopTier is a reference for interpreting motion-related hazards, not a direct loss-count formula. This version does not add a separate TopTier warning mechanic or claim that the current motion model reproduces nonlinear parametric roll.
 
 ### Escape region and evidence
@@ -72,15 +74,15 @@ Keep the existing numerical scenario schema and version its new independently pi
 
 ### Text interface and clock
 
-Provide `uv run python -m game` as the playable command-line entrypoint and a separate scripted runner for deterministic testing. Both use the same local algorithms and rules. The playable mode requires Director; the scripted mode is the stage-3 verification harness.
+Provide `uv run python -m game` as the full-screen terminal entrypoint and a separate scripted runner for deterministic testing. Both use the same local algorithms and rules. The default engine is local; `--engine director` opts into experimental orchestration. The old line/JSON interface and `--plain` entrypoint are removed.
 
-Commands: `heading <degrees>`, `speed <knots>`, `pause`, `resume`, `rate <multiplier>`, `status`, `reports`, `save`, `quit`, and `retry` after an Agent failure. Accept headings in `[0, 360)` and nonnegative speeds within the loaded vessel's supported command range. Convert knots to SI once at the interface. Show units explicitly.
+Outside command input, `j/k` change the requested time rate and `p` pauses into a prefilled target heading/speed editor. `Tab` switches fields; `Enter` or `p` validates both targets and resumes. `/` opens a command field without stopping time. Commands include `heading <degrees>`, `speed <knots>`, `pause`, `resume`, `rate <multiplier>`, `status`, `reports`, `save`, `quit`, and `retry` after an Agent failure. Accept headings in `[0, 360)` and nonnegative speeds within the loaded vessel's supported command range. Convert knots to SI once at the interface. Show units explicitly.
 
 Start paused with briefing and initial state visible. Targets persist until replaced. A new target issued while running first requests a local pause, then is validated and applied at a state boundary; the player explicitly resumes. The input reader and pause signal remain responsive during numerical work or a model request. A late model result cannot undo a later user pause or order.
 
 Initial rates are 1x, 5x, 20x and 60x, plus an explicit fastest-possible mode for tests. Keep the existing fixed numerical timestep at every rate. When computation cannot sustain the requested rate, display the achieved rate; never skip physics steps or perform a catch-up burst after a pause.
 
-Print simulation UTC/elapsed/remaining time, latitude/longitude, target and actual heading, target speed and actual speed through water, course/speed over ground, roll/pitch, local sea conditions and cargo status. Keep detailed response traces in the session log. No map, graphical renderer or Copilot is required.
+Refresh simulation UTC/elapsed/remaining time, latitude/longitude, target and actual heading, target and actual speeds in knots, roll/pitch, local sea conditions and retained TEU percentage. The forecast panel shows only released reports and supports scrolling. Current Hs means significant wave height, not instantaneous surface elevation. Keep detailed response traces in the session log. No map, graphical renderer or Copilot is required.
 
 ### LangGraph boundary
 

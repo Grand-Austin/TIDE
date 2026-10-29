@@ -63,8 +63,7 @@
     "speed_time_constant_s": 60.0,
     "yaw_natural_frequency": 0.04,
     "roll_exposure_deg": 10.0,
-    "lateral_exposure_mps2": 0.9810000000000001,
-    "max_attitude_deg": 30.0
+    "lateral_exposure_mps2": 0.9810000000000001
   },
   "wind_parameters": {
     "loa_m": 175.0,

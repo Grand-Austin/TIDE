@@ -4,6 +4,8 @@ _Last updated: 2026-10-29_
 
 **Stage:** PLAN stages 1–4 done on `experiment` (command-line game). Stage 5 partly done; stage 6 (frontend, Copilot) not started.
 **Next:** agree the region and the frontend approach (see "Decisions needed"), then a playable storm scenario and the web frontend.
+
+**Motion repair:** full MSS coupling is restored. Source-supported mean longitudinal wave drift and a logarithmic spectrum grid address the reproduced head-seas speed stop and resolution warning. All 196 tests pass; live GNU Octave comparisons, 17 initial and 27 high-speed synthetic pressure tests are recorded in [MOTION_VALIDATION.md](docs/MOTION_VALIDATION.md). Local uncommitted TUI work remains preserved. The temporary experiment review has been removed after its scope was resolved.
 **Deadlines (CET; Finland is +1 h):** event opened Thu 29 Oct 16:00 · video due Sat 31 Oct 08:30.
 
 ## Branches
@@ -20,8 +22,12 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-29 | Remove instantaneous and target-speed ceilings | The source speed-table endpoint is data coverage, not an MSS motion limit. Abnormal motion remains available to future ship/cargo damage rules | Xuan explicitly requested removal |
+| 2026-10-29 | Remove the TIDE-only roll/pitch cutoff and its scenario configuration | The original MSS example has no 30-degree calibration or stopping threshold. The 16 m beam-seas rerun completes 20 minutes and reaches 35.89 degrees roll | Xuan explicitly requested removal |
+| 2026-10-29 | Restore full MSS coupling; use original S175 mean-surge drift data and a resolved fixed spectral grid | Matched-input Octave runs reproduce the first-order-only model's acceleration. The source-supported mean load removes the tested head-seas speed stops without changing physical limits or teaching thrust | Xuan requested repair; implementation and evidence in `docs/MOTION_VALIDATION.md` |
+| 2026-10-29 | Retain cross-machine vessel-source acceptance; do not expand algorithm-version migration in this prototype | Prepared-byte identity is unsuitable as the only cross-machine startup check; the current work targets motion behaviour | Xuan's review discussion |
 | 2026-10-29 | Cargo `threshold_g` 0.30 → 0.14 for new scenarios; the frozen Menorca scenario keeps 0.30 | At 0.30 no heading lost cargo even at Hs 8.2 m. At 0.14, only beam seas at the Ushant peak lose cargo (18 TEU in 20 min); every other heading, and every heading at Hs 6.1 m, loses none. Evidence in `docs/PROTOTYPE_IMPLEMENTATION.md` | Yan (merged without review; needs Xuan's review) |
-| 2026-10-29 | Surge, sway and yaw use Coriolis terms of horizontal motion only | In 8 m head seas, correlated heave and pitch pushed the ship from 3 to 10.3 m/s, past the model limit, so play stopped; the thruster could not brake it | Yan (merged without review; needs Xuan's review) |
+| 2026-10-29 | Superseded: horizontal-only Coriolis replacement | It reduced acceleration but broke the full no-work structure. Full coupling is restored by the motion repair above | Earlier Yan change; replaced after Xuan's review |
 | 2026-10-29 | Merge the fresh-clone fix, CI and the storm fixes straight into `experiment`, without a PR | Time before the video; the user asked for it | Yan |
 | 2026-10-29 | Accept a prepared S175 file whose provenance matches the pinned MSS source, not only the pinned bytes | Prepared bytes differed between machines with identical source files, so the game failed on every fresh clone | Yan (on `ci/fresh-clone`; needs Xuan's review) |
 | 2026-10-29 | Add CI: locked setup, vessel preparation, tests and a scripted game run on every push and PR | Catch "works on one machine" before teammates or the video recording hit it | Yan (on `ci/fresh-clone`) |
@@ -47,11 +53,13 @@ Newest first. Proposed decisions move here once the team agrees.
   - 2025-12-18, swell-dominated, Tp 19 s.
 - **Cargo calibration on full missions.** 0.14 g comes from 20-minute trials in one storm. Confirm it on a complete three-hour storm mission with `pipeline.validate_game` before the video.
 - **Menorca validation reports.** `scenarios/menorca-20260909/validation.json` and `game-validation.json` were produced before the dynamics fix. Rerun them, or mark the scenario as superseded if the region changes.
+- **Motion and cargo balance.** Reassess complete historical missions with the added mean-surge load. Source-consistent arithmetic and synthetic survival do not establish experimental storm accuracy.
 - **Forecast archive.** Extend `.github/workflows/forecast-archive.yml` to the chosen region. Copernicus does not keep past forecast runs, so every day not archived is lost. Coordinate with Xuan's workflow changes on `experiment`.
 
 ## Owner actions
 
-- [ ] Xuan: review the merged changes to `game/scenario.py` (vessel check), `game/simulation/dynamics.py` (Coriolis) and the cargo threshold.
+- [x] Review the vessel compatibility fix and the Coriolis replacement; retain source compatibility and restore the original coupling.
+- [ ] Confirm cargo calibration on complete missions after the motion repair.
 - [ ] Repository admin: after the first CI run, decide whether `main` and `experiment` require CI to pass.
 - [ ] Each teammate who runs scenarios: a free Copernicus Marine account and `copernicusmarine login`.
 
@@ -62,6 +70,31 @@ Newest first. Proposed decisions move here once the team agrees.
 - Online play, leaderboard and teacher view (a database only becomes useful then).
 
 ## Log
+
+- 2026-10-29 — Fix deferred-resume pause editing:
+  - Reset the screen pause-transition flag when a pending resume starts. An immediate second pause now reopens the heading/speed editor.
+  - Added a regression covering the old worker finishing between display updates.
+
+- 2026-10-29 — Remove project-defined speed ceilings:
+  - Removed runtime speed rejection and the target-speed ceiling. Source-table endpoint lookup remains a nonblocking quality flag.
+  - Completed 27 synthetic 12/14/16-knot trials, including reruns of all seven former speed stops. The high-speed matched-force MSS replay passes.
+  - Extreme following-sea outputs reach about 50 knots; these remain simulation outputs for later ship/cargo damage work, not calibrated ship performance.
+
+- 2026-10-29 — Remove project-defined angle cutoff:
+  - Deleted `max_attitude_deg` and its rejection branch, including the setting in the authored Menorca scenario. Retained the MSS equations, environmental coverage checks and genuine numerical/singularity checks.
+  - Reran the formerly blocked 16 m beam-seas case: 1,200 s completed, peak roll 35.89 degrees. Earlier below-cutoff runs remain unchanged.
+
+- 2026-10-29 — Motion repair requested by Xuan:
+  - Preserved the local working tree and backed up the previous prepared vessel. Restored full MSS Coriolis coupling and added applied-force physical regressions.
+  - Executed GNU Octave 11.3.0 reference calculations with identical states, matrices, currents, forces and RK4, including exact storm-force replays.
+  - Replaced uniform spectral cells with fixed logarithmic cells and added original S175 diagonal mean longitudinal drift. Kept actuator and applicability limits unchanged.
+  - At that stage, passed 186 tests and completed 16 of 17 synthetic 20-minute trials; the remaining case reached a TIDE-only 30-degree cutoff. That cutoff was later removed as recorded above. Removed the temporary experiment review; current evidence is in `docs/MOTION_VALIDATION.md`.
+
+- 2026-10-29 — Local integration review requested by Xuan:
+  - Fast-forwarded `experiment` through `4880170` and restored the uncommitted TUI, docs and tests. Kept the recovery stash and a separate local backup.
+  - Removed the obsolete `--plain` instruction from the new contribution guide; the full-screen TUI remains the sole interactive mode.
+  - Passed 168 tests. Compared old and new dynamics under controlled 8.2 m head seas; both completed 20 minutes, with recorded peak speed reduced from 8.184 to 3.911 m/s. The spectrum-resolution warning remains.
+  - Recorded the then-open reproducibility questions; the subsequent review retained cross-machine startup support and excluded migration work. Full historical storm calibration remains unverified locally.
 
 - 2026-10-29 — Yan:
   - Reviewed `experiment`; found that the game fails on fresh clones (vessel checksum).

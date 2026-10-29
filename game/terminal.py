@@ -16,9 +16,7 @@ def clock(seconds):
 
 def utc_stamp(value):
     return (
-        datetime.fromisoformat(value)
-        .astimezone(UTC)
-        .strftime("%Y-%m-%d %H:%M:%S UTC")
+        datetime.fromisoformat(value).astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
 
@@ -32,22 +30,34 @@ def instruments(view):
     achieved = 0 if view["paused"] else view["achieved_rate"]
     return [
         utc_stamp(view["utc"]),
-        (f"Elapsed {clock(view['elapsed_s'])}  Remaining {clock(view['remaining_s'])}"
-        f"  Rate {rate} / actual {achieved:.1f}x"),
+        (
+            f"Elapsed {clock(view['elapsed_s'])}  Remaining {clock(view['remaining_s'])}"
+            f"  Rate {rate} / actual {achieved:.1f}x"
+        ),
         f"Position  LAT {v['lat']:.6f}   LON {v['lon']:.6f}  (degrees)",
         f"Heading   actual {v['heading_deg']:06.2f} deg    target {view['target_heading_deg']:06.2f} deg",
-        (f"Speed     water {v['speed_through_water_mps'] * KNOTS_PER_MPS:.2f} kn"
-        f"  ground {v['speed_over_ground_mps'] * KNOTS_PER_MPS:.2f} kn"
-        f"  target {view['target_speed_knots']:.2f} kn"),
-        (f"Motion    roll {v['roll_deg']:+.2f} deg  pitch {v['pitch_deg']:+.2f} deg"
-        f"  heave {v['heave_m']:+.2f} m"),
-        (f"Observed  Hs {v['hs_m']:.2f} m  Tp {v['tp_s']:.2f} s"
-        f"  waves from {v['wave_from_deg']:.0f} deg"),
+        (
+            f"Speed     water {v['speed_through_water_mps'] * KNOTS_PER_MPS:.2f} kn"
+            f"  ground {v['speed_over_ground_mps'] * KNOTS_PER_MPS:.2f} kn"
+            f"  target {view['target_speed_knots']:.2f} kn"
+        ),
+        (
+            f"Motion    roll {v['roll_deg']:+.2f} deg  pitch {v['pitch_deg']:+.2f} deg"
+            f"  heave {v['heave_m']:+.2f} m"
+        ),
+        (
+            f"Observed  Hs {v['hs_m']:.2f} m  Tp {v['tp_s']:.2f} s"
+            f"  waves from {v['wave_from_deg']:.0f} deg"
+        ),
         f"          wind {wind:.2f} m/s  current {current * KNOTS_PER_MPS:.2f} kn",
-        (f"Cargo     [{'#' * filled}{'-' * (20 - filled)}] {retained:.2f}% TEU retained"
-        f"  grade {c['grade']}"),
-        (f"          {c['remaining_units']}/{c['total_units']} units aboard"
-        f"  lost {c['lost_teu']}/{c['total_teu']} TEU"),
+        (
+            f"Cargo     [{'#' * filled}{'-' * (20 - filled)}] {retained:.2f}% TEU retained"
+            f"  grade {c['grade']}"
+        ),
+        (
+            f"          {c['remaining_units']}/{c['total_units']} units aboard"
+            f"  lost {c['lost_teu']}/{c['total_teu']} TEU"
+        ),
     ]
 
 
@@ -57,7 +67,16 @@ def forecast_lines(view, width):
 
     def here(report):
         w, e, s, n = report["sector_bbox"]
-        return w <= lon <= e and s <= lat <= n
+        x, y = report["sector"]
+        return (
+            w <= lon
+            and (lon < e or x == 2 and lon == e)
+            and s <= lat
+            and (lat < n or y == 2 and lat == n)
+        )
+
+    def stamp(value):
+        return datetime.fromisoformat(value).astimezone(UTC).strftime("%m-%d %H:%MZ")
 
     lines = []
     for r in sorted(
@@ -65,11 +84,15 @@ def forecast_lines(view, width):
     ):
         hs, wind = r["hs_range_m"], r["wind_range_mps"]
         text = [
-            (f"Sector {r['sector']} {'[HERE] ' if here(r) else ''}"
-            f"issued {utc_stamp(r['issued_at'])}"),
-            f"  Valid {utc_stamp(r['valid_from'])} -> {utc_stamp(r['valid_to'])}",
-            (f"  Hs {hs[0]:g}-{hs[1]:g} m | wind {wind[0]:g}-{wind[1]:g} m/s | "
-            f"waves from {r['wave_from_deg']:g} deg / {r['wave_period_s']:g} s"),
+            (
+                f"Sector {r['sector']} {'[HERE] ' if here(r) else ''}"
+                f"issued {stamp(r['issued_at'])}"
+            ),
+            f"  Valid {stamp(r['valid_from'])} -> {stamp(r['valid_to'])}",
+            (
+                f"  Hs {hs[0]:g}-{hs[1]:g} m | wind {wind[0]:g}-{wind[1]:g} m/s | "
+                f"waves from {r['wave_from_deg']:g} deg / {r['wave_period_s']:g} s"
+            ),
             f"  Trend: {r['trend']}. {r['reason']}",
         ]
         for line in text:
@@ -150,6 +173,7 @@ class Screen:
         self.controls.session.set_order(*targets)
         self.message = self.controls.resume()
         self.mode = None
+        self.was_paused = False
 
     def handle(self, key, view):
         if key == "\x03":
@@ -157,6 +181,13 @@ class Screen:
             return
         if key == curses.KEY_RESIZE:
             self.window.clear()
+            return
+        height, width = self.window.getmaxyx()
+        small = height < 24 or width < 80
+        if small and key == "p" and self.mode != "command":
+            self.controls.pause()
+            return
+        if small and self.mode == "helm" and key in ("\n", "\r", curses.KEY_ENTER):
             return
         if key == "/" and self.mode != "command":
             self.mode, self.command_input = "command", Input()
@@ -167,7 +198,13 @@ class Screen:
             elif key in ("\n", "\r", curses.KEY_ENTER):
                 command = self.command_input.text
                 self.mode = None
+                if small and command.strip().removeprefix("/") == "resume":
+                    raise ValueError(
+                        "Resize the terminal to at least 80x24 before sailing"
+                    )
                 result = self.controls.command(command)
+                if command.strip().removeprefix("/") == "resume":
+                    self.was_paused = False
                 self.message = (
                     "Live instruments and released forecasts are displayed above."
                     if command.strip().removeprefix("/") in ("status", "reports")
@@ -204,7 +241,9 @@ class Screen:
                 self.fields[self.field].edit(key)
             return
         if key == "p" and not view["outcome"]:
+            self.was_paused = True
             if view["paused"]:
+                self.controls.pause()
                 self.open_helm(view)
             else:
                 # Signal cancellation before obtaining a display snapshot.
@@ -235,7 +274,7 @@ class Screen:
             self.put(
                 2, 0, "Please resize the terminal to at least 80 columns x 24 rows."
             )
-            self.put(3, 0, "p pauses safely. /quit or Ctrl+C saves and exits.")
+            self.put(3, 0, "Paused. /quit or Ctrl+C saves and exits.")
             self.put(5, 0, f"UTC {view['utc']} | {state}")
             if self.mode == "command":
                 self.put(h - 2, 0, "/" + self.command_input.text)
@@ -244,13 +283,15 @@ class Screen:
         for row, line in enumerate(instruments(view), start=1):
             self.put(row, 1, line)
         reason = view["stopping_reason"]
-        self.put(
-            11,
-            1,
-            "Outcome: " + str(view["outcome"])
-            if view["outcome"]
-            else "Checkpoint: " + reason,
-        )
+        if view["outcome"]:
+            mission = "Outcome: " + view["outcome"]
+        elif reason not in ("initial", "duration_reached", "manual_pause"):
+            mission = "Checkpoint: " + reason
+        else:
+            mission = (
+                "Mission: leave the whole adverse-weather region before time runs out."
+            )
+        self.put(11, 1, mission)
         lines = forecast_lines(view, w - 3)
         available = h - 20
         self.scroll = min(self.scroll, max(0, len(lines) - available))
@@ -280,18 +321,19 @@ class Screen:
         self.put(h - 4, 0, "-" * (w - 1))
         cursor = None
         if self.mode == "helm":
+            offsets = [max(0, field.cursor - 12) for field in self.fields]
             self.put(h - 3, 1, "TARGET HEADING")
             self.put(
                 h - 3,
                 17,
-                f"{self.fields[0].text:<14}",
+                f"{self.fields[0].text[offsets[0] : offsets[0] + 13]:<14}",
                 curses.A_REVERSE if self.field == 0 else 0,
             )
             self.put(h - 3, 32, "deg   SPEED")
             self.put(
                 h - 3,
                 45,
-                f"{self.fields[1].text:<14}",
+                f"{self.fields[1].text[offsets[1] : offsets[1] + 13]:<14}",
                 curses.A_REVERSE if self.field == 1 else 0,
             )
             self.put(h - 3, 60, "kn")
@@ -303,7 +345,8 @@ class Screen:
             cursor = (
                 h - 3,
                 (17 if self.field == 0 else 45)
-                + min(13, self.fields[self.field].cursor),
+                + self.fields[self.field].cursor
+                - offsets[self.field],
             )
         elif self.mode == "command":
             room = w - 4
@@ -342,10 +385,17 @@ class Screen:
         self.window.timeout(100)
         curses.set_escdelay(25)
         while not self.controls.closed:
+            resume_pending = self.controls.resume_pending
             messages = self.controls.poll()
+            if resume_pending and not self.controls.resume_pending:
+                self.was_paused = False
             if messages:
                 self.message = " | ".join(messages[-2:])
             view = self.controls.session.visible()
+            height, width = self.window.getmaxyx()
+            if (height < 24 or width < 80) and not view["paused"]:
+                self.controls.pause()
+                view = self.controls.session.visible()
             ids = {r["id"] for r in view["reports"]}
             if self.report_ids is not None and ids - self.report_ids:
                 self.scroll, self.message = (
@@ -354,7 +404,7 @@ class Screen:
                 )
             self.report_ids = ids
             if view["paused"] and not self.was_paused and not view["outcome"]:
-                if self.mode != "command":
+                if self.mode != "command" and not self.controls.resume_pending:
                     self.open_helm(view)
                 self.message = (
                     "Paused: "
@@ -362,6 +412,8 @@ class Screen:
                     + ". Edit targets or keep the current order."
                 )
             self.was_paused = view["paused"]
+            if not view["paused"] and self.mode == "helm":
+                self.mode = None
             self.draw(view)
             try:
                 key = self.window.get_wch()

@@ -1,0 +1,24 @@
+{
+  "commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+  "files": {
+    "CRAFT/hydroVessel.m": "d07187ddbcb98a20196c32902deb202f64afcaf2551cc44ff44da2eb337e829b",
+    "HYDRO/computeManeuveringModel.m": "1d4743ca809bc40ad397c0799e5d751d1f7e19d8520e42ba8746b8da5ab747cf",
+    "HYDRO/Hoerner.m": "b1e163a1bef5752ad8cb628e1f1453c20f5eb02d20396525bf6dd5764e000ef9",
+    "LIBRARY/mssConstants.m": "6855f41a56d9da49cb26a0c81fce7f07eea9e94882afc75fd7ac27b37450a4ce",
+    "LIBRARY/modeling/rbody.m": "dfa4a5c94b7af4482b06b07b4a47c6157d431e74258e90d87bac0a7670b2a461",
+    "LIBRARY/modeling/m2c.m": "8e300b0636db3a9b57b63817777f2d2084eeb5a5b125aba4aca7ec0bd0409bec",
+    "LIBRARY/modeling/crossFlowDrag.m": "c7ce8996d8f99c3c5834cfbbd7f04fcb419167536f8bc32635b3117faafcfe2a",
+    "LIBRARY/modeling/XuuITTC.m": "13a22c57be65b00d359b09cc539a00b4d796d0191e53c65873e754539b9bd928",
+    "LIBRARY/kinematics/Smtrx.m": "47441ebf29d338e41d5c5055a2379883feed6e07ffa1ee379755f3d1cdcef678",
+    "LIBRARY/kinematics/Hmtrx.m": "3791e12789ecc2de0b5f6c8d05c5d6e54a8a2e547fa3a1a215bb3da2c0611d8e",
+    "LIBRARY/kinematics/eulerang.m": "657c45e3d1ad44a4f9367cff0881967b0116e0f5845a18e508df49af88d5eda5",
+    "LIBRARY/kinematics/Rzyx.m": "c45efd0b5d62f6813b45216a211511803e374c2dd4668dbc4801f26f93f45390",
+    "LIBRARY/kinematics/Tzyx.m": "1e20d293b5dca02d332ed6993681b58a8d19f5435ea92f7b6dd7be50c79e93ba",
+    "LIBRARY/numericalMethods/invQR.m": "71544c3937d91cd28aacc10e20844128d9c325d778ea6da45882152763337be6",
+    "LIBRARY/numericalMethods/rk4.m": "d87f54915979659a473488b54971c8aef08da49470ca9057dbe79cfa5cb045b0",
+    "LIBRARY/environment/waveForceRAO.m": "74863cab1ba465dcf8364c69c4359b5a4960ef8e20c0cb5461e2d428de137954",
+    "LIBRARY/environment/waveEncounterPhase.m": "9a842662e76f11ec21d18fd91aaf152617991c0e60ba0f04dadd5d1208f3d720",
+    "HYDRO/utils/readdata/read_veres_WD.m": "b91bddc7074f997308dc9ded9b7ff2faa67ad54eca032c662ee435c1e21592d1",
+    "HYDRO/vessels_shipx/ShipX-Vessels.md": "b9f9dfa7a5c54f8dc16adebbe442430a0920e240f20a3c840f72a2b521013429"
+  }
+}

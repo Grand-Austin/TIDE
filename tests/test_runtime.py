@@ -19,6 +19,16 @@ def test_exposure_counts_time_on_both_sides_of_zero():
     assert _exceed_fraction(-2, -3, 1) == 1
 
 
+def test_source_speed_table_does_not_limit_motion_or_commands(vessel):
+    sim = Simulation(vessel, ConstantEnvironment())
+    state = sim.initial_state(START, 3.5, 40, speed_mps=12)
+    result = sim.advance(state, Command(0, 13), .2)
+    assert result.stopping_reason == 'duration_reached'
+    assert result.advanced_s == pytest.approx(.2)
+    assert sim.observe(result.state).speed_through_water_mps > vessel.max_speed_mps
+    assert np.all(np.isfinite(result.state.x))
+
+
 class ConstantEnvironment:
     def __init__(self, sea=None, end=None):
         self.sea = sea or SeaState(0, 8, 0)
@@ -98,7 +108,7 @@ def test_pause_is_immediate_and_invalid_commands_do_not_mutate(vessel):
     sim = Simulation(vessel, ConstantEnvironment())
     state = sim.initial_state(START, 3.5, 40)
     assert sim.advance(state, Command(0, 0), 1, should_pause=lambda: True).advanced_s == 0
-    for command in (Command(0, -1), Command(float("nan"), 1), Command(0, 11)):
+    for command in (Command(0, -1), Command(float("nan"), 1), Command(0, float("inf"))):
         with pytest.raises(ValueError):
             sim.advance(state, command, 1)
     with pytest.raises(ValueError, match="multiple"):
@@ -203,3 +213,33 @@ def test_accepted_step_callback_stops_without_changing_numerics(vessel):
     samples.clear()
     sim.advance(state, Command(0, 1), 1, on_step=observe, should_pause=lambda: True)
     assert samples == []
+
+
+@pytest.mark.parametrize("state_index", [9, 10])
+@pytest.mark.parametrize("angle_deg", [35, 45])
+def test_roll_and_pitch_above_30_degrees_are_not_rejected_or_clamped(vessel, state_index, angle_deg):
+    sim = Simulation(vessel, ConstantEnvironment())
+    state = sim.initial_state(START, 3.5, 40, speed_mps=0)
+    state.x[state_index] = np.deg2rad(angle_deg)
+
+    result = sim.advance(state, Command(0, 0), 0.2)
+
+    assert result.stopping_reason == "duration_reached"
+    assert result.advanced_s == pytest.approx(0.2)
+    assert np.all(np.isfinite(result.state.x))
+    assert abs(result.state.x[state_index]) > np.deg2rad(30)
+
+
+def test_pitch_at_euler_singularity_stops_without_committing_a_step(vessel):
+    sim = Simulation(vessel, ConstantEnvironment())
+    state = sim.initial_state(START, 3.5, 40, speed_mps=0)
+    state.x[10] = np.pi / 2
+    original = deepcopy(state)
+
+    result = sim.advance(state, Command(0, 0), 0.2)
+
+    assert result.stopping_reason == "model_limit"
+    assert result.advanced_s == 0
+    assert result.state.tick == original.tick
+    np.testing.assert_array_equal(result.state.x, original.x)
+    assert any("singular" in event.detail.lower() for event in result.events)

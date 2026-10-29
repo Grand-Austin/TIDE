@@ -31,6 +31,17 @@ Implementation and limitations: [SIMULATION.md](docs/SIMULATION.md).
 - [x] Add Isherwood horizontal wind loads with sourced S175 demo parameters and daily SST evidence.
 - [x] Supply a reproducible six-environment-group assessment with forcing and control ablations.
 
+### 1.3 Severe-sea motion repair and MSS comparison
+
+- [x] Restore full MSS Coriolis coupling and test free-body inertial acceleration and the applied force's no-work property.
+- [x] Execute pinned MSS in GNU Octave with identical matrices, states, currents, applied-force histories and RK4 steps; verify derivatives, trajectories, matrix conversion and shared wave components.
+- [x] Resolve long-period spectral underresolution with a fixed logarithmic grid; check spectral energy and S175 force RMS against dense quadrature, while retaining genuine quality warnings.
+- [x] Add mean longitudinal wave drift from the existing S175 source table, with explicit units, directional/speed interpolation and source-edge flags. Verify the calculation independently in Octave.
+- [x] Run synthetic head/quarter/beam/following-sea limit tests, multiple speeds and seeds, exact force replay, and detailed validity-stop diagnostics. Retain environmental coverage checks and genuine numerical checks.
+- [x] Remove TIDE's uncalibrated attitude cutoff from runtime and scenario settings. Verify motion above 30 degrees and replay the formerly blocked 16 m beam-seas interval against original MSS.
+- [x] Remove the TIDE-only instantaneous speed and command-speed ceilings; extend synthetic trials to 12, 14 and 16 knots. Keep out-of-table speed lookup as a nonblocking quality flag.
+- [ ] Recalibrate cargo and rerun the complete multi-strategy historical mission matrix after these motion changes; earlier reports remain historical baselines.
+
 ## 2. Scenario and Data Build
 
 - [x] Select the Mallorca–Menorca channel, 9 September 2026 15:00–18:00 UTC, from committed historical fields.
@@ -67,6 +78,13 @@ Confirmed product decisions are recorded in [Product.md](docs/Product.md), secti
 - [x] Keep heading and speed active until changed. Add game-time rate controls and immediate manual pause/resume without requiring player-specified durations.
 - [x] Detect mandatory cargo/mission/validity events locally; validate Director attention requests before pausing, and resume only on player confirmation. Deduplicate events across internal advance segments.
 - [x] Complete a scripted mission without an Agent, including cargo consequences, timed reports, escape, timeout and invalid-domain cases.
+
+### 3.4 Playable terminal screen
+
+- [x] Replace the line/JSON interface with the default full-screen TUI. Refresh UTC, requested/achieved time rate, coordinates, actual/target heading and speed, observed sea conditions and retained cargo.
+- [x] Add a released-forecast panel with scrolling, `j/k` time-rate shortcuts, immediate `p` pause and a prefilled heading/speed editor, plus `/` commands and save-on-quit.
+- [x] Fix the helm editor after a deferred resume immediately pauses again; add a regression.
+- [x] Verify target validation, input isolation, pause/resume, resizing and saved-session restoration. Keep `--script` for automated verification; remove the `--plain` entrypoint.
 
 ## 4. Director Game Engine
 

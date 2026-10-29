@@ -1,8 +1,9 @@
-"""First-order total-sea forces using MSS conventions and S175 force RAOs.
+"""First-order total-sea forces and sourced diagonal mean surge drift.
 
 Derived from MSS waveSpectrum / waveForceRAO / waveEncounterPhase, copyright
 Thor I. Fossen, MIT. See data/vessels/s175/MSS-LICENSE.txt. Fixed quadrature and
 water-relative vector encounter rates adapt the reference to changing fields.
+Mean surge uses the pinned ShipX drift table's F=Q*a^2 convention.
 """
 
 from dataclasses import dataclass
@@ -27,6 +28,7 @@ class WaveResult:
     state: WaveState
     retained_energy: float
     flags: tuple[str, ...]
+    mean_surge_n: float = 0.0
 
 
 def jonswap(omega, hs, peak, gamma=3.3):
@@ -44,14 +46,21 @@ class WaveModel:
             raise ValueError("Positive quadrature counts are required (at least two frequencies)")
         self.g = float(vessel.main['g'])
         self.headings = np.append(vessel.headings, 2 * np.pi)
-        self.edges = np.linspace(vessel.freqs[0], vessel.freqs[-1], n_frequencies + 1)
-        self.omega = (self.edges[:-1] + self.edges[1:]) / 2
+        # Relative peak width is nearly constant; log spacing resolves long-period seas
+        # without moving components or resetting their phases when Tp changes.
+        self.edges = np.geomspace(vessel.freqs[0], vessel.freqs[-1], n_frequencies + 1)
+        self.omega = np.sqrt(self.edges[:-1] * self.edges[1:])
         self.dw = np.diff(self.edges)
         self.mu = (np.arange(n_directions) + 0.5) * np.pi / n_directions - np.pi / 2
         self.direction_weights = np.cos(self.mu)**2
         self.direction_weights /= self.direction_weights.sum()
         rao = interp1d(vessel.freqs, vessel.force_rao, axis=1, bounds_error=True)(self.omega)
         self.rao = np.concatenate([rao, rao[:, :, :1]], axis=2)
+        self.drift_speeds = getattr(vessel, 'drift_speeds', None)
+        self.surge_drift = None
+        if self.drift_speeds is not None:
+            drift = interp1d(vessel.drift_freqs, vessel.surge_drift, axis=0, bounds_error=True)(self.omega)
+            self.surge_drift = np.concatenate([drift, drift[:, :1]], axis=1)
         self.initial_phases = np.random.default_rng(seed).uniform(0, 2*np.pi, (n_frequencies, n_directions))
 
     def initial_state(self):
@@ -70,6 +79,12 @@ class WaveModel:
         retained = np.trapezoid(jonswap(band, 1, peak), band) / total_energy
         energies = density * self.dw
         return density, float(np.clip(retained, 0, 1)), bool(energies.max() > 0.1*energies.sum())
+
+    @lru_cache(maxsize=128)
+    def _drift_coefficients(self, tp):
+        density, _, _ = self._spectrum(tp)
+        # MSS read_veres_WD: F_mean = Q * a^2; each random component has a^2=2*S*dw.
+        return np.tensordot(2*density*self.dw, self.surge_drift, axes=(0, 0))
 
     def evaluate(self, state, time_s, sea, heading_rad, velocity_ne):
         velocity_ne = np.asarray(velocity_ne, dtype=float)
@@ -103,10 +118,19 @@ class WaveModel:
         phasor = amplitude * np.exp(1j*phase)
         force = np.real(rao * phasor).sum(axis=(1, 2))
         flags = []
+        mean_surge = 0.0
+        if self.surge_drift is not None:
+            coefficients = self._drift_coefficients(float(sea.tp))
+            directional = coefficients[lower]*(1-weight[:, None]) + coefficients[lower+1]*weight[:, None]
+            curve = np.sum(directional*self.direction_weights[:, None], axis=0)
+            forward = float(velocity_ne @ [math.cos(heading_rad), math.sin(heading_rad)])
+            if forward < self.drift_speeds[0] or forward > self.drift_speeds[-1]:
+                flags.append('mean_drift_speed_clipped')
+            mean_surge = float(np.interp(forward, self.drift_speeds, curve)*sea.hs**2)
         if retained < 0.95:
             flags.append('spectrum_truncated')
         if underresolved:
             flags.append('spectrum_underresolved')
         if not 1.25 <= 2*math.pi/sea.tp * math.sqrt(sea.hs) <= 1.75:
             flags.append('spectrum_assumption')
-        return WaveResult(force, float(phasor.real.sum()), new_state, retained, tuple(flags))
+        return WaveResult(force, float(phasor.real.sum()), new_state, retained, tuple(flags), mean_surge)

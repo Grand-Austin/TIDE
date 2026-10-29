@@ -12,19 +12,20 @@ Copy `config/api_keys.example.json` to `config/api_keys.local.json` and replace 
 
 ```
 uv run python -m game
-uv run python -m game --plain
 uv run python -m game --engine director
 uv run python -m game --session data/runs/my-session
 uv run python -m game --session data/runs/my-session --resume
 ```
 
-When standard input and output are terminals, the game opens a fullscreen live terminal UI. Use `--plain` for line commands. Scripted runs remain unchanged. The recommended minimum comfortable terminal size is 80 columns by 24 rows.
+Interactive play uses the fullscreen live terminal UI and requires terminal input and output. The old line-command/JSON interface has been removed. `--script` remains available for automated verification. The screen requires at least 80 columns by 24 rows. Shrinking below that size pauses the game; enlarging it does not automatically resume sailing.
 
 The live screen shows UTC time, elapsed and remaining game time, requested and achieved simulation rates, latitude and longitude, actual and target heading and speed in knots, current observed significant wave height (`Hs`), wave period, wind, vessel roll and pitch, and retained cargo as a percentage of the initial TEU. `Hs` is the observed significant wave height, not an individual instantaneous wave height.
 
 The forecast panel contains only already released reports labelled `game_simulated_forecast`. Use the arrow keys to scroll through the panel. These authored game reports are evidence, not historical official bulletins.
 
 ### Terminal controls
+
+Shortcuts apply outside command input. Letters typed into command input remain text.
 
 | Input | Effect |
 | --- | --- |
@@ -40,7 +41,7 @@ The forecast panel contains only already released reports labelled `game_simulat
 | `Esc` in command input | Cancel the command without executing it. |
 | `Ctrl+C` | Save the session and exit. |
 
-Initial and restored sessions begin paused with the target editor open. Slash commands remain available in the fullscreen UI and include `/heading 155`, `/speed 6`, `/rate 20`, `/pause`, `/resume`, `/status`, `/reports`, `/save`, `/retry` and `/quit`. `/heading` and `/speed` pause the game and open the target editor. `/quit` pauses, saves and exits. `/save` saves a coherent snapshot. `/resume` resumes the game. Other commands retain their existing line-command behavior.
+Initial and restored sessions begin paused with the target editor open. Slash commands remain available in the fullscreen UI and include `/heading 155`, `/speed 6`, `/rate 20`, `/pause`, `/resume`, `/status`, `/reports`, `/save`, `/retry` and `/quit`. `/heading` and `/speed` pause the game and open the target editor. `/quit` pauses, saves and exits. `/save` saves a coherent snapshot. `/resume` resumes the game. `/status` and `/reports` refer to the live panels above.
 
 Orders change targets, not instantaneous vessel states. Existing turning and acceleration limits apply. A screen resize never skips physics steps. The requested rate is a target and does not guarantee the achieved rate, because the achievable rate depends on the computer and current workload. The physics timestep remains fixed at every rate; `max` performs every step as quickly as possible.
 

@@ -1,0 +1,1258 @@
+{
+  "date_utc": "2026-10-29",
+  "scope": "Synthetic constant-sea pressure tests; not historical storm observations or experimental vessel calibration",
+  "reference": {
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+    "python_sources_sha256": {
+      "game/simulation/dynamics.py": "7c631bfdbd75e413a6fb660d4ea689470c78259e0936b8113ec1e4e652da9ee2",
+      "game/simulation/waves.py": "c9d428da407f6259a72eea565a5b1014b03e659c14268abe05f49533ad1c7108"
+    },
+    "scope": "Identical prepared matrices, open-loop applied forces, currents, states and RK4; separate source-matrix conversion and shared-component wave checks",
+    "checks": {
+      "converted_M": {
+        "passed": true,
+        "max_absolute_difference": 3.0517578125e-05,
+        "relative_l2_difference": 2.990456977715691e-16
+      },
+      "converted_MA": {
+        "passed": true,
+        "max_absolute_difference": 2.288818359375e-05,
+        "relative_l2_difference": 5.605285381580079e-16
+      },
+      "converted_D": {
+        "passed": true,
+        "max_absolute_difference": 1.52587890625e-05,
+        "relative_l2_difference": 3.4517739887958736e-16
+      },
+      "converted_G": {
+        "passed": true,
+        "max_absolute_difference": 0.0,
+        "relative_l2_difference": 0.0
+      },
+      "derivatives": {
+        "passed": true,
+        "max_absolute_difference": 5.551115123125783e-17,
+        "relative_l2_difference": 1.5336605733167662e-17
+      },
+      "trajectory": {
+        "passed": true,
+        "max_absolute_difference": 1.4210854715202004e-14,
+        "relative_l2_difference": 6.431252708636164e-17
+      },
+      "wave_force": {
+        "passed": true,
+        "max_absolute_difference": 1.9073486328125e-06,
+        "relative_l2_difference": 1.107716073807193e-15
+      },
+      "wave_elevation": {
+        "passed": true,
+        "max_absolute_difference": 4.440892098500626e-16,
+        "relative_l2_difference": 1.1356270023779494e-16
+      },
+      "wave_mean_surge": {
+        "passed": true,
+        "max_absolute_difference": 5.820766091346741e-11,
+        "relative_l2_difference": 1.54069888612542e-16
+      }
+    },
+    "passed": true,
+    "replay": null,
+    "start_s": 0,
+    "seconds": 60,
+    "input_sha256": "29463d40effe02680ec6b32bb334b7790957211ea248af6b37a67d4006cfdb6c"
+  },
+  "near_limit_reference": {
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+    "scope": "Identical prepared matrices, open-loop applied forces, currents, states and RK4; separate source-matrix conversion and shared-component wave checks",
+    "checks": {
+      "converted_M": {
+        "passed": true,
+        "max_absolute_difference": 3.0517578125e-05,
+        "relative_l2_difference": 2.990456977715691e-16
+      },
+      "converted_MA": {
+        "passed": true,
+        "max_absolute_difference": 2.288818359375e-05,
+        "relative_l2_difference": 5.605285381580079e-16
+      },
+      "converted_D": {
+        "passed": true,
+        "max_absolute_difference": 1.52587890625e-05,
+        "relative_l2_difference": 3.4517739887958736e-16
+      },
+      "converted_G": {
+        "passed": true,
+        "max_absolute_difference": 0.0,
+        "relative_l2_difference": 0.0
+      },
+      "derivatives": {
+        "passed": true,
+        "max_absolute_difference": 5.551115123125783e-17,
+        "relative_l2_difference": 1.5336605733167662e-17
+      },
+      "trajectory": {
+        "passed": true,
+        "max_absolute_difference": 3.552713678800501e-15,
+        "relative_l2_difference": 1.4796378870459738e-18
+      },
+      "wave_force": {
+        "passed": true,
+        "max_absolute_difference": 1.9073486328125e-06,
+        "relative_l2_difference": 1.107716073807193e-15
+      },
+      "wave_elevation": {
+        "passed": true,
+        "max_absolute_difference": 4.440892098500626e-16,
+        "relative_l2_difference": 1.1356270023779494e-16
+      }
+    },
+    "passed": true,
+    "replay": "data/runs/motion-repair/pressure/head-12m-seed1-n128.npz",
+    "start_s": 400.0,
+    "seconds": 30.55,
+    "input_sha256": "5a9c2bf38c860b29671ea70ff57d4580b56211001d8c06233bef6b55f1ce91b1"
+  },
+  "repaired_replay_reference": {
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+    "python_sources_sha256": {
+      "game/simulation/dynamics.py": "7c631bfdbd75e413a6fb660d4ea689470c78259e0936b8113ec1e4e652da9ee2",
+      "game/simulation/waves.py": "44253b9530c12e8d2748f9dd0b5e23e14d8a2948868d4e6946b77b37b0c0d176"
+    },
+    "scope": "Identical prepared matrices, open-loop applied forces, currents, states and RK4; separate source-matrix conversion and shared-component wave checks",
+    "checks": {
+      "converted_M": {
+        "passed": true,
+        "max_absolute_difference": 3.0517578125e-05,
+        "relative_l2_difference": 2.990456977715691e-16
+      },
+      "converted_MA": {
+        "passed": true,
+        "max_absolute_difference": 2.288818359375e-05,
+        "relative_l2_difference": 5.605285381580079e-16
+      },
+      "converted_D": {
+        "passed": true,
+        "max_absolute_difference": 1.52587890625e-05,
+        "relative_l2_difference": 3.4517739887958736e-16
+      },
+      "converted_G": {
+        "passed": true,
+        "max_absolute_difference": 0.0,
+        "relative_l2_difference": 0.0
+      },
+      "derivatives": {
+        "passed": true,
+        "max_absolute_difference": 5.551115123125783e-17,
+        "relative_l2_difference": 1.5336605733167662e-17
+      },
+      "trajectory": {
+        "passed": true,
+        "max_absolute_difference": 2.9698465908722937e-15,
+        "relative_l2_difference": 5.302226392230742e-19
+      },
+      "wave_force": {
+        "passed": true,
+        "max_absolute_difference": 1.9073486328125e-06,
+        "relative_l2_difference": 1.107716073807193e-15
+      },
+      "wave_elevation": {
+        "passed": true,
+        "max_absolute_difference": 4.440892098500626e-16,
+        "relative_l2_difference": 1.1356270023779494e-16
+      },
+      "wave_mean_surge": {
+        "passed": true,
+        "max_absolute_difference": 5.820766091346741e-11,
+        "relative_l2_difference": 1.54069888612542e-16
+      }
+    },
+    "passed": true,
+    "replay": "data/runs/motion-repair/repaired/head-fast-seed1-n128.npz",
+    "start_s": 600.0,
+    "seconds": 60.0,
+    "input_sha256": "fa7168bef9916beb3e05db2c53cdf263ad9f344e9b7a475cc84c4f3749ab1227"
+  },
+  "pressure_trials": [
+    {
+      "case": "calm",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 3.0,
+      "max_roll_deg": 0.0,
+      "max_pitch_deg": 0.0,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": 0.0,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "head-slow",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 2.6461036980546524,
+      "max_roll_deg": 6.343850862141931,
+      "max_pitch_deg": 5.389494180167793,
+      "braking_saturation_fraction": 0.006083333333333333,
+      "mean_sampled_wave_surge_n": -489955.0957609767,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "head",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 4.207365665767278,
+      "max_roll_deg": 5.408604125228496,
+      "max_pitch_deg": 6.468660797689504,
+      "braking_saturation_fraction": 0.007958333333333333,
+      "mean_sampled_wave_surge_n": -564196.029520079,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "head-fast",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 6.04794943650926,
+      "max_roll_deg": 3.8027171566404077,
+      "max_pitch_deg": 6.624591046647735,
+      "braking_saturation_fraction": 0.003958333333333334,
+      "mean_sampled_wave_surge_n": -776769.4658654211,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "bow",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 4.010519528027291,
+      "max_roll_deg": 7.2469133603746005,
+      "max_pitch_deg": 6.2207097755706595,
+      "braking_saturation_fraction": 0.005458333333333333,
+      "mean_sampled_wave_surge_n": -526011.9410852097,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "beam",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 4.849865916408163,
+      "max_roll_deg": 13.107970735259418,
+      "max_pitch_deg": 4.950238248161834,
+      "braking_saturation_fraction": 0.126125,
+      "mean_sampled_wave_surge_n": -68592.2104055645,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "stern-quarter",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 5.642582677914031,
+      "max_roll_deg": 7.7792171083541,
+      "max_pitch_deg": 4.792196623456328,
+      "braking_saturation_fraction": 0.8057916666666667,
+      "mean_sampled_wave_surge_n": 354896.74343769526,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "following",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 6.695873596592122,
+      "max_roll_deg": 9.293487938076609,
+      "max_pitch_deg": 4.928858506623517,
+      "braking_saturation_fraction": 0.88475,
+      "mean_sampled_wave_surge_n": 428818.93281157996,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "head-12m",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 4.4904856019704615,
+      "max_roll_deg": 12.670901637495957,
+      "max_pitch_deg": 8.182270360800308,
+      "braking_saturation_fraction": 0.0215,
+      "mean_sampled_wave_surge_n": -554310.6909889637,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "head-16m",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 5.0201497752726745,
+      "max_roll_deg": 12.834429929290845,
+      "max_pitch_deg": 7.7922245152740786,
+      "braking_saturation_fraction": 0.0705,
+      "mean_sampled_wave_surge_n": -481613.2439369691,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "beam-16m",
+      "seed": 1,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 6.20749757287513,
+      "max_roll_deg": 35.89176372250552,
+      "max_pitch_deg": 5.269999148116407,
+      "braking_saturation_fraction": 0.3657916666666667,
+      "mean_sampled_wave_surge_n": 22718.841234749118,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "head-fast",
+      "seed": 2,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 6.674994605763996,
+      "max_roll_deg": 4.97854071793259,
+      "max_pitch_deg": 7.478631279928635,
+      "braking_saturation_fraction": 0.027375,
+      "mean_sampled_wave_surge_n": -779194.2271231711,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "head-12m",
+      "seed": 2,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 5.61651260478623,
+      "max_roll_deg": 10.632609840555475,
+      "max_pitch_deg": 7.889086758398784,
+      "braking_saturation_fraction": 0.0395,
+      "mean_sampled_wave_surge_n": -528740.7156144951,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "following",
+      "seed": 2,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 7.651329886361922,
+      "max_roll_deg": 7.179457547810283,
+      "max_pitch_deg": 5.3875618583107014,
+      "braking_saturation_fraction": 0.9363333333333334,
+      "mean_sampled_wave_surge_n": 452051.7361710152,
+      "quality_flags": [],
+      "limit_events": []
+    },
+    {
+      "case": "head-fast",
+      "seed": 3,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 5.4799059278777165,
+      "max_roll_deg": 6.189043142015594,
+      "max_pitch_deg": 5.805017663215286,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -610222.0324929511,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "head-12m",
+      "seed": 3,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 4.2875898318486545,
+      "max_roll_deg": 8.873291693932927,
+      "max_pitch_deg": 7.044517272504311,
+      "braking_saturation_fraction": 0.014708333333333334,
+      "mean_sampled_wave_surge_n": -569005.7341344666,
+      "quality_flags": [
+        "mean_drift_speed_clipped"
+      ],
+      "limit_events": []
+    },
+    {
+      "case": "following",
+      "seed": 3,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_mps": 7.785668734793217,
+      "max_roll_deg": 8.630963175368159,
+      "max_pitch_deg": 5.722830679306336,
+      "braking_saturation_fraction": 0.9,
+      "mean_sampled_wave_surge_n": 444017.8884341988,
+      "quality_flags": [],
+      "limit_events": []
+    }
+  ],
+  "completed": 17,
+  "applicability_stops": 0,
+  "menorca_direct_seed1": "escaped",
+  "attitude_cutoff_removed": true,
+  "runtime_source_sha256": "5e3a58349ee12c1b16681b0dd564c6d4bb8b62dc6a12dbb324960fbf70bd7b6f",
+  "pressure_update_scope": "The previously blocked 16 m beam case was rerun without the TIDE-only angle cutoff. The other 16 completed runs stayed below the old cutoff, which never affected their equations or states.",
+  "large_angle_reference": {
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+    "python_sources_sha256": {
+      "game/simulation/dynamics.py": "7c631bfdbd75e413a6fb660d4ea689470c78259e0936b8113ec1e4e652da9ee2",
+      "game/simulation/waves.py": "c9d428da407f6259a72eea565a5b1014b03e659c14268abe05f49533ad1c7108"
+    },
+    "scope": "Identical prepared matrices, open-loop applied forces, currents, states and RK4; separate source-matrix conversion and shared-component wave checks",
+    "checks": {
+      "converted_M": {
+        "passed": true,
+        "max_absolute_difference": 3.0517578125e-05,
+        "relative_l2_difference": 2.990456977715691e-16
+      },
+      "converted_MA": {
+        "passed": true,
+        "max_absolute_difference": 2.288818359375e-05,
+        "relative_l2_difference": 5.605285381580079e-16
+      },
+      "converted_D": {
+        "passed": true,
+        "max_absolute_difference": 1.52587890625e-05,
+        "relative_l2_difference": 3.4517739887958736e-16
+      },
+      "converted_G": {
+        "passed": true,
+        "max_absolute_difference": 0.0,
+        "relative_l2_difference": 0.0
+      },
+      "derivatives": {
+        "passed": true,
+        "max_absolute_difference": 5.551115123125783e-17,
+        "relative_l2_difference": 1.5336605733167662e-17
+      },
+      "trajectory": {
+        "passed": true,
+        "max_absolute_difference": 1.582067810090848e-15,
+        "relative_l2_difference": 4.504096902453374e-18
+      },
+      "wave_force": {
+        "passed": true,
+        "max_absolute_difference": 1.9073486328125e-06,
+        "relative_l2_difference": 1.107716073807193e-15
+      },
+      "wave_elevation": {
+        "passed": true,
+        "max_absolute_difference": 4.440892098500626e-16,
+        "relative_l2_difference": 1.1356270023779494e-16
+      },
+      "wave_mean_surge": {
+        "passed": true,
+        "max_absolute_difference": 5.820766091346741e-11,
+        "relative_l2_difference": 1.54069888612542e-16
+      }
+    },
+    "passed": true,
+    "replay": "data/runs/motion-repair/no-attitude-cutoff/beam-16m-seed1-n128.npz",
+    "start_s": 60.0,
+    "seconds": 20.0,
+    "input_sha256": "d17ac0ca8ac7a5c42239f32f52f5405c5d4db1e909a9a547d957c2ea7ef901ab"
+  },
+  "high_speed_reference": {
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+    "python_sources_sha256": {
+      "game/simulation/dynamics.py": "7c631bfdbd75e413a6fb660d4ea689470c78259e0936b8113ec1e4e652da9ee2",
+      "game/simulation/waves.py": "c9d428da407f6259a72eea565a5b1014b03e659c14268abe05f49533ad1c7108"
+    },
+    "scope": "Identical prepared matrices, open-loop applied forces, currents, states and RK4; separate source-matrix conversion and shared-component wave checks",
+    "checks": {
+      "converted_M": {
+        "passed": true,
+        "max_absolute_difference": 3.0517578125e-05,
+        "relative_l2_difference": 2.990456977715691e-16
+      },
+      "converted_MA": {
+        "passed": true,
+        "max_absolute_difference": 2.288818359375e-05,
+        "relative_l2_difference": 5.605285381580079e-16
+      },
+      "converted_D": {
+        "passed": true,
+        "max_absolute_difference": 1.52587890625e-05,
+        "relative_l2_difference": 3.4517739887958736e-16
+      },
+      "converted_G": {
+        "passed": true,
+        "max_absolute_difference": 0.0,
+        "relative_l2_difference": 0.0
+      },
+      "derivatives": {
+        "passed": true,
+        "max_absolute_difference": 5.551115123125783e-17,
+        "relative_l2_difference": 1.5336605733167662e-17
+      },
+      "trajectory": {
+        "passed": true,
+        "max_absolute_difference": 1.1368683772161603e-13,
+        "relative_l2_difference": 4.288795626010187e-18
+      },
+      "wave_force": {
+        "passed": true,
+        "max_absolute_difference": 1.9073486328125e-06,
+        "relative_l2_difference": 1.107716073807193e-15
+      },
+      "wave_elevation": {
+        "passed": true,
+        "max_absolute_difference": 4.440892098500626e-16,
+        "relative_l2_difference": 1.1356270023779494e-16
+      },
+      "wave_mean_surge": {
+        "passed": true,
+        "max_absolute_difference": 5.820766091346741e-11,
+        "relative_l2_difference": 1.54069888612542e-16
+      }
+    },
+    "passed": true,
+    "replay": "data/runs/motion-repair/no-speed-cutoff-12/following-seed1-n128-12kn.npz",
+    "start_s": 600.0,
+    "seconds": 60.0,
+    "input_sha256": "862c9489946dbaca69f80533ffbc04bb06cfbe03b0982b760ed93a4e2ea25965"
+  },
+  "speed_cutoff_removed": true,
+  "high_speed_trials": [
+    {
+      "case": "calm",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 12.0,
+      "max_roll_deg": 0.0,
+      "max_pitch_deg": 0.0,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": 0.0,
+      "report": "data/runs/motion-repair/high-speed-12-14/calm-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "head",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 14.99825001199284,
+      "max_roll_deg": 5.057265524851457,
+      "max_pitch_deg": 6.250023528595384,
+      "braking_saturation_fraction": 0.009208333333333334,
+      "mean_sampled_wave_surge_n": -869466.1549311356,
+      "report": "data/runs/motion-repair/high-speed-12-14/head-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "bow",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 14.822678569856661,
+      "max_roll_deg": 7.0626822266997165,
+      "max_pitch_deg": 5.8735511338757815,
+      "braking_saturation_fraction": 0.012875,
+      "mean_sampled_wave_surge_n": -809471.3670599236,
+      "report": "data/runs/motion-repair/high-speed-12-14/bow-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "beam",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 14.939758709637225,
+      "max_roll_deg": 10.709570032941505,
+      "max_pitch_deg": 4.3569332715715925,
+      "braking_saturation_fraction": 0.043625,
+      "mean_sampled_wave_surge_n": -126590.52908037203,
+      "report": "data/runs/motion-repair/high-speed-12-14/beam-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "stern-quarter",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 18.098220025701423,
+      "max_roll_deg": 12.939480971906699,
+      "max_pitch_deg": 4.297079459262725,
+      "braking_saturation_fraction": 0.622625,
+      "mean_sampled_wave_surge_n": 483378.2483774542,
+      "report": "data/runs/motion-repair/high-speed-12-14/stern-quarter-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "following",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 49.126839649495,
+      "max_roll_deg": 22.46470988265315,
+      "max_pitch_deg": 5.110061082607416,
+      "braking_saturation_fraction": 0.8399166666666666,
+      "mean_sampled_wave_surge_n": 838897.8156985402,
+      "report": "data/runs/motion-repair/no-speed-cutoff-12/following-seed1-n128-12kn.json",
+      "quality_events": [
+        {
+          "time_s": 352.20000000000005,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 372.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 394.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 414.20000000000005,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 462.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 486.90000000000003,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 510.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 535.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 559.7,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 586.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    },
+    {
+      "case": "head-12m",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 14.869468671436213,
+      "max_roll_deg": 6.856630392302468,
+      "max_pitch_deg": 8.702419705691508,
+      "braking_saturation_fraction": 0.004916666666666666,
+      "mean_sampled_wave_surge_n": -870207.0555423468,
+      "report": "data/runs/motion-repair/high-speed-12-14/head-12m-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "head-16m",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 16.25984652680936,
+      "max_roll_deg": 12.150913934560249,
+      "max_pitch_deg": 8.720787716225626,
+      "braking_saturation_fraction": 0.056875,
+      "mean_sampled_wave_surge_n": -745554.1095166403,
+      "report": "data/runs/motion-repair/high-speed-12-14/head-16m-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "beam-16m",
+      "speed_knots": 12.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 19.971943826145694,
+      "max_roll_deg": 30.736522517723074,
+      "max_pitch_deg": 6.408159716462495,
+      "braking_saturation_fraction": 0.21529166666666666,
+      "mean_sampled_wave_surge_n": 153053.64066079605,
+      "report": "data/runs/motion-repair/no-speed-cutoff-12/beam-16m-seed1-n128-12kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "calm",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 14.0,
+      "max_roll_deg": 0.0,
+      "max_pitch_deg": 0.0,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": 0.0,
+      "report": "data/runs/motion-repair/high-speed-12-14/calm-seed1-n128-14kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "head",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 15.67773897756842,
+      "max_roll_deg": 4.292579937807721,
+      "max_pitch_deg": 6.540048224293455,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -913298.3281047563,
+      "report": "data/runs/motion-repair/high-speed-12-14/head-seed1-n128-14kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "bow",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 15.332848795831925,
+      "max_roll_deg": 7.487881702544025,
+      "max_pitch_deg": 4.999397052649806,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -645494.0369881799,
+      "report": "data/runs/motion-repair/high-speed-12-14/bow-seed1-n128-14kn.json",
+      "quality_events": [
+        {
+          "time_s": 994.1,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1159.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1168.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1180.3,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1189.7,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    },
+    {
+      "case": "beam",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 16.7454639327959,
+      "max_roll_deg": 13.271392730163347,
+      "max_pitch_deg": 4.679161629667986,
+      "braking_saturation_fraction": 0.009875,
+      "mean_sampled_wave_surge_n": -84353.62207155956,
+      "report": "data/runs/motion-repair/high-speed-12-14/beam-seed1-n128-14kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "stern-quarter",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 30.01884806801199,
+      "max_roll_deg": 13.967247482282401,
+      "max_pitch_deg": 4.5969643903098865,
+      "braking_saturation_fraction": 0.761875,
+      "mean_sampled_wave_surge_n": 734770.8657737348,
+      "report": "data/runs/motion-repair/no-speed-cutoff-14-16/stern-quarter-seed1-n128-14kn.json",
+      "quality_events": [
+        {
+          "time_s": 593.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 611.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 634.1,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 661.3000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 683.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 709.6,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 731.9000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 753.4000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 780.8000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 865.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 892.3000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    },
+    {
+      "case": "following",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 46.10348329167354,
+      "max_roll_deg": 10.679347082912706,
+      "max_pitch_deg": 3.7852363667221915,
+      "braking_saturation_fraction": 0.874375,
+      "mean_sampled_wave_surge_n": 1038165.6753823126,
+      "report": "data/runs/motion-repair/no-speed-cutoff-14-16/following-seed1-n128-14kn.json",
+      "quality_events": [
+        {
+          "time_s": 223.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 245.60000000000002,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 273.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 296.6,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 321.1,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 345.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 438.90000000000003,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 653.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    },
+    {
+      "case": "head-12m",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 15.599521793623088,
+      "max_roll_deg": 9.800219521763276,
+      "max_pitch_deg": 8.451096979561662,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -915473.5010846807,
+      "report": "data/runs/motion-repair/high-speed-12-14/head-12m-seed1-n128-14kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "head-16m",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 16.49665702772633,
+      "max_roll_deg": 11.80967584438673,
+      "max_pitch_deg": 9.100547497034947,
+      "braking_saturation_fraction": 0.0032083333333333334,
+      "mean_sampled_wave_surge_n": -790111.7990919347,
+      "report": "data/runs/motion-repair/high-speed-12-14/head-16m-seed1-n128-14kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "beam-16m",
+      "speed_knots": 14.0,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 19.753137674360627,
+      "max_roll_deg": 28.97643047054735,
+      "max_pitch_deg": 6.651096557270239,
+      "braking_saturation_fraction": 0.13908333333333334,
+      "mean_sampled_wave_surge_n": 161310.9692215769,
+      "report": "data/runs/motion-repair/no-speed-cutoff-14-16/beam-16m-seed1-n128-14kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "calm",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 16.000000000000004,
+      "max_roll_deg": 0.0,
+      "max_pitch_deg": 0.0,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": 0.0,
+      "report": "data/runs/motion-repair/high-speed-16/calm-seed1-n128-16kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "head",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 17.473568216523105,
+      "max_roll_deg": 3.8399201754788317,
+      "max_pitch_deg": 6.407123503131765,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -925265.313867865,
+      "report": "data/runs/motion-repair/high-speed-16/head-seed1-n128-16kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "bow",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 17.220239891283484,
+      "max_roll_deg": 9.014207061910248,
+      "max_pitch_deg": 7.398453761782533,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -761919.6192488357,
+      "report": "data/runs/motion-repair/high-speed-16/bow-seed1-n128-16kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "beam",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 18.761585036822815,
+      "max_roll_deg": 11.90008533057347,
+      "max_pitch_deg": 4.931996947925017,
+      "braking_saturation_fraction": 0.006416666666666667,
+      "mean_sampled_wave_surge_n": -57162.0004419635,
+      "report": "data/runs/motion-repair/high-speed-16/beam-seed1-n128-16kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "stern-quarter",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 29.97440302047612,
+      "max_roll_deg": 14.858025974326061,
+      "max_pitch_deg": 4.451714296488077,
+      "braking_saturation_fraction": 0.870875,
+      "mean_sampled_wave_surge_n": 913347.9204061175,
+      "report": "data/runs/motion-repair/no-speed-cutoff-14-16/stern-quarter-seed1-n128-16kn.json",
+      "quality_events": [
+        {
+          "time_s": 105.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 130.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 148.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 172.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 192.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 212.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 248.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 269.40000000000003,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 292.1,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 950.2,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1080.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1111.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1138.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    },
+    {
+      "case": "following",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 49.713223374956755,
+      "max_roll_deg": 14.287799869783964,
+      "max_pitch_deg": 5.005261580539459,
+      "braking_saturation_fraction": 0.907625,
+      "mean_sampled_wave_surge_n": 1015815.2345743298,
+      "report": "data/runs/motion-repair/no-speed-cutoff-14-16/following-seed1-n128-16kn.json",
+      "quality_events": [
+        {
+          "time_s": 100.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 122.0,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 145.6,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 165.3,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 193.60000000000002,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 222.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1105.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    },
+    {
+      "case": "head-12m",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 17.547492845818688,
+      "max_roll_deg": 10.545571713610563,
+      "max_pitch_deg": 8.22094954729737,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -875803.4791686834,
+      "report": "data/runs/motion-repair/high-speed-16/head-12m-seed1-n128-16kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "head-16m",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 18.432016086868675,
+      "max_roll_deg": 13.569007412201438,
+      "max_pitch_deg": 9.334270395246365,
+      "braking_saturation_fraction": 0.0,
+      "mean_sampled_wave_surge_n": -846220.8087173485,
+      "report": "data/runs/motion-repair/high-speed-16/head-16m-seed1-n128-16kn.json",
+      "quality_events": []
+    },
+    {
+      "case": "beam-16m",
+      "speed_knots": 16.000000000000004,
+      "advanced_s": 1200.0,
+      "stopping_reason": "duration_reached",
+      "max_water_speed_knots": 26.002728794925435,
+      "max_roll_deg": 37.43473910393664,
+      "max_pitch_deg": 6.887324981704274,
+      "braking_saturation_fraction": 0.26616666666666666,
+      "mean_sampled_wave_surge_n": 344669.4480648774,
+      "report": "data/runs/motion-repair/no-speed-cutoff-14-16/beam-16m-seed1-n128-16kn.json",
+      "quality_events": [
+        {
+          "time_s": 202.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 223.8,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 456.1,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 584.7,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 603.8000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 895.9000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 916.1,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 943.9000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 969.9000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 996.7,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1022.3000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1058.9,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1082.2,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1109.5,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1137.3,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1166.7,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        },
+        {
+          "time_s": 1189.6000000000001,
+          "kind": "wave_quality",
+          "detail": "mean_drift_speed_clipped"
+        }
+      ]
+    }
+  ],
+  "high_speed_completed": 27,
+  "high_speed_update_scope": "19 completed trials never activated the old speed guard; their equations and states are unchanged. Eight trials were rerun after deletion, including all seven previously stopped trials and one completed control case. Maxima use 1-second recorded samples, not every RK4 substep."
+}

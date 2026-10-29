@@ -18,8 +18,8 @@ FILES = {
 }
 
 
-def fetch_sources(directory: Path) -> Path:
-    for name, expected in FILES.items():
+def fetch_sources(directory: Path, files=FILES) -> Path:
+    for name, expected in files.items():
         target = directory / name
         if target.exists():
             data = target.read_bytes()

@@ -35,8 +35,11 @@ class Vessel:
     freqs: np.ndarray
     headings: np.ndarray
     force_rao: np.ndarray
-    max_speed_mps: float
+    max_speed_mps: float  # Source table endpoint, not a motion or command limit.
     nonlinear_456: np.ndarray
+    drift_freqs: np.ndarray
+    drift_speeds: np.ndarray
+    surge_drift: np.ndarray
 
 
 def _validate(vessel: Vessel):
@@ -64,6 +67,11 @@ def _validate(vessel: Vessel):
         raise ValueError("Invalid force RAOs")
     if not np.isfinite(vessel.max_speed_mps) or vessel.max_speed_mps <= 0:
         raise ValueError("Invalid source speed range")
+    if (vessel.surge_drift.shape != (len(vessel.drift_freqs), len(vessel.headings), len(vessel.drift_speeds))
+            or not np.all(np.isfinite(vessel.surge_drift))
+            or np.any(np.diff(vessel.drift_freqs) <= 0)
+            or np.any(np.diff(vessel.drift_speeds) <= 0)):
+        raise ValueError("Invalid mean wave-drift table")
     for key in ("g", "Lpp", "B", "T", "rho", "m", "k44", "k55", "k66"):
         if not np.isfinite(vessel.main[key]) or vessel.main[key] <= 0:
             raise ValueError(f"Invalid vessel parameter {key}")
@@ -99,8 +107,12 @@ def prepare_s175(raw_path=RAW, output_dir=OUTPUT) -> Path:
     rao = np.stack([np.asarray(a)[:,:,0]*np.exp(1j*np.asarray(p)[:,:,0])
                     for a,p in zip(source["forceRAO"]["amp"],source["forceRAO"]["phase"])])
     main = {k: v.tolist() if isinstance(v,np.ndarray) else v for k,v in source["main"].items()}
+    speeds = np.asarray(source['velocities'], dtype=float)
+    # MSS pads drift tables to ten speeds; only the declared speed axis is valid.
+    drift = np.asarray(source['driftfrc']['amp'][0], dtype=float)[:, :, :len(speeds)]
     vessel = Vessel(main,mrb,equivalent["A"],mass,np.linalg.inv(mass),equivalent["B"]+viscous,
-                    restoring,freqs,headings,rao,float(max(source["velocities"])),np.zeros(3))
+                    restoring,freqs,headings,rao,float(max(speeds)),np.zeros(3),
+                    np.asarray(source['driftfrc']['w'], dtype=float), speeds, drift)
     _validate(vessel)
     provenance = {
         "schema_version":1, "source_commit":COMMIT, "source_sha256":digest,
@@ -113,13 +125,14 @@ def prepare_s175(raw_path=RAW, output_dir=OUTPUT) -> Path:
             "T126_s":decay.tolist(), "T126_rule":"min(120, 0.95*Mii/Beqii)",
             "delta_zeta_345":[0,.1,0], "nonlinear_456":[0,0,0],
             "note":"Teaching damping assumptions; not experimental S175 calibration",
+            "wave_mean_surge":"MSS driftfrc.amp{1} * amplitude^2; diagonal mean only; frequency, direction and quasi-steady forward-speed interpolation",
         },
         "matrix_relative_antisymmetry":{k:float(np.linalg.norm(a-a.T)/np.linalg.norm(a))
                                        for k,a in (("M",mass),("B_eq",equivalent["B"]),("G",restoring))},
     }
     output_dir.mkdir(parents=True,exist_ok=True)
     destination = output_dir / "vessel.npz"
-    np.savez(destination, **{k:getattr(vessel,k) for k in ("MRB","MA","M","Minv","D","G","freqs","headings","force_rao","nonlinear_456")},
+    np.savez(destination, **{k:getattr(vessel,k) for k in ("MRB","MA","M","Minv","D","G","freqs","headings","force_rao","nonlinear_456","drift_freqs","drift_speeds","surge_drift")},
              main_json=np.array(json.dumps(main,sort_keys=True)),max_speed_mps=vessel.max_speed_mps)
     provenance["prepared_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
     (output_dir/"provenance.json").write_text(json.dumps(provenance,indent=2,sort_keys=True)+"\n")
@@ -134,8 +147,10 @@ def load_s175(path=OUTPUT) -> Vessel:
     if hashlib.sha256(path.read_bytes()).hexdigest()!=provenance["prepared_sha256"]:
         raise ValueError("Prepared vessel checksum mismatch; rerun preparation")
     with np.load(path,allow_pickle=False) as data:
+        if 'surge_drift' not in data:
+            raise ValueError('Prepared vessel lacks mean wave-drift data; rerun python -m pipeline.prepare_vessel')
         vessel=Vessel(main=json.loads(str(data["main_json"])), max_speed_mps=float(data["max_speed_mps"]),
-                      **{k:data[k] for k in ("MRB","MA","M","Minv","D","G","freqs","headings","force_rao","nonlinear_456")})
+                      **{k:data[k] for k in ("MRB","MA","M","Minv","D","G","freqs","headings","force_rao","nonlinear_456","drift_freqs","drift_speeds","surge_drift")})
     _validate(vessel)
     for value in vars(vessel).values():
         if isinstance(value,np.ndarray):

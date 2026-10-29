@@ -4,11 +4,17 @@ PLAN stages 3 and 4 are implemented. The terminal supports Director and pure loc
 
 ## Automated checks
 
-The full Python suite passes 148 tests, including 16 MiniMax-authored cargo/region tests and a separate enclosed low-wave-pocket regression. Tests cover fixed-clock motion, accepted-step callbacks, cargo grades and protected hold cargo, escape/timeout/domain ordering, information release, exact snapshots, interrupted operation recovery, player authorization, duplicate requests, real SQLite graph checkpoints, malformed model calls, injected report instructions, local fallback, and asynchronous attention.
+The current tree passes 196 tests, including cargo/region, session, Director, TUI and motion regressions. The motion repair restores full MSS coupling, adds source-supported mean longitudinal wave drift and resolves long-period quadrature underresolution. Real Octave comparisons, 17 initial and 27 high-speed synthetic pressure tests and remaining physical limits are documented in [MOTION_VALIDATION.md](MOTION_VALIDATION.md).
+
+The full-screen local interface was exercised in a real PTY using the historical scenario: initial paused editor, target heading/speed entry, live UTC/position/motion updates, `p` pause, `j/k` rate changes, save and quit. Saved-session restoration was checked at 80x24. The screen uses only player-visible observations and released forecast reports. The line/JSON interactive entrypoint has been removed; `--script` remains the automated verification path. This UI check did not rerun a full mission or call the live Director.
 
 The asynchronous tests deliberately block model assessment while advancing physics, reject late decisions after player control changes, and verify delivery-without-pause, explicit pause, idempotency and fixed-delivery fallback. These are fixture tests of the harness contracts, not proof of semantic judgment quality.
 
 ## Frozen historical scenario: deterministic baseline
+
+These full-mission results predate the dynamics change in `4880170`. They remain historical evidence, not validation of the revised equations. A new full-mission run is required before using them to assess the current model.
+
+After the subsequent motion repair, one current direct-strategy mission with seed 1 escaped at 9,139.25 seconds with zero cargo loss. Its run is `data/runs/motion-repair/menorca/direct-1/`. The full strategy/seed matrix below has not been rerun with the repaired forcing.
 
 The package contains 181 one-minute convex region envelopes and 24 explicitly labelled game forecast records. Existing environmental checksums and S175 numerical settings remain unchanged. New gameplay data has its own version and checksum; numerical scenario schema remains version 1.
 

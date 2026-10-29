@@ -1,5 +1,6 @@
 # AI and IDE specific files
 AGENTS.md
+CLAUDE.md
 .vscode/
 .agents/
 .codex/

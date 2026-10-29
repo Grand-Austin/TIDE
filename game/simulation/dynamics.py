@@ -120,13 +120,7 @@ def derivative(x, tau, vessel, current_ne):
     damping[0,0] = vessel.D[0,0]*math.exp(-3*abs(relative[0])) + _ittc_coefficient(relative[0], vessel.main)*abs(relative[0])
     indices = np.arange(3,6)
     damping[indices,indices] = vessel.D[indices,indices] * (1+vessel.nonlinear_456*abs(nu[3:]))
-    coriolis = (rigid_coriolis(vessel.main, nu[3:]) + added_coriolis(vessel.MA, relative)) @ relative
-    # Surge, sway and yaw see Coriolis terms of the horizontal motion only. With first-order
-    # wave forces, correlated heave and pitch otherwise push the ship forward in head seas
-    # (a spurious mean force; real ships lose speed there), faster than the thruster can brake.
-    horizontal = relative * np.array([1, 1, 0, 0, 0, 1])
-    coriolis[[0, 1, 5]] = ((rigid_coriolis(vessel.main, horizontal[3:]) + added_coriolis(vessel.MA, horizontal))
-                           @ horizontal)[[0, 1, 5]]
+    coriolis = rigid_coriolis(vessel.main, nu[3:]) + added_coriolis(vessel.MA, relative)
     acceleration = current_dot + vessel.Minv @ (tau + crossflow(vessel.main, relative)
-                    - coriolis - damping @ relative - vessel.G @ eta)
+                    - (coriolis + damping) @ relative - vessel.G @ eta)
     return np.r_[acceleration, kinematics(eta, nu)]

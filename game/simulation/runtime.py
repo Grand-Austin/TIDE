@@ -40,7 +40,6 @@ class Settings:
     yaw_natural_frequency: float = 0.04
     roll_exposure_deg: float = 10.0
     lateral_exposure_mps2: float = 0.1 * 9.81
-    max_attitude_deg: float = 30.0
 
     def __post_init__(self):
         for name, value in vars(self).items():
@@ -49,8 +48,6 @@ class Settings:
         for period in (self.wave_period_s, self.record_period_s):
             if period < self.dt_s or not math.isclose(period / self.dt_s, round(period / self.dt_s)):
                 raise ValueError("Wave and recording periods must be multiples of dt_s")
-        if self.max_attitude_deg >= 80:
-            raise ValueError("The small-angle vessel model cannot use this attitude limit")
 
 
 @dataclass
@@ -81,6 +78,7 @@ class State:
     tick: int = 0
     exposure: Exposure = field(default_factory=Exposure)
     wave_force: np.ndarray = field(default_factory=lambda: np.zeros(6))
+    wave_mean_surge_n: float = 0.0
     wind_force: np.ndarray = field(default_factory=lambda: np.zeros(6))
     wave_elevation: float = 0.0
     wave_flags: tuple[str, ...] = ()
@@ -120,6 +118,7 @@ class Sample:
     wind_force_y_n: float
     wind_moment_z_nm: float
     sst_c: float | None
+    wave_mean_surge_n: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -187,8 +186,8 @@ class Simulation:
     def validate_command(self, command: Command):
         if not math.isfinite(command.heading_deg) or not math.isfinite(command.speed_mps):
             raise ValueError("Commands must be finite")
-        if not 0 <= command.speed_mps <= self.vessel.max_speed_mps:
-            raise ValueError(f"Speed must be between 0 and {self.vessel.max_speed_mps:g} m/s")
+        if command.speed_mps < 0:
+            raise ValueError("Speed must be nonnegative")
 
     def _sea(self, state: State) -> SeaState:
         return self.environment.sample(state.start_time + timedelta(seconds=state.tick * self.settings.dt_s),
@@ -228,7 +227,8 @@ class Simulation:
                       math.degrees(x[9]), math.degrees(x[10]), -float(x[8]), acceleration, sea.hs, sea.tp,
                       sea.wave_from_deg, sea.current_east_mps, sea.current_north_mps,
                       sea.wind_east_mps, sea.wind_north_mps, float(state.wind_force[0]),
-                      float(state.wind_force[1]), float(state.wind_force[5]), sea.sst_c)
+                      float(state.wind_force[1]), float(state.wind_force[5]), sea.sst_c,
+                      state.wave_mean_surge_n)
 
     def advance(self, state: State, command: Command, duration_s: float, *,
                 should_pause: Callable[[], bool] | None = None,
@@ -267,12 +267,14 @@ class Simulation:
                                                self._water_velocity(out.x, sea)[:2])
                     candidate.wave = wave.state
                     candidate.wave_force = wave.force
+                    candidate.wave_mean_surge_n = wave.mean_surge_n
                     candidate.wave_elevation = wave.elevation
                     candidate.wave_flags = wave.flags
                     candidate.retained_wave_energy = wave.retained_energy
                 candidate.wind_force = (wind_load(out.x, sea, self.wind_parameters)
                                         if self.wind_parameters is not None else np.zeros(6))
                 total_force = tau + candidate.wave_force + candidate.wind_force
+                total_force[0] += candidate.wave_mean_surge_n
                 current = (sea.current_north_mps, sea.current_east_mps)
                 f = lambda x: derivative(x, total_force, self.vessel, current)
                 h, x = cfg.dt_s, out.x
@@ -285,13 +287,7 @@ class Simulation:
                 if not np.all(np.isfinite(candidate.x)):
                     reason = "numerical_failure"
                     break
-                if np.max(np.abs(candidate.x[9:11])) > math.radians(cfg.max_attitude_deg):
-                    reason = "model_limit"
-                    break
                 endpoint_sea = self._sea(candidate)
-                if np.linalg.norm(self._water_velocity(candidate.x, endpoint_sea)[:2]) > self.vessel.max_speed_mps:
-                    reason = "model_limit"
-                    break
                 end_derivative = derivative(candidate.x, total_force, self.vessel,
                                             (endpoint_sea.current_north_mps, endpoint_sea.current_east_mps))
             except EnvironmentError as error:

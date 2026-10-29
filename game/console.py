@@ -1,6 +1,5 @@
-"""Shared player commands and background engine execution for terminal frontends."""
+"""Player commands and background engine execution for the terminal UI."""
 
-import json
 import queue
 import threading
 
@@ -108,18 +107,14 @@ class Controls:
         if name == "retry" and not args:
             if self.worker and self.worker.is_alive():
                 return "Engine is still processing; pause remains available"
+            self.pause()
             self._start("decision")
             return "Retrying engine decision while paused"
         if name == "save" and not args:
             self.session.save()
             return "Session saved"
         if name in ("status", "reports") and not args:
-            view = self.session.visible()
-            return json.dumps(
-                view if name == "status" else view["reports"],
-                ensure_ascii=False,
-                indent=2,
-            )
+            return "Live instruments and released forecasts are displayed above."
         if name == "help" and not args:
             return "heading DEG | speed KNOTS | pause | resume | rate 1/5/20/60/max | status | reports | save | retry | quit"
         raise ValueError("Unknown command or arguments; use help")
@@ -132,32 +127,3 @@ class Controls:
         self.session.save()
         if not self.worker or not self.worker.is_alive():
             self.engine.close()
-
-
-def run_plain(controls):
-    """Keep line-oriented operation available for pipes and non-curses terminals."""
-    done = threading.Event()
-
-    def updates():
-        while not done.wait(0.1):
-            for message in controls.poll():
-                print(f"\n[Game update] {message}", flush=True)
-
-    worker = threading.Thread(target=updates, daemon=True)
-    worker.start()
-    print(f"TIDE session: {controls.session.directory}")
-    print(controls.command("help"))
-    print(controls.command("status"))
-    try:
-        while not controls.closed:
-            try:
-                line = input("tide> ")
-            except (EOFError, KeyboardInterrupt):
-                break
-            try:
-                print(controls.command(line), flush=True)
-            except ValueError as error:
-                print(str(error), flush=True)
-    finally:
-        done.set()
-        worker.join(timeout=0.5)

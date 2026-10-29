@@ -19,6 +19,9 @@ checks their SHA-256 hashes, and converts the source data. Existing files with
 incorrect hashes cause an error. Original data stay in `data/raw/mss`; converted
 arrays stay in `data/processed/s175`. These directories are ignored by Git.
 Source attribution and conversion assumptions are in `data/vessels/s175`.
+After updating from an older prepared model, rerun `pipeline.prepare_vessel` once
+to include the source's mean wave-drift tables. A stale artifact fails with that
+instruction; the runtime does not download or silently rebuild vessel data.
 
 The example writes `data/runs/toolkit-demo.json`. It reports the command,
 trajectory, response, cumulative exposure, quality flags and stopping reason.
@@ -89,7 +92,7 @@ vessel models must supply their own parameters or disable wind loads.
 
 `duration_reached` is a normal completion. `paused` responds to an optional
 callback between steps. Domain/time boundaries, missing environmental values,
-model applicability limits and numerical failure stop progression at the last
+unavailable wave data, Euler singularities and numerical failure stop progression at the last
 valid state. No step teleports the vessel out of invalid water.
 
 ## Environmental and wave assumptions
@@ -108,19 +111,33 @@ valid state. No step teleports the vessel out of invalid water.
   fixed seed. This does not reconstruct actual individual historical waves.
   Wind sea and swell are not added to the total sea, which would double-count energy.
 - Fixed frequency components retain their phases as the sampled sea changes.
+  The fixed frequency grid is logarithmic, so long-period spectral peaks receive
+  adequate quadrature resolution without changing component identities.
   Signed encounter rates support following-sea overtaking. RAOs use complex
   interpolation so phases and direction wrap correctly.
 - Forces use the source's zero-speed RAOs. Speed affects encountered wave phase;
   the implementation does not claim validated speed-dependent hydrodynamic loads.
   Deep-water wave dispersion and locally quasi-steady horizontal currents are
   modelling assumptions. Harbour, shallow-water and grounding physics are absent.
+- Mean longitudinal wave drift uses the pinned S175 `driftfrc.amp{1}` table:
+  sum `Q * component_amplitude_squared` over the same frequency/direction grid.
+  This adds the source-supported mean wave resistance or forward drift separately
+  from the first-order oscillating force. Interpolation uses source frequencies,
+  periodic direction and quasi-steady forward horizontal water speed. Values
+  outside the speed table use the nearest endpoint and report
+  `mean_drift_speed_clipped`; astern performance is not supplied by this source.
+  Only surge is included: no invented lateral/yaw drift or full second-order QTF.
 - The source frequency range bounds the spectrum. Lost wave energy is reported,
   not silently restored. Quality flags identify truncation, under-resolution and
   spectrum assumptions. A peak outside the available range stops the calculation.
 - The six-DOF model includes restoring and damping couplings but uses linear
   hydrostatics and constant, spectrum-reduced added-mass/damping matrices. It is
-  not a nonlinear capsize, slamming or container-failure model. The default 30°
-  attitude stop is a numerical applicability guard, not a certified safe limit.
+  not a nonlinear capsize, slamming or container-failure model. Roll and pitch
+  are not clipped or stopped at a project-defined angle. The original equations
+  continue above 30 degrees; nonfinite states and Euler pitch singularities
+  still stop numerical progression. The source speed-table endpoint does not
+  cap motion or target speed. Commands must be finite and nonnegative. Abnormal
+  motion remains available to later ship-damage and cargo-damage rules.
 
 ## Response and exposure
 
@@ -143,11 +160,16 @@ equilibrium, current advection, wave determinism, phase continuity, control
 limits, step refinement, rollback at stops and split-run equivalence. A real-data
 test runs after vessel preparation. Legacy pipeline tests remain separate.
 
-`tests/reference/s175_reference.m` is an optional headless Octave/MATLAB fixture
-generator for the pinned MSS checkout. It exports matrices, a derivative,
-fixed-force trajectory and deterministic wave loads. It is not required to use
-or test the Python toolkit. No MATLAB/Octave parity is claimed until those
-fixtures have actually been generated and compared.
+`pipeline.validate_mss` and `tests/reference/matched_dynamics.m` execute the pinned
+MSS in GNU Octave under identical numerical inputs. Matrices, derivatives, a
+60-second force-driven trajectory, shared-component first-order wave forces and
+the independently integrated mean-surge table have been compared successfully.
+Octave is a verification dependency only. The normal Python test suite uses
+the small executed-reference fixture in `tests/fixtures/mss/`.
+The earlier `s175_reference.m` remains an optional broader fixture generator.
+
+See [MOTION_VALIDATION.md](MOTION_VALIDATION.md) for commands, numerical errors,
+the diagnosed head-seas stopping mechanism and synthetic limit-test results.
 
 Source-data consistency and numerical checks do not establish experimental
 validation of the complete vessel/controller model. Future physical calibration
@@ -175,7 +197,8 @@ accurate manoeuvring performance, gust response, wind-induced heel, severe-sea
 fidelity or a validated error percentage against experiments. Wind geometry,
 the yaw-moment reference point, damping and teaching controls still require
 calibration. The optional Octave generator also exports basic wind-force cases;
-cross-runtime comparison remains unexecuted until Octave is available.
+wind-specific cross-runtime checks remain separate from the executed
+kinetics/wave comparison.
 
 In the 120 s check at 2026-09-09 08:00 UTC, 3.5 E / 40 N, all 11 trials
 completed. Removing true wind changed the horizontal endpoint by about 0.88 m;

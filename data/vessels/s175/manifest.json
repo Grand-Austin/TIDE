@@ -28,7 +28,7 @@
     "reference": "CG"
   },
   "parameters": {
-    "source": "S175 geometry, mass, inertia, hydrostatics and zero-speed force RAOs",
+    "source": "S175 geometry, mass, inertia, hydrostatics, zero-speed force RAOs and tabulated mean longitudinal wave drift",
     "teaching_model": {
       "reference_peak_rad_s": 1.0,
       "T126_s": "min(120, 0.95*Mii/Beqii) for surge/sway/yaw",

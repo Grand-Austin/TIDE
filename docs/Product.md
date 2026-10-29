@@ -107,6 +107,8 @@ The minimum useful model needs stateful movement, plausible control response, cu
 
 A six-degree-of-freedom model can represent surge, sway, heave, roll, pitch, and yaw. The inspected MSS example uses first-order wave excitation and a restoring matrix. 
 
+Retain the full MSS Coriolis coupling. The current implementation adds mean longitudinal wave drift from the same S175 source tables as an external load and uses a fixed logarithmic spectral grid. Do not impose project-defined roll, pitch or vessel-speed cutoffs. The source speed axis describes hydrodynamic table coverage, not a motion or command limit. Keep abnormal motion as simulation output; later ship-damage and cargo-damage rules will define its game consequences. Source-consistent numerical comparison does not establish experimental strong-sea accuracy; environmental coverage, finite-state checks and Euler singularity checks still apply.
+
 Nevertheless, the simulation of ships within the scene remains relatively coarse-grained.
 
 ### 3.3 Reusable algorithm 
@@ -236,7 +238,7 @@ An evidence-credit budget remains an optional game experiment. It is not part of
 
 The player can issue precise orders through controls or ask the Copilot to construct a command from a broader intention.
 
-Before the frontend and Copilot exist, the entire prototype must be playable from the terminal. When standard input and output are terminals, the game uses a fullscreen live UI. `--plain` provides the line-command interface. The live screen displays coordinates, vessel state, target and actual heading/speed, local sea conditions, released weather briefings, cargo status, and game time. Players enter target heading and speed manually and can pause at any time without waiting for an Agent. The motion model executes turning, acceleration and deceleration continuously rather than instantly setting the vessel state.
+Before the frontend and Copilot exist, the entire prototype must be playable from the terminal. The game uses a fullscreen live terminal UI as its only interactive mode. The live screen displays coordinates, vessel state, target and actual heading/speed, local sea conditions, released weather briefings, cargo status, and game time. Players enter target heading and speed manually and can pause at any time without waiting for an Agent. The motion model executes turning, acceleration and deceleration continuously rather than instantly setting the vessel state.
 
 The Copilot retrieves the applicable evidence and vessel constraints, proposes executable commands, and calls the Director to run trial simulations and continue game process. 
 

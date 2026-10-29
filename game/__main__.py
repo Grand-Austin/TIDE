@@ -42,17 +42,16 @@ def main():
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--seed", type=int)
     parser.add_argument(
-        "--plain",
-        action="store_true",
-        help="Use line commands instead of the full-screen terminal UI",
-    )
-    parser.add_argument(
         "--script", type=Path, help="Deterministic stage-3 runner; no model calls"
     )
     parser.add_argument("--engine", choices=("director", "local"), default="local")
     parser.add_argument("--models", type=Path, default=Path("models.json"))
     parser.add_argument("--keys", type=Path, default=Path("config/api_keys.local.json"))
     args = parser.parse_args()
+    if not args.script and not (sys.stdin.isatty() and sys.stdout.isatty()):
+        parser.error(
+            "Interactive play requires a terminal; use --script for automated runs"
+        )
     scenario = load_scenario(args.scenario)
     source = scenario.definition.get("gameplay")
     if not source:
@@ -96,16 +95,13 @@ def main():
         engine = GameEngine(
             session, director, initialization_error=initialization_error
         )
-        from game.console import Controls, run_plain
+        from game.console import Controls
 
         controls = Controls(session, engine)
         try:
-            if not args.plain and sys.stdin.isatty() and sys.stdout.isatty():
-                from game.terminal import run_screen
+            from game.terminal import run_screen
 
-                run_screen(controls)
-            else:
-                run_plain(controls)
+            run_screen(controls)
         except KeyboardInterrupt:
             pass
         finally:
