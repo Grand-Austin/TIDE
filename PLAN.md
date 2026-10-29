@@ -9,11 +9,28 @@ Build the core capabilities first. Use scripts or a command-line interface until
 - [x] Establish the workspace template and module ownership in [README.md](README.md).
 
 
-## 1. Foudational Simulation Toolkit
+## 1. Foundational Simulation Toolkit
 
-- [ ] Construct environmental simulation capability using Copercius data and other data sources.
-- [ ] Implement vessel movements: heading and speed commands, continuous movement, and environmental sampling.
-- [ ] Integrate vessel response and accumulated exposure through a shared advance function, according to the sea environmental sampling
+- [x] Sample committed Copernicus total-wave, current and optional wind fields with explicit coverage and missing-data stops.
+- [x] Execute heading and speed commands through bounded teaching actuators and continuous S175 six-DOF motion.
+- [x] Integrate vessel response and elapsed-time exposure through `Simulation.advance`, preserving wave phase and controller state.
+
+Implementation and limitations: [SIMULATION.md](docs/SIMULATION.md).
+
+### 1.1 Vessel reference and conversion
+- [x] Pin MSS source, record SHA-256 hashes, attribution, design-waterline condition and FSD/NED conventions.
+- [x] Prepare zero-speed force RAOs and equivalent matrices; validate mass, damping and restoring properties.
+- [x] Separate source parameters from derived teaching damping and actuator assumptions.
+- [x] Supply an optional headless Octave reference generator.
+- [ ] Generate and compare Octave reference outputs; no cross-runtime equivalence is claimed yet.
+
+### 1.2 Environment, dynamics and integration
+- [x] Test temporal/spatial interpolation, circular directions, land/missing cells and exact coverage boundaries.
+- [x] Port the required MSS six-DOF calculations and synthesize seeded total-sea wave forces.
+- [x] Verify current advection, bounded control, phase continuity, exposure, pause/stop rollback and split-run equivalence.
+- [x] Run the full Python suite and a 600-second real-data smoke exercise.
+- [x] Add Isherwood horizontal wind loads with sourced S175 demo parameters and daily SST evidence.
+- [x] Supply a reproducible six-environment-group assessment with forcing and control ablations.
 
 ## 2. Scenario and Data Build
 

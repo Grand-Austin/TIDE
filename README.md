@@ -4,7 +4,7 @@
 
 TIDE is a maritime training-game prototype. Players command a vessel in historical marine conditions through repeated heading and speed decisions. The target architecture uses a Director Agent to orchestrate local simulation tools and game rules. A Copilot translates natural-language input into actions.
 
-The new game packages are a workspace template, not an implemented game. Existing pipeline code and browser prototypes belong to the earlier route-selection experiment. See [Product.md](docs/Product.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md), and [PLAN.md](PLAN.md) for the current direction.
+The Python simulation toolkit implements continuous S175 six-degree-of-freedom motion, environmental sampling and exposure. See [SIMULATION.md](docs/SIMULATION.md) for setup, Python calls and modelling limits. Game rules and Agents remain to be implemented. Existing pipeline code and browser prototypes belong to the earlier route-selection experiment.
 
 > TIDE is a training prototype, not a navigation or safety decision tool.
 
@@ -48,10 +48,10 @@ Follow [PLAN.md](PLAN.md): build and verify the toolkit, prepare one manual scen
 ## Setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest
+uv sync --locked
+uv run python -m pipeline.prepare_vessel
+uv run python -m game.simulation --seconds 60
+uv run python -m pytest
 ```
 
 Copernicus Marine data needs a free account. Log in once with `copernicusmarine login`; credentials stay on your machine and must never be committed.

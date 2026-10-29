@@ -1,0 +1,47 @@
+{
+  "vessel": "S175",
+  "loading_condition": "Design waterline",
+  "commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+  "licence": "MIT",
+  "source_files": [
+    {
+      "path": "HYDRO/vessels_shipx/s175/s175.mat",
+      "url": "https://raw.githubusercontent.com/cybergalactic/MSS/ce0b40ed101411fc4eebd064b35c5a96916106ad/HYDRO/vessels_shipx/s175/s175.mat",
+      "sha256": "bac9c93feadd98dc1380c2b18c07b5b6b536c30989c2e02f9255fa14dbe60c79"
+    },
+    {
+      "path": "HYDRO/vessels_shipx/s175/input.hyd",
+      "url": "https://raw.githubusercontent.com/cybergalactic/MSS/ce0b40ed101411fc4eebd064b35c5a96916106ad/HYDRO/vessels_shipx/s175/input.hyd",
+      "sha256": "e2856b13f368d7ba8c28a2b0b37e03fb062c648e289bdd463968bcdfb260e3c9"
+    },
+    {
+      "path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/cybergalactic/MSS/ce0b40ed101411fc4eebd064b35c5a96916106ad/LICENSE",
+      "sha256": "922bb433450a9e39368009c29db7b07857520b8e3aad20797f5dc082df6dcce1"
+    }
+  ],
+  "raw_directory": "data/raw/mss",
+  "prepared_directory": "data/processed/s175",
+  "coordinate_conventions": {
+    "body": "FSD",
+    "local": "NED",
+    "reference": "CG"
+  },
+  "parameters": {
+    "source": "S175 geometry, mass, inertia, hydrostatics and zero-speed force RAOs",
+    "teaching_model": {
+      "reference_peak_rad_s": 1.0,
+      "T126_s": "min(120, 0.95*Mii/Beqii) for surge/sway/yaw",
+      "delta_zeta_345": [
+        0,
+        0.1,
+        0
+      ],
+      "nonlinear_456": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

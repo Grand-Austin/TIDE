@@ -2,6 +2,10 @@
 
 This package currently downloads environmental data, simulates fixed routes, mines candidate days, and exports files for the earlier browser prototypes. Existing commands and imports remain unchanged.
 
+`uv run python -m pipeline.prepare_vessel` also fetches and verifies the pinned
+S175 reference data and calls the new runtime's data converter. It does not run
+the legacy route simulator. See [SIMULATION.md](../docs/SIMULATION.md).
+
 Evolve it into the scenario-construction pipeline as core capabilities become available:
 
 1. Collect source data into `data/raw/` and reuse the curated subsets in `data/copernicus/`.

@@ -1,6 +1,8 @@
 # Game Runtime
 
-This package reserves the implementation boundaries for the new prototype. It currently contains package markers only.
+The simulation package implements the foundational Python toolkit. Other packages
+reserve boundaries for later prototype stages. See [SIMULATION.md](../docs/SIMULATION.md)
+for runnable examples, coordinate conventions, numerical checks and model limits.
 
 | Package | Responsibility |
 | --- | --- |
@@ -13,4 +15,6 @@ Keep shared action and state definitions directly in this package when they beco
 
 The offline pipeline can reuse this package for scenario trials. This package must not import the offline pipeline or browser code. Extract useful calculations from existing pipeline modules when implementing the new capabilities; do not move old code merely to populate the template.
 
-See [ARCHITECTURE.md](../docs/ARCHITECTURE.md) for conceptual inputs and outputs. No runtime entry point or Agent SDK is implemented yet.
+Run `uv run python -m game.simulation` from the repository root after preparing
+the S175 data. See [ARCHITECTURE.md](../docs/ARCHITECTURE.md) for conceptual inputs
+and outputs. An Agent SDK is not required for the simulation toolkit.
