@@ -29,7 +29,9 @@ from pipeline.storms import OUT as STORMS
 OUT = ROOT / "web" / "game" / "scenes"
 # The frozen scenario's vessel settings and windage are reused unchanged.
 REFERENCE = json.loads((ROOT / "scenarios/menorca-20260909/scenario.json").read_text())
-SPEED_MPS = 3.0
+SPEED_MPS = 5.0  # about 10 kn: enough flow past the rudder to turn in 10–12 m seas (see STATUS.md)
+# Storm scenes need more thrust than the calm Menorca scenario to hold that speed.
+STORM_SETTINGS = dict(REFERENCE["settings"], max_thrust_n=1_500_000.0)
 LEAD_S = 1200  # start this long before the peak
 PLAN = [(0, 0), (480, 90), (1380, 135)]  # (from s, heading relative to the waves' origin)
 DURATION_S = 1800
@@ -57,7 +59,7 @@ def export(storm_id: str) -> Path:
     lat = min(max(storm["lat"], south + MARGIN), north - MARGIN)
     start = datetime.fromisoformat(storm["peak"].replace("Z", "+00:00")) - pd.Timedelta(seconds=LEAD_S)
     sim = Simulation(load_s175(ROOT / "data/processed/s175"), environment(region, start, lon, lat), seed=1,
-                     settings=Settings(**REFERENCE["settings"]), wind_parameters=WindParameters(**REFERENCE["wind_parameters"]))
+                     settings=Settings(**STORM_SETTINGS), wind_parameters=WindParameters(**REFERENCE["wind_parameters"]))
     wave_from = sim.observe(sim.initial_state(start, lon, lat, heading_deg=0, speed_mps=SPEED_MPS)).wave_from_deg
     state = sim.initial_state(start, lon, lat, heading_deg=wave_from, speed_mps=SPEED_MPS)
     cargo_model = CargoModel(seed=1)

@@ -20,6 +20,7 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-29 | Storm steering: rudder yaw limit grows with (speed through water / 3 m/s)²; PID autopilot, with the integral active only once the ordered heading is reached; storm scenes use 1.5 MN thrust and 5 m/s | With a fixed 30 MN·m limit and a PD autopilot, the ship could not turn off head seas in any of four 9–12 m storms. At the 23 Jan 2026 peak a 90° turn now ends about 11° past the order after 15 min at 5 m/s. At 3 m/s the ship is still 39° short, so speed for steerage becomes part of the lesson | Team (Yan; Xuan's review not needed) |
 | 2026-10-29 | Cargo `threshold_g` 0.30 → 0.14 for new scenarios; the frozen Menorca scenario keeps 0.30 | At 0.30 no heading lost cargo even at Hs 8.2 m. At 0.14, only beam seas at the Ushant peak lose cargo (18 TEU in 20 min); every other heading, and every heading at Hs 6.1 m, loses none. Evidence in `docs/PROTOTYPE_IMPLEMENTATION.md` | Yan (merged without review; needs Xuan's review) |
 | 2026-10-29 | Surge, sway and yaw use Coriolis terms of horizontal motion only | In 8 m head seas, correlated heave and pitch pushed the ship from 3 to 10.3 m/s, past the model limit, so play stopped; the thruster could not brake it | Yan (merged without review; needs Xuan's review) |
 | 2026-10-29 | Merge the fresh-clone fix, CI and the storm fixes straight into `experiment`, without a PR | Time before the video; the user asked for it | Yan |
@@ -39,14 +40,7 @@ Newest first. Proposed decisions move here once the team agrees.
   - Over 2025-10-29 → 2026-10-29 the Biscay area had 34 storms (90th-percentile Hs ≥ 6 m in a sub-area, 3-hourly global wave analysis/forecast), mostly November–April. The strongest was Hs 12.2 m off Ushant on 2026-10-22 21Z.
   - The IBI regional products cover it at about 3 km, hourly.
   - Proposed by Yan; needs the team, especially Xuan, whose scenario builder assumes the current area.
-- **Steering in storms (blocks play).** In all four exported storms (Hs 9–12 m, wind 31–71 kn, 3 m/s), a 90° turn order away from head seas left the ship 67–151° off its order after 400 s.
-  - The yaw actuator is a fixed 30 MN·m teaching limit, independent of speed. Wave and wind yaw moments exceed it.
-  - Real ships do lose steerage at low speed in heavy weather, but a player whose orders do nothing cannot play.
-  - Options:
-    - rudder authority that grows with speed through water;
-    - a higher speed range;
-    - a larger teaching limit.
-  - Needs Xuan.
+- **Steering above 5 m/s.** At 7 m/s a 90° turn overshoots by about 30°. With stern-quartering seas the ship then surfs past 10 m/s through the water, and the run stops at `model_limit`. Storm scenes use 5 m/s until this is handled.
 - **Frontend.** Direction from the user (29 Oct): 3D, after Uncharted Waters (follow camera over the sea) and Seafarer: The Ship Sim (container ship).
   - Built on `web/3d-scene`: three.js, one box per deck cargo unit, Copernicus sea state at the ship, replaying recorded runs.
   - Not yet connected to `game/session.py` for live play. Unity and Blender are not used. A Blender glTF ship model can replace the procedural hull later.

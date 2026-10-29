@@ -19,7 +19,7 @@ What is data and what is not:
 - Roll, pitch, heading and cargo loss: TIDE simulation with the game cargo model.
 - The rendered sea surface is synthesised from Hs, Tp and direction; individual crests are not data. The ship's
   vertical position follows that surface.
-- Orders are a fixed demonstration plan, not a player's game. In 10–12 m storm seas the simulated ship cannot
-  turn away from the waves with the current yaw actuator (see STATUS.md).
+- Orders are a fixed demonstration plan at 5 m/s, not a player's game. Below about 5 m/s the ship can barely turn in
+  10–12 m seas, because rudder force grows with speed (see STATUS.md).
 
 Live play (sending orders to `game/session.py`) is not connected yet.

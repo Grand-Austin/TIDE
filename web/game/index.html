@@ -25,6 +25,8 @@
   .num { font-variant-numeric: tabular-nums; }
   #title { top: 12px; left: 12px; max-width: min(460px, calc(100vw - 24px)); }
   #title h1 { margin: 0 0 2px; font-size: 16px; }
+  #mode { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(242,181,68,.14); color: #f6d593; font-size: 12px; }
+  #help { margin-top: 6px; color: var(--muted); font-size: 11px; }
   #title select { margin-top: 6px; width: 100%; background: #101a23; color: var(--text); border: 1px solid var(--panel-edge);
                   border-radius: 6px; padding: 4px 6px; font: inherit; }
   #compass { top: 12px; right: 12px; width: 190px; text-align: center; }
@@ -70,6 +72,8 @@
   <h1 id="storm-name">TIDE · storm scene</h1>
   <div class="num" id="clock">—</div>
   <select id="picker" aria-label="Storm"></select>
+  <div id="mode"><b>Replay</b> of a recorded run with fixed demonstration orders. Steering it yourself is not connected yet.</div>
+  <div id="help">Drag: orbit · Wheel: zoom · Space: play/pause · 1–4: speed · C: chase camera · click the timeline to jump</div>
 </div>
 
 <div class="panel" id="compass">
@@ -120,7 +124,7 @@ const compassName = (d) => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S
 // ---------- renderer, scene, camera ----------
 const canvas = $("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
 const scene = new THREE.Scene();
 const STORM_SKY = new THREE.Color(0x8d989f); // horizon haze; also the fog colour
 scene.fog = new THREE.FogExp2(STORM_SKY, 0.00045);
@@ -204,7 +208,7 @@ const oceanUniforms = {
   uFogDensity: { value: 0.00045 },
 };
 const ocean = new THREE.Mesh(
-  new THREE.PlaneGeometry(4200, 4200, 360, 360).rotateX(-Math.PI / 2),
+  new THREE.PlaneGeometry(4200, 4200, 200, 200).rotateX(-Math.PI / 2),
   new THREE.ShaderMaterial({
     uniforms: oceanUniforms,
     vertexShader: `
@@ -303,12 +307,30 @@ function layoutCargo(cargo) {
 }
 
 // ---------- rain ----------
-const RAIN = 2200;
+const RAIN = 1200;
 const rainGeom = new THREE.BufferGeometry();
 const rainPos = new Float32Array(RAIN * 6);
 rainGeom.setAttribute("position", new THREE.BufferAttribute(rainPos, 3));
 const rain = new THREE.LineSegments(rainGeom, new THREE.LineBasicMaterial({ color: 0xb8c6d0, transparent: true, opacity: 0.35 }));
 scene.add(rain);
+
+// ---------- wake: the last few minutes of track, so forward motion is visible ----------
+const WAKE = 240;
+const wakePos = new Float32Array(WAKE * 3);
+const wakeGeom = new THREE.BufferGeometry();
+wakeGeom.setAttribute("position", new THREE.BufferAttribute(wakePos, 3));
+const wake = new THREE.Points(wakeGeom, new THREE.PointsMaterial({ color: 0xf2f6f8, size: 7, transparent: true, opacity: 0.7, sizeAttenuation: true }));
+scene.add(wake);
+function updateWake(time) {
+  // stern positions every 2 s of scene time, newest first
+  for (let i = 0; i < WAKE; i++) {
+    const ti = time - i * 2;
+    if (ti < data.samples[0][0]) { wakePos.set([0, -9999, 0], i * 3); continue; }
+    const p = sampleAt(ti), [wx, wz] = local(p.lon, p.lat), h = rad(p.heading);
+    wakePos.set([wx - Math.sin(h) * 90, 0.8, wz + Math.cos(h) * 90], i * 3);
+  }
+  wakeGeom.attributes.position.needsUpdate = true;
+}
 const drops = Array.from({ length: RAIN }, () => [Math.random() * 900 - 450, Math.random() * 300, Math.random() * 900 - 450]);
 
 // ---------- scene data and playback ----------
@@ -351,7 +373,7 @@ async function load(id) {
   t = data.samples[0][0];
   $("log").innerHTML = "";
   lastToast = -1;
-  drawTrace();
+  cacheTrace();
   $("loading").style.display = "none";
 }
 
@@ -410,9 +432,18 @@ function drawTrace() {
   ctx.fillStyle = "rgba(232,238,243,.6)"; ctx.font = `${11 * devicePixelRatio}px system-ui`;
   ctx.fillText(`|roll| up to ${maxRoll.toFixed(0)}° · orange: orders · red: cargo lost`, 6, 13 * devicePixelRatio);
 }
+// the timeline is drawn once per scene or resize and cached; each frame only adds the playhead
+const traceCache = document.createElement("canvas");
+function cacheTrace() {
+  drawTrace();
+  const cv = $("trace");
+  traceCache.width = cv.width; traceCache.height = cv.height;
+  traceCache.getContext("2d").drawImage(cv, 0, 0);
+}
 function drawCursor() {
   const cv = $("trace"), s = data.samples, t0 = s[0][0], t1 = s[s.length - 1][0];
-  drawTrace();
+  traceCtx.clearRect(0, 0, cv.width, cv.height);
+  traceCtx.drawImage(traceCache, 0, 0);
   const x = (t - t0) / (t1 - t0) * cv.width;
   traceCtx.fillStyle = "#fff"; traceCtx.fillRect(x - devicePixelRatio, 0, 2 * devicePixelRatio, cv.height);
 }
@@ -461,7 +492,7 @@ function updateHud(s) {
 
 // ---------- animation ----------
 const tmp = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
-let clock = performance.now(), visualTime = 0, camHeading = null;
+let clock = performance.now(), visualTime = 0, camHeading = null, hudAt = 0;
 function frame(now) {
   const real = Math.min(0.1, (now - clock) / 1000); clock = now;
   if (data) {
@@ -475,6 +506,7 @@ function frame(now) {
     const h = rad(s.heading), fx = Math.sin(h), fz = -Math.cos(h);
     const y = (seaHeight(x + fx * 60, z + fz * 60, visualTime) + seaHeight(x, z, visualTime) + seaHeight(x - fx * 60, z - fz * 60, visualTime)) / 3;
     ship.position.set(x, y, z);
+    if (now - hudAt > 100) updateWake(t);
     ship.rotation.set(rad(s.roll), Math.PI / 2 - h, rad(s.pitch));
     // follow camera behind the stern (chase) or at a fixed compass bearing (free)
     if (camHeading === null) camHeading = s.heading;
@@ -516,8 +548,7 @@ function frame(now) {
     rainGeom.attributes.position.needsUpdate = true;
     const fog = 0.00035 + Math.min(0.0006, windKn * 0.000008);
     scene.fog.density = fog; oceanUniforms.uFogDensity.value = fog;
-    updateHud(s);
-    drawCursor();
+    if (now - hudAt > 100) { updateHud(s); drawCursor(); hudAt = now; }
   }
 
   renderer.render(scene, camera);
@@ -550,7 +581,7 @@ addEventListener("keydown", (e) => {
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  if (data) drawTrace();
+  if (data) cacheTrace();
 }
 addEventListener("resize", resize);
 
