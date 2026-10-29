@@ -19,6 +19,22 @@ Use the existing three-hour historical window and fixed S175 design-waterline mo
 - Use the motion model's accepted integration steps, not output-record intervals, to integrate damage. Pause and rejected numerical steps accumulate nothing. Report simultaneous losses as one event containing unit IDs and counts.
 - Display counts and TEU loss. Initial grades use lost TEU divided by the initial total: grade 0 for zero loss; grades 1–5 for `(0, 0.5%]`, `(0.5%, 1%]`, `(1%, 3%]`, `(3%, 10%]`, and `>10%`. Pause on a grade increase, without an additional first-loss trigger.
 - Validate these initial coefficients against mild and severe response fixtures and available real-data runs. Mild voyages may have no loss. Do not lower thresholds merely to force a dramatic outcome. Publish the resulting configuration and limits before live play.
+- Real-data calibration (29 October 2026). With 0.30, no heading lost cargo in any tested sea, so handling had no consequence:
+  - Seas tested: Menorca at Hs 3.6 m, Ushant at Hs 6.1 m, and the storm peak off Ushant at Hs 8.2 m, Tp 11.5 s.
+  - Trials ran 20 minutes at 3 and 1.5 m/s, using the game cargo seed 1.
+  - Peak 99th-percentile demand at the Ushant peak: beam seas 0.21 g, bow-quartering seas 0.17 g, head and following seas 0.12–0.13 g.
+
+  New scenarios use 0.14. Lost TEU in 20 minutes at the Ushant peak:
+
+  | Heading | Lost TEU at 0.14 |
+  | --- | --- |
+  | Beam seas | 18 |
+  | Any other heading or speed | 0 |
+  | Every heading at Hs 6.1 m | 0 |
+
+  For comparison, 0.12 loses 220 TEU in beam seas within 20 minutes, which leaves no room to recover in a three-hour mission. 0.10 also punishes bow-quartering seas, with 159 TEU.
+
+  The frozen Menorca scenario keeps its validated 0.30. Revalidate 0.14 on full-length storm missions.
 
 TopTier is a reference for interpreting motion-related hazards, not a direct loss-count formula. This version does not add a separate TopTier warning mechanic or claim that the current motion model reproduces nonlinear parametric roll.
 

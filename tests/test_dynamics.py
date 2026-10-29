@@ -81,3 +81,12 @@ def test_small_unforced_roll_energy_decays(vessel):
     def energy(x):
         return .5*1.1e8*x[3]**2+.5*1e8*x[9]**2
     assert energy(result.y[:,-1]) < energy(x)
+
+
+def test_vertical_oscillation_does_not_push_the_ship_forward(vessel):
+    # Heave and pitch velocity alone must not accelerate surge, sway or yaw: that coupling
+    # produced a spurious forward force in head seas and ran the ship past its speed limit.
+    x = np.zeros(12)
+    x[2], x[4] = 2.0, 0.05
+    acceleration = derivative(x, np.zeros(6), vessel, (0, 0))[:6]
+    np.testing.assert_allclose(acceleration[[0, 1, 5]], 0, atol=1e-12)

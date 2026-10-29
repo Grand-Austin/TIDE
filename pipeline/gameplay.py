@@ -107,7 +107,7 @@ def build_gameplay(scenario):
         "regions": regions,
         "reports": reports,
         "cargo": {
-            "threshold_g": 0.3,
+            "threshold_g": 0.14,
             "damage_time_s": 60.0,
             "multipliers": [1.0, 1.15, 1.3],
         },

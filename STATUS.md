@@ -11,8 +11,8 @@ _Last updated: 2026-10-29_
 | Branch | What | State |
 | --- | --- | --- |
 | `main` | SeaSense route-choice prototype (PRs #4–#12) | Merged; kept as reference |
-| `experiment` | TIDE simulation toolkit, scenario pipeline, rules, Director, terminal UI | Active line of work |
-| `ci/fresh-clone` | Fresh-clone fix, CI, CONTRIBUTING.md, STATUS.md (from `experiment`) | Pushed; no PR yet |
+| `experiment` | TIDE simulation toolkit, scenario pipeline, rules, Director, terminal UI; fresh-clone fix, CI, storm dynamics fix, cargo calibration | Active line of work |
+| `ci/fresh-clone` | Fast-forward merged into `experiment` on 2026-10-29 | Can be deleted |
 
 ## Decisions
 
@@ -20,6 +20,9 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-29 | Cargo `threshold_g` 0.30 → 0.14 for new scenarios; the frozen Menorca scenario keeps 0.30 | At 0.30 no heading lost cargo even at Hs 8.2 m. At 0.14, only beam seas at the Ushant peak lose cargo (18 TEU in 20 min); every other heading, and every heading at Hs 6.1 m, loses none. Evidence in `docs/PROTOTYPE_IMPLEMENTATION.md` | Yan (merged without review; needs Xuan's review) |
+| 2026-10-29 | Surge, sway and yaw use Coriolis terms of horizontal motion only | In 8 m head seas, correlated heave and pitch pushed the ship from 3 to 10.3 m/s, past the model limit, so play stopped; the thruster could not brake it | Yan (merged without review; needs Xuan's review) |
+| 2026-10-29 | Merge the fresh-clone fix, CI and the storm fixes straight into `experiment`, without a PR | Time before the video; the user asked for it | Yan |
 | 2026-10-29 | Accept a prepared S175 file whose provenance matches the pinned MSS source, not only the pinned bytes | Prepared bytes differed between machines with identical source files, so the game failed on every fresh clone | Yan (on `ci/fresh-clone`; needs Xuan's review) |
 | 2026-10-29 | Add CI: locked setup, vessel preparation, tests and a scripted game run on every push and PR | Catch "works on one machine" before teammates or the video recording hit it | Yan (on `ci/fresh-clone`) |
 | 2026-10-29 | No database or extra cloud service during the event | Gridded data belongs in files; Copernicus already serves it on demand; fewer accounts to manage | Yan |
@@ -42,12 +45,13 @@ Newest first. Proposed decisions move here once the team agrees.
   - 2026-01-08, 71 kn wind;
   - 2026-01-23, 114 h long;
   - 2025-12-18, swell-dominated, Tp 19 s.
-- **Cargo calibration** for 6–12 m seas, so that good and bad handling produce clearly different losses.
+- **Cargo calibration on full missions.** 0.14 g comes from 20-minute trials in one storm. Confirm it on a complete three-hour storm mission with `pipeline.validate_game` before the video.
+- **Menorca validation reports.** `scenarios/menorca-20260909/validation.json` and `game-validation.json` were produced before the dynamics fix. Rerun them, or mark the scenario as superseded if the region changes.
 - **Forecast archive.** Extend `.github/workflows/forecast-archive.yml` to the chosen region. Copernicus does not keep past forecast runs, so every day not archived is lost. Coordinate with Xuan's workflow changes on `experiment`.
 
 ## Owner actions
 
-- [ ] Xuan: review the vessel-check change on `ci/fresh-clone`.
+- [ ] Xuan: review the merged changes to `game/scenario.py` (vessel check), `game/simulation/dynamics.py` (Coriolis) and the cargo threshold.
 - [ ] Repository admin: after the first CI run, decide whether `main` and `experiment` require CI to pass.
 - [ ] Each teammate who runs scenarios: a free Copernicus Marine account and `copernicusmarine login`.
 
@@ -66,3 +70,6 @@ Newest first. Proposed decisions move here once the team agrees.
   - Downloaded one year of Biscay waves, wind and currents locally.
   - Built a 34-storm catalogue.
   - Added this file and CONTRIBUTING.md (AGENTS.md is git-ignored for personal agent files).
+  - Tested cargo loss in the Ushant storm. The threshold was too high, and head seas stopped the model through a spurious surge force.
+  - Fixed the dynamics, recalibrated the cargo threshold to 0.14 g and added a regression test.
+  - Merged everything into `experiment`.

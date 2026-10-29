@@ -9,7 +9,7 @@ class CargoModel:
 
     def __init__(self, config=None, seed=1):
         self.config = {
-            "threshold_g": 0.30,
+            "threshold_g": 0.14,  # calibrated on the 22 Oct 2026 Ushant storm; see PROTOTYPE_IMPLEMENTATION.md
             "damage_time_s": 60.0,
             "multipliers": [1.0, 1.15, 1.3],
         }
