@@ -137,12 +137,52 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(8000, 32, 16), new THREE.Sha
   fragmentShader: `uniform vec3 uTop, uHorizon; varying float vY; void main() { gl_FragColor = vec4(mix(uHorizon, uTop, smoothstep(0.0, 0.45, vY)), 1.0); }`,
 }));
 scene.add(sky);
-scene.add(new THREE.HemisphereLight(0xcfd8de, 0x2a3a44, 2.4));
+const hemi = new THREE.HemisphereLight(0xcfd8de, 0x2a3a44, 2.4);
+scene.add(hemi);
 const sunLight = new THREE.DirectionalLight(0xf1f4f6, 2.2);
 sunLight.position.set(-400, 600, -300);
+
+// ---------- daylight from the computed sun position (NOAA approximation) ----------
+// Clouds and rain are not in Copernicus Marine data; until a scene carries ERA5 fields the sky is
+// drawn without cloud and no rain falls.
+function sunPosition(date, lat, lon) {
+  const start = Date.UTC(date.getUTCFullYear(), 0, 1), doy = Math.floor((date - start) / 864e5) + 1;
+  const hour = date.getUTCHours() + date.getUTCMinutes() / 60;
+  const g = 2 * Math.PI / 365 * (doy - 1 + (hour - 12) / 24);
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g)
+    + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const ha = rad((hour * 60 + eqt + 4 * lon) / 4 - 180), la = rad(lat);
+  const elev = Math.asin(Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(ha));
+  const az = Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(la) - Math.tan(decl) * Math.cos(la)) + Math.PI; // from north
+  return { elev: deg(elev), az: wrap(deg(az)) };
+}
+const NIGHT_TOP = new THREE.Color(0x070d16), NIGHT_HORIZON = new THREE.Color(0x152030);
+const DAY_TOP = new THREE.Color(0x5b84ad), DAY_HORIZON = new THREE.Color(0xb9c7d1), DUSK = new THREE.Color(0xd99566);
+const DEEP = new THREE.Color(0x17394a), SHALLOW = new THREE.Color(0x4f7f8c);
+function applyDaylight(sun) {
+  const day = THREE.MathUtils.smoothstep(sun.elev, -6, 12), dusk = Math.exp(-(((sun.elev - 2) / 6) ** 2));
+  const top = NIGHT_TOP.clone().lerp(DAY_TOP, day), horizon = NIGHT_HORIZON.clone().lerp(DAY_HORIZON, day).lerp(DUSK, dusk * 0.55);
+  sky.material.uniforms.uTop.value.copy(top);
+  sky.material.uniforms.uHorizon.value.copy(horizon);
+  scene.fog.color.copy(horizon);
+  oceanUniforms.uSky.value.copy(horizon);
+  const e = rad(Math.max(sun.elev, 4)), a = rad(sun.az);
+  const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e));
+  sunLight.position.copy(dir).multiplyScalar(1000);
+  sunLight.intensity = 0.12 + 2.6 * day;
+  sunLight.color.set(0xf4f6f8).lerp(DUSK, dusk * 0.5);
+  hemi.intensity = 0.3 + 2.1 * day;
+  oceanUniforms.uLight.value.copy(dir);
+  oceanUniforms.uDeep.value.copy(DEEP).multiplyScalar(0.3 + 0.7 * day);
+  oceanUniforms.uShallow.value.copy(SHALLOW).multiplyScalar(0.3 + 0.7 * day);
+  return sun.elev > 6 ? "daylight" : sun.elev > -6 ? "twilight" : "night";
+}
+// Whitecap fraction from 10 m wind speed (Monahan & O'Muircheartaigh 1980): W = 3.84e-6 · U^3.41
+const whitecapFraction = (u) => Math.min(0.3, 3.84e-6 * Math.pow(Math.max(u, 0), 3.41));
 scene.add(sunLight);
 // follow camera: azimuth relative to the stern (chase) or to north (free), elevation, distance
-const view = { azimuth: rad(-20), elevation: rad(8), distance: 330 };
+const view = { azimuth: rad(-20), elevation: rad(6), distance: 260 };
 {
   let drag = null;
   canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
@@ -162,13 +202,20 @@ const view = { azimuth: rad(-20), elevation: rad(8), distance: 330 };
 // ---------- sea surface: Gerstner waves from Hs, Tp and direction ----------
 // The displayed surface is synthesised from the Copernicus statistics at the ship;
 // individual crests are not data (stated on screen).
-const N_WAVES = 8;
+const N_WAVES = 12;
 const wave = { dir: [], k: [], w: [], a: [], q: [], phase: [] };
 for (let i = 0; i < N_WAVES; i++) wave.phase.push(Math.random() * Math.PI * 2);
-const spread = [-32, -18, -8, 0, 6, 14, 24, 38];
-const periodScale = [1.25, 1.1, 1.0, 0.95, 0.85, 0.75, 0.65, 0.55];
+const spread = [-10, 8, -4, 2, -15, 18, -25, 28, -35, 40, -45, 50]; // short waves spread wider
+const periodScale = [1.3, 1.15, 1.05, 1.0, 0.93, 0.85, 0.75, 0.65, 0.55, 0.47, 0.4, 0.35];
 function setSea(hs, tp, fromDeg) {
-  const weights = periodScale.map((s) => Math.exp(-((s - 0.95) ** 2) / 0.08));
+  // JONSWAP shape (gamma 3.3) at each component's frequency, times its frequency band, so short
+  // wind waves carry the small share of energy the spectrum gives them
+  const x = periodScale.map((s) => 1 / s);
+  const weights = x.map((xi, i) => {
+    const sigma = xi < 1 ? 0.07 : 0.09, band = Math.abs((x[i + 1] ?? xi * 1.15) - (x[i - 1] ?? xi / 1.15)) / 2;
+    const S = xi ** -5 * Math.exp(-1.25 * xi ** -4) * 3.3 ** Math.exp(-((xi - 1) ** 2) / (2 * sigma * sigma));
+    return Math.sqrt(S * band);
+  });
   const norm = Math.sqrt(weights.reduce((acc, w) => acc + w * w / 2, 0));
   for (let i = 0; i < N_WAVES; i++) {
     const toward = rad(fromDeg + 180 + spread[i]);
@@ -200,6 +247,7 @@ const oceanUniforms = {
   uWave: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
   uWave2: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
   uHs: { value: 1 },
+  uWhitecap: { value: 0 },
   uSky: { value: STORM_SKY.clone() },
   uDeep: { value: new THREE.Color(0x17394a) },
   uShallow: { value: new THREE.Color(0x4f7f8c) },
@@ -210,10 +258,9 @@ const oceanUniforms = {
   uShip: { value: new THREE.Vector4() },
   uBow: { value: new THREE.Vector2() },
 };
-const ocean = new THREE.Mesh(
-  new THREE.PlaneGeometry(4200, 4200, 200, 200).rotateX(-Math.PI / 2),
-  new THREE.ShaderMaterial({
-    uniforms: oceanUniforms,
+const NEAR = 1400, NEAR_STEP = 5, FAR = 9000, FAR_STEP = 60;
+const oceanMaterial = new THREE.ShaderMaterial({
+    uniforms: { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, 0) } },
     vertexShader: `
       #define N ${N_WAVES}
       uniform float uTime; uniform vec4 uWave[N]; uniform vec4 uWave2[N];
@@ -236,24 +283,32 @@ const ocean = new THREE.Mesh(
     fragmentShader: `
       #define W 24
       uniform vec3 uSky, uDeep, uShallow, uLight, uCamera; uniform float uFogDensity, uHs;
-      uniform vec3 uWake[W]; uniform vec4 uShip; uniform vec2 uBow; uniform float uTime;
+      uniform vec3 uWake[W]; uniform vec4 uShip; uniform vec2 uBow; uniform float uTime, uWhitecap; uniform vec3 uHole;
       float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float noise(vec2 p) {
         vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
       }
-      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
+      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v * 1.14; }
       varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
       void main() {
+        // the far sea skips the square the fine near patch already covers
+        if (uHole.z > 0.0 && abs(vWorld.x - uHole.x) < uHole.z && abs(vWorld.z - uHole.y) < uHole.z) discard;
         vec3 n = normalize(vNormal); vec3 v = normalize(uCamera - vWorld);
+        // short wind ripples on top of the resolved waves; rougher with stronger wind, faded with distance
+        vec2 dp = vWorld.xz * 0.18 + vec2(uTime * 0.4, uTime * 0.25);
+        float r0 = noise(dp), rx = noise(dp + vec2(0.6, 0.0)), rz = noise(dp + vec2(0.0, 0.6));
+        float rough = (0.25 + uWhitecap * 2.0) * exp(-length(uCamera - vWorld) / 700.0);
+        n = normalize(n + vec3(r0 - rx, 0.0, r0 - rz) * rough * 1.6);
         float fresnel = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
         float lit = max(dot(n, uLight), 0.0);
         vec3 water = mix(uDeep * 0.8, uShallow * 1.15, pow(lit, 3.0));
         vec3 color = mix(water, uSky, fresnel * 0.8);
         float spec = pow(max(dot(reflect(-uLight, n), v), 0.0), 60.0);
         color += spec * 0.25;
-        float streak = 0.5 + 0.5 * sin(vWorld.x * 0.21 + vWorld.z * 0.17) * sin(vWorld.x * 0.13 - vWorld.z * 0.29);
-        float foam = smoothstep(0.3, 0.75, vCrest + 0.25 * streak) * clamp(uHs / 6.0, 0.25, 1.0);
+        // whitecaps cover roughly the wind-derived fraction uWhitecap, favouring steep crests
+        float caps = fbm(vWorld.xz * 0.035 + vec2(uTime * 0.05, -uTime * 0.03)) * 0.6 + clamp(vCrest, 0.0, 1.0) * 0.4;
+        float foam = smoothstep(1.0 - 1.6 * uWhitecap - 0.05, 1.0 - 1.6 * uWhitecap + 0.08, caps);
         color = mix(color, vec3(0.92, 0.95, 0.97), foam * 0.85);
         // wake. Foam is broken up by drifting noise so it reads as spray, not lines.
         float speed = clamp(uShip.w / 4.0, 0.0, 1.2);
@@ -293,9 +348,13 @@ const ocean = new THREE.Mesh(
         float fog = 1.0 - exp(-pow(uFogDensity * dist, 2.0));
         gl_FragColor = vec4(mix(color, uSky, fog), 1.0);
       }`,
-  }),
-);
-scene.add(ocean);
+  });
+// near patch: 5 m cells resolve the short wind waves; the far sea reuses the same uniforms with a hole
+const ocean = new THREE.Mesh(new THREE.PlaneGeometry(NEAR, NEAR, NEAR / NEAR_STEP, NEAR / NEAR_STEP).rotateX(-Math.PI / 2), oceanMaterial);
+const farMaterial = oceanMaterial.clone();
+farMaterial.uniforms = { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, NEAR / 2 - 30) } };
+const farSea = new THREE.Mesh(new THREE.PlaneGeometry(FAR, FAR, FAR / FAR_STEP, FAR / FAR_STEP).rotateX(-Math.PI / 2), farMaterial);
+scene.add(ocean, farSea);
 
 // ---------- ship: S175-sized container ship, one box per deck cargo unit ----------
 const L = 175, B = 25.4, DRAFT = 9.5, FREEBOARD = 6.5;
@@ -451,7 +510,8 @@ async function load(id) {
   $("storm-name").textContent = `${s.area} storm · ${s.peak.slice(0, 10)}`;
   $("notes").innerHTML = `Copernicus Marine (${Object.values(data.copernicus_products).join(", ")}) at the ship's position. ` +
     `Roll, pitch and cargo loss: TIDE simulation of the S175 (game cargo model). ` +
-    `Sea surface synthesised from Hs, Tp and direction. ${data.plan_note}`;
+    `Sea surface synthesised from Hs, Tp and direction; whitecap cover from wind speed (Monahan & O'Muircheartaigh 1980); ` +
+    `light from the computed sun position. ${F.precip === undefined ? "No cloud or rain data in this scene. " : ""}${data.plan_note}`;
   t = data.samples[0][0];
   $("log").innerHTML = "";
   lastToast = -1;
@@ -535,7 +595,9 @@ function toast(text, kind) {
 }
 function updateHud(s) {
   const start = new Date(data.start), now = new Date(start.getTime() + (t - data.samples[0][0]) * 1000);
-  $("clock").textContent = `${now.toISOString().slice(0, 16).replace("T", " ")} UTC · Hs ${s.hs.toFixed(1)} m at the ship`;
+  const sun = sunPosition(now, s.lat, s.lon), light = applyDaylight(sun);
+  $("clock").textContent = `${now.toISOString().slice(0, 16).replace("T", " ")} UTC · ${light}, sun ${sun.elev.toFixed(0)}° · ` +
+    `whitecaps ${(whitecapFraction(Math.hypot(s.wind_e, s.wind_n)) * 100).toFixed(0)}%`;
   const order = [...data.orders].reverse().find((o) => o.t <= t) || data.orders[0];
   $("heading").textContent = `${s.heading.toFixed(0)}°`;
   $("order").textContent = `order ${order.heading_deg.toFixed(0)}°`;
@@ -601,7 +663,9 @@ function frame(now) {
                         z - Math.cos(bearing) * horizontal);
     camera.lookAt(x, y * 0.5 + 12, z);
     sky.position.copy(camera.position);
-    ocean.position.set(Math.round(x / 20) * 20, 0, Math.round(z / 20) * 20);
+    ocean.position.set(Math.round(x / NEAR_STEP) * NEAR_STEP, 0, Math.round(z / NEAR_STEP) * NEAR_STEP);
+    farSea.position.set(Math.round(x / FAR_STEP) * FAR_STEP, -0.3, Math.round(z / FAR_STEP) * FAR_STEP);
+    farMaterial.uniforms.uHole.value.set(ocean.position.x, ocean.position.z, NEAR / 2 - 30);
     oceanUniforms.uCamera.value.copy(camera.position);
     // cargo: lost units slide over the low side and sink
     for (const u of units) {
@@ -618,7 +682,9 @@ function frame(now) {
     }
     containerMesh.instanceMatrix.needsUpdate = true;
     // rain around the camera, heavier with wind
-    const windKn = Math.hypot(s.wind_e, s.wind_n) * 1.94384, n = Math.min(RAIN, Math.floor(RAIN * Math.max(0, windKn - 20) / 45));
+    const windMs = Math.hypot(s.wind_e, s.wind_n), precip = F.precip === undefined ? 0 : s.precip; // mm/h, ERA5 when present
+    const n = Math.min(RAIN, Math.floor(RAIN * precip / 8));
+    oceanUniforms.uWhitecap.value = whitecapFraction(windMs);
     const wx = s.wind_e * 0.6, wz = -s.wind_n * 0.6;
     for (let i = 0; i < RAIN; i++) {
       const d = drops[i];
@@ -628,7 +694,7 @@ function frame(now) {
       rainPos.set([p[0], p[1], p[2], p[0] - wx * 0.15, p[1] + 6, p[2] - wz * 0.15], i * 6);
     }
     rainGeom.attributes.position.needsUpdate = true;
-    const fog = 0.00035 + Math.min(0.0006, windKn * 0.000008);
+    const fog = 0.00035 + Math.min(0.0006, precip * 0.00008);
     scene.fog.density = fog; oceanUniforms.uFogDensity.value = fog;
     if (now - hudAt > 100) { updateHud(s); drawCursor(); hudAt = now; }
   }

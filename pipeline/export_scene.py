@@ -51,13 +51,14 @@ def environment(region: str, start: datetime, lon: float, lat: float) -> Coperni
     return CopernicusEnvironment(**data)
 
 
-def export(storm_id: str) -> Path:
+def export(storm_id: str, start: datetime | None = None) -> Path:
     region = storm_id.split("-")[0]
     storm = next(s for s in json.loads((STORMS / f"{region}.json").read_text())["storms"] if s["id"] == storm_id)
     west, east, south, north = REGIONS[region]
     lon = min(max(storm["lon"], west + MARGIN), east - MARGIN)
     lat = min(max(storm["lat"], south + MARGIN), north - MARGIN)
-    start = datetime.fromisoformat(storm["peak"].replace("Z", "+00:00")) - pd.Timedelta(seconds=LEAD_S)
+    if start is None:
+        start = datetime.fromisoformat(storm["peak"].replace("Z", "+00:00")) - pd.Timedelta(seconds=LEAD_S)
     sim = Simulation(load_s175(ROOT / "data/processed/s175"), environment(region, start, lon, lat), seed=1,
                      settings=Settings(**STORM_SETTINGS), wind_parameters=WindParameters(**REFERENCE["wind_parameters"]))
     wave_from = sim.observe(sim.initial_state(start, lon, lat, heading_deg=0, speed_mps=SPEED_MPS)).wave_from_deg
@@ -125,12 +126,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("storms", nargs="*")
     parser.add_argument("--index", choices=REGIONS, help="only rewrite scenes/index.json for this region")
+    parser.add_argument("--start", help="UTC start, e.g. 2026-01-23T11:40Z (default: 20 min before the peak)")
     args = parser.parse_args()
     if args.index:
         print(write_index(args.index))
         return
     for storm_id in args.storms:
-        path = export(storm_id)
+        start = datetime.fromisoformat(args.start.replace("Z", "+00:00")) if args.start else None
+        path = export(storm_id, start)
         scene = json.loads(path.read_text())
         print(f"{path.name}: {len(scene['samples'])} samples, lost {scene['cargo']['lost_teu']} TEU, stop {scene['stop']}"
               f", {path.stat().st_size / 1e6:.2f} MB")
