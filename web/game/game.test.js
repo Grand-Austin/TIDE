@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { spectrumWaves, displace, heightAt } from "./ocean.js";
 import { deckLayout } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
-import { sampleAt, latest } from "./replay.js";
+import { sampleAt, latest, fromScene } from "./replay.js";
 
 test("replay interpolation passes through samples and turns the short way", () => {
   const cols = { lon: [3, 3.1, 3.2, 3.3], lat: [40, 40, 40, 40], sog: [3, 3, 3, 3], hs: [3, 4, 5, 6], tp: [8, 8, 8, 8],
@@ -43,4 +43,21 @@ test("all 320 deck units get a slot inside the hatch area", () => {
   expect(units.length).toBe(320);
   expect(new Set(units.map((u) => `${u.tier}:${u.bay}:${u.row}:${u.position[2].toFixed(2)}`)).size).toBe(320);
   for (const u of units) expect(Math.abs(u.position[0])).toBeLessThan(11);
+});
+
+test("storm scene reads like a replay", () => {
+  const fields = ["t", "lon", "lat", "heading", "roll", "pitch", "heave", "stw", "hs", "tp", "wave_from", "wind_e", "wind_n", "lost_teu", "grade", "cloud", "precip"];
+  const row = (t, lost) => [t, -10.75, 48.5, 287, 1, 0, 0, 5, 12, 14, 287, 19, -14, lost, lost ? 1 : 0, 100, 0.3];
+  const r = fromScene({
+    start: "2026-10-22T20:40:00Z", plan_note: "demo", credit: "Generated using E.U. Copernicus Marine Service Information",
+    copernicus_products: { waves: "W" }, weather: { credit: "ERA5" }, cargo: { total_teu: 1200 },
+    fields, samples: [row(0.5, 0), row(1, 0), row(1.5, 3)],
+    orders: [{ t: 0, heading_deg: 286.7, speed_mps: 5 }],
+    events: [{ t: 1.2, kind: "cargo_lost", detail: "2 units overboard", units: ["deck-180", "deck-282"] }],
+  });
+  expect(r.sog).toEqual([5, 5, 5]);
+  expect(r.cargo.map((c) => c.lost_teu)).toEqual([0, 3]);
+  expect(r.events[0].unit_ids).toEqual(["deck-180", "deck-282"]);
+  expect(r.orders[0].speed_knots).toBeCloseTo(9.72, 2);
+  expect(sampleAt(r, 0.75).cloud).toBe(100);
 });

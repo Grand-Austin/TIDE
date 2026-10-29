@@ -46,23 +46,24 @@ void main() {
 export const SKY_FRAGMENT = /* glsl */ `
 uniform vec3 uSun, uZenith, uHorizon, uCloudLight, uCloudDark;
 uniform vec2 uWind;
-uniform float uTime, uCover;
+uniform float uTime, uCover, uDay;
 varying vec3 vDir;
 ${NOISE}
 void main() {
   vec3 d = normalize(vDir);
   float sunAmt = max(dot(d, uSun), 0.0);
   vec3 col = mix(uHorizon, uZenith, pow(max(d.y, 0.0), 0.5));
-  col += vec3(1.0, 0.93, 0.82) * (0.25 * pow(sunAmt, 6.0) + 2.5 * pow(sunAmt, 400.0));
+  col += vec3(1.0, 0.93, 0.82) * (0.25 * pow(sunAmt, 6.0) + 2.5 * pow(sunAmt, 400.0)) * uDay * (1.0 - 0.8 * uCover);
   if (d.y > 0.0) {
     vec2 uv = d.xz / (d.y + 0.1) * 0.9 + uWind * uTime * 0.0015;
     float c = 0.65 * fbm(uv) + 0.35 * fbm(uv * 3.1 + 4.0);
     float cover = smoothstep(1.0 - uCover, 1.25 - uCover, c) * smoothstep(0.0, 0.12, d.y);
-    vec3 cloud = mix(uCloudLight, uCloudDark, smoothstep(0.45, 0.9, c)) + vec3(1.0, 0.92, 0.8) * 0.35 * pow(sunAmt, 5.0) * (1.0 - c);
+    vec3 cloud = mix(uCloudLight, uCloudDark, smoothstep(0.45, 0.9, c)) + vec3(1.0, 0.92, 0.8) * 0.35 * pow(sunAmt, 5.0) * (1.0 - c) * uDay;
     col = mix(col, cloud, cover);
   } else {
     col = uHorizon * mix(0.55, 1.0, exp(d.y * 10.0));
   }
+  col *= mix(0.04, 1.0, uDay); // overcast night: no moon or stars
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

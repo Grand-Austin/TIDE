@@ -31,9 +31,18 @@
   <div id="motion"></div>
   <div id="sea"></div>
   <div id="cargo"></div>
+  <div id="weather"></div>
 </div>
 <div id="fps"></div>
 <div class="bar">
+  <label for="scene" style="position:absolute;width:1px;height:1px;overflow:hidden">Scene</label>
+  <select id="scene" style="height:36px;background:#0e1b29;color:#d6e2ee;border:1px solid #2b4660;border-radius:4px">
+    <option value="biscay-20261022-21">Storm 22 Oct 2026, Ushant</option>
+    <option value="biscay-20260123-06">Storm 23 Jan 2026, Biscay</option>
+    <option value="biscay-20260108-18">Storm 8 Jan 2026, Ushant</option>
+    <option value="biscay-20251218-03">Storm 18 Dec 2025, Celtic Sea</option>
+    <option value="replay">Menorca 9 Sep 2026 (recorded game)</option>
+  </select>
   <button id="play" type="button">Pause</button>
   <span>Rate</span>
   <button type="button" data-rate="1" aria-pressed="false">1×</button>
@@ -42,9 +51,7 @@
   <button type="button" data-rate="60" aria-pressed="false">60×</button>
   <label for="scrub" style="position:absolute;width:1px;height:1px;overflow:hidden">Replay time</label>
   <input id="scrub" type="range" min="0" step="1" value="0">
-  <div class="credit">Replay of a recorded TIDE session; every number comes from the simulation and its Copernicus fields.
-    Generated using E.U. Copernicus Marine Service Information: MEDSEA_MULTIYEAR_WAV_006_012, MEDSEA_MULTIYEAR_PHY_006_004,
-    WIND_GLO_PHY_L4_NRT_012_004. Training prototype, not a navigation tool.</div>
+  <div class="credit" id="credit"></div>
 </div>
 <script type="module" src="./main.js"></script>
 </body>
