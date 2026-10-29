@@ -231,6 +231,7 @@ data/raw/
 *.nc
 # Curated Copernicus subsets are committed on purpose, see data/copernicus/README.md
 !data/copernicus/*.nc
+!data/storms/*/*/*.nc
 *.zarr/
 node_modules/
 .vercel/
