@@ -34,7 +34,7 @@ docs/                 Current product and architecture; legacy methods and schem
 archive/              Historical discussion and reference material
 PLAN.md               Implementation checklist
 STATUS.md             Current state, decisions and open questions
-CONTRIBUTING.md       Rules for contributors and coding agents (CLAUDE.md imports it)
+CONTRIBUTING.md       Rules for contributors and coding agents
 ```
 
 ### Ownership and implementation order
