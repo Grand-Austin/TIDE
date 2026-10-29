@@ -4,14 +4,14 @@
 
 TIDE is a maritime training-game prototype. Players command a vessel in historical marine conditions through repeated heading and speed decisions. The target architecture uses a Director Agent to orchestrate local simulation tools and game rules. A Copilot translates natural-language input into actions.
 
-The Python simulation toolkit implements continuous S175 six-degree-of-freedom motion, environmental sampling and exposure. See [SIMULATION.md](docs/SIMULATION.md) for setup, Python calls and modelling limits. Game rules and Agents remain to be implemented. Existing pipeline code and browser prototypes belong to the earlier route-selection experiment.
+The Python simulation toolkit implements continuous S175 six-degree-of-freedom motion, environmental sampling and exposure. See [SIMULATION.md](docs/SIMULATION.md) for setup, Python calls and modelling limits. Game rules and Agents remain to be implemented. The scenario pipeline builds and validates a curated historical escape exercise; see [DATA_PIPELINE.md](docs/DATA_PIPELINE.md). Earlier route-selection analysis and export tools remain in `pipeline/` for reference and reuse; existing browser prototypes remain available.
 
 > TIDE is a training prototype, not a navigation or safety decision tool.
 
 ## Repository layout
 
 ```text
-pipeline/             Offline data processing; evolves into scenario construction
+pipeline/             Current data collection, preparation and scenario construction
 game/                 Python runtime core
   simulation/         Environment sampling, vessel dynamics, exposure, and events
   rules/              Mission objectives, time limits, and game cargo loss
@@ -41,7 +41,7 @@ PLAN.md               Implementation checklist
 - **Runtime capabilities:** `game/simulation/` and `game/rules/` contain reusable local calculations. Both the pipeline and Director can call them; runtime code must not depend on the offline pipeline.
 - **Game flow:** `game/director/` receives actions and invokes tools. Local validation, state updates, and pause handling do not require a separate Session Controller service.
 - **Player input:** `game/copilot/` produces the same heading and speed actions as direct controls. `web/game/` presents the game; it does not duplicate simulation logic.
-- **Verification:** `tests/` follows the implementation boundaries. Existing tests continue to exercise the earlier pipeline.
+- **Verification:** `tests/` follows the implementation boundaries. Tests cover current capabilities and the retained earlier route-selection pipeline.
 
 Follow [PLAN.md](PLAN.md): build and verify the toolkit, prepare one manual scenario, add rules, connect the Director, automate scenario construction, then build the frontend and Copilot. Shared action and state definitions can live directly in `game/` when implemented. No API framework or frontend framework is selected by this template.
 

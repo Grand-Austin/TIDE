@@ -4,6 +4,10 @@ Store small, curated scenario definitions and briefing material here. Start with
 
 Each scenario should identify its historical area and time window, source data, vessel and loading condition, initial state, mission settings, information-release rules, and model versions. Reference large environmental and model files instead of duplicating them in this directory.
 
-Use one subdirectory per scenario when the first package is created. Its exact format will follow implementation needs. No example package is supplied because the data and vessel integration have not yet been validated.
+Use one subdirectory per scenario. The first definition uses a versioned JSON manifest with explicit environmental and vessel references; its build products include a briefing and data manifest.
 
 The pipeline builds packages. The Director loads them. Simulation results and play logs belong in `data/runs/`, not in the source package.
+
+The first curated package is [menorca-20260909](menorca-20260909/briefing.md).
+Its `scenario.json` pins inputs and model settings. See
+[DATA_PIPELINE.md](../docs/DATA_PIPELINE.md) for reproducible build and trial commands.

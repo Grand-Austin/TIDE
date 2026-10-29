@@ -22,7 +22,6 @@ Implementation and limitations: [SIMULATION.md](docs/SIMULATION.md).
 - [x] Prepare zero-speed force RAOs and equivalent matrices; validate mass, damping and restoring properties.
 - [x] Separate source parameters from derived teaching damping and actuator assumptions.
 - [x] Supply an optional headless Octave reference generator.
-- [ ] Generate and compare Octave reference outputs; no cross-runtime equivalence is claimed yet.
 
 ### 1.2 Environment, dynamics and integration
 - [x] Test temporal/spatial interpolation, circular directions, land/missing cells and exact coverage boundaries.
@@ -34,9 +33,12 @@ Implementation and limitations: [SIMULATION.md](docs/SIMULATION.md).
 
 ## 2. Scenario and Data Build
 
-- [ ] According to the data, select operating area, and historical time window.(Harsh, Challenging Weather Condition), Boudaries can be examined from this start
-- [ ] Prepare environmental inputs and consistent vessel parameters
-- [ ] Assemble one scenario package manually with an initial state and mission settings.
+- [x] Select the Mallorca–Menorca channel, 9 September 2026 15:00–18:00 UTC, from committed historical fields.
+- [x] Pin four environmental sources, S175 design-waterline parameters, numerical settings and checksums.
+- [x] Assemble `scenarios/menorca-20260909` with an initial state, escape target, briefing and data manifest.
+- [x] Validate four full-window strategies for seeds 1, 2 and 3; publish the passing numerical report and reference commands.
+
+Implementation, reuse and verification: [DATA_PIPELINE.md](docs/DATA_PIPELINE.md). The package supplies offline trial settings; game rules remain in stage 3.
 
 
 ## 3. Game Rules and Events
@@ -53,7 +55,13 @@ Implementation and limitations: [SIMULATION.md](docs/SIMULATION.md).
 
 ## 5. Scenario Construction Automation
 
-- [ ] Turn the working manual preparation process into a local pipeline.
+- [x] Turn the manual preparation process into local analyze/build/validate commands.
+- [x] Extend existing Copernicus downloads with versioned time-window collection, integrity checks, retries and partial-failure diagnostics.
+- [x] Add AEMET bulletin/CAP collection and official-report evidence attachment; verify public bulletin collection and revision deduplication.
+- [x] Strengthen forecast CI archiving and add three-hourly AEMET snapshot workflow definitions.
+- [x] Document existing pipeline reuse and document-led supplemental-source priorities.
+- [ ] Verify authenticated Copernicus and AEMET CAP downloads (local credentials unavailable).
+- [ ] Verify remote scheduled workflows after repository configuration/deployment.
 - [ ] Add Builder Agent assistance for candidate review, mission settings, and briefing material.
 - [ ] Generate and validate a second playable scenario through the pipeline.
 

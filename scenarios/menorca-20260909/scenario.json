@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "id": "menorca-20260909",
+  "title": "\u64a4\u79bb\u589e\u5f3a\u4e2d\u7684\u6d77\u5ce1\u98ce\u6d6a",
+  "start": "2026-09-09T15:00:00Z",
+  "end": "2026-09-09T18:00:00Z",
+  "seed": 1,
+  "initial": {
+    "lon": 3.65,
+    "lat": 40.05,
+    "heading_deg": 155,
+    "speed_mps": 2
+  },
+  "mission": {
+    "budget_s": 10800,
+    "target_lon_lat": [
+      3.8,
+      39.85
+    ],
+    "radius_m": 1000,
+    "review_interval_s": 300
+  },
+  "environment": {
+    "waves": {
+      "path": "data/copernicus/cmems_mod_med_wav_my_4.2km_PT1H-i_20260701-20260930.nc",
+      "sha256": "06264d9fbb67670f5b472fa8ad928aacd68c04e8a6b32ef5366521e7a45d5db3",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "currents": {
+      "path": "data/copernicus/cmems_mod_med_phy-cur_my_4.2km_PT1H-m_20260701-20260930.nc",
+      "sha256": "6e6babc2c7f2384f4a443b41d5793399dd3238f5343a32423e576f47811ce5c1",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "wind": {
+      "path": "data/copernicus/cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_20260701-20260930.nc",
+      "sha256": "48737addc83a58c42d1d9c027726f9f814aeba314c82f8fa0bb287da31b4398c",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "temperature": {
+      "path": "data/copernicus/cmems_mod_med_phy-temp_my_4.2km_P1D-m_20260701-20260930.nc",
+      "sha256": "1d0aed0abcc9d4fcfe6242d482993984bc2848da392e4e6296860b0efa332309",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    }
+  },
+  "vessel": {
+    "path": "data/processed/s175",
+    "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+    "loading_condition": "Design waterline",
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad"
+  },
+  "settings": {
+    "dt_s": 0.05,
+    "wave_period_s": 0.1,
+    "record_period_s": 1.0,
+    "max_thrust_n": 300000.0,
+    "max_yaw_moment_nm": 30000000.0,
+    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_accel": 0.02,
+    "speed_time_constant_s": 60.0,
+    "yaw_natural_frequency": 0.04,
+    "roll_exposure_deg": 10.0,
+    "lateral_exposure_mps2": 0.9810000000000001,
+    "max_attitude_deg": 30.0
+  },
+  "wind_parameters": {
+    "loa_m": 175.0,
+    "breadth_m": 25.4,
+    "lateral_area_m2": 2000.0,
+    "frontal_area_m2": 100.0,
+    "superstructure_area_m2": 200.0,
+    "perimeter_m": 130.0,
+    "centroid_from_bow_m": 30.0,
+    "mast_groups": 0,
+    "air_density_kg_m3": 1.224
+  },
+  "reports": {
+    "historical_bulletin": "unavailable",
+    "historical_warnings": "not_fetched",
+    "archive_directory": "data/raw/aemet"
+  },
+  "trials": {
+    "direct": {
+      "speed_mps": 3
+    },
+    "reduced": {
+      "speed_mps": 1.5
+    },
+    "detour": {
+      "speed_mps": 3,
+      "initial_heading_deg": 90,
+      "initial_duration_s": 1200
+    },
+    "delayed": {
+      "speed_mps": 3,
+      "wait_s": 1800
+    }
+  },
+  "area_bbox": [
+    3.5,
+    3.95,
+    39.7,
+    40.15
+  ],
+  "collection": {
+    "start": "2026-09-09T15:00:00Z",
+    "end": "2026-09-09T18:00:00Z",
+    "bbox": [
+      3.5,
+      3.95,
+      39.7,
+      40.15
+    ],
+    "sources": {
+      "waves": {
+        "dataset_id": "cmems_mod_med_wav_my_4.2km_PT1H-i",
+        "dataset_version": "202511",
+        "variables": [
+          "VHM0",
+          "VMDR",
+          "VTPK",
+          "VTM02",
+          "VHM0_WW",
+          "VMDR_WW",
+          "VTM01_WW",
+          "VHM0_SW1",
+          "VMDR_SW1",
+          "VTM01_SW1"
+        ]
+      },
+      "currents": {
+        "dataset_id": "cmems_mod_med_phy-cur_my_4.2km_PT1H-m",
+        "dataset_version": "202511",
+        "variables": [
+          "uo",
+          "vo"
+        ]
+      },
+      "wind": {
+        "dataset_id": "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H",
+        "dataset_version": "202207",
+        "variables": [
+          "eastward_wind",
+          "northward_wind"
+        ]
+      },
+      "temperature": {
+        "dataset_id": "cmems_mod_med_phy-temp_my_4.2km_P1D-m",
+        "dataset_version": "202511",
+        "variables": [
+          "thetao"
+        ]
+      }
+    }
+  }
+}

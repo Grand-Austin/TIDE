@@ -1,0 +1,2972 @@
+{
+  "scenario_id": "menorca-20260909",
+  "passed": true,
+  "checks": {
+    "completion_each_seed": true,
+    "exposure_difference_each_seed": true
+  },
+  "analysis": {
+    "sources": {
+      "waves": {
+        "path": "data/copernicus/cmems_mod_med_wav_my_4.2km_PT1H-i_20260701-20260930.nc",
+        "sha256": "06264d9fbb67670f5b472fa8ad928aacd68c04e8a6b32ef5366521e7a45d5db3",
+        "role": "historical_reconstruction",
+        "available_to_player": false,
+        "variables": {
+          "VHM0": {
+            "unit": "m",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VHM0_SW1": {
+            "unit": "m",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VHM0_WW": {
+            "unit": "m",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VMDR_SW1": {
+            "unit": "degree",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VMDR_WW": {
+            "unit": "degree",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VTM01_SW1": {
+            "unit": "s",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VTM01_WW": {
+            "unit": "s",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VTM02": {
+            "unit": "s",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VTPK": {
+            "unit": "s",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "VMDR": {
+            "unit": "degree",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          }
+        },
+        "product": "MEDSEA_MULTIYEAR_WAV_006_012",
+        "dataset": "cmems_mod_med_wav_my_4.2km_PT1H-i_202511",
+        "provenance": {
+          "Conventions": "CF-1.11",
+          "title": "Wave fields (2D) - Hourly Instantaneous",
+          "institution": "Hellenic Centre for Marine Research (HCMR)- Athens,Greece",
+          "producer": "CMEMS-MED Monitoring and Forecasting Centre",
+          "source": "MEDWAM3i",
+          "credit": "Copernicus Marine Environment Monitoring Service (CMEMS)",
+          "contact": "servicedesk.cmems@mercator-ocean.eu",
+          "references": "Please check in CMEMS catalogue the INFO section for product MEDSEA_MULTIYEAR_WAV_006_012 - http://marine.copernicus.eu",
+          "comment": "Please check in CMEMS catalogue the INFO section for product MEDSEA_MULTIYEAR_WAV_006_012 - http://marine.copernicus.eu",
+          "subset:source": "ARCO data downloaded from the Marine Data Store using the MyOcean Data Portal",
+          "subset:productId": "MEDSEA_MULTIYEAR_WAV_006_012",
+          "subset:datasetId": "cmems_mod_med_wav_my_4.2km_PT1H-i_202511",
+          "subset:date": "2026-10-26T11:06:18.433Z"
+        },
+        "coverage": {
+          "time": [
+            "2026-06-30T23:00:00.000000000",
+            "2026-09-30T23:00:00.000000000"
+          ],
+          "latitude": [
+            "39.604168",
+            "40.270836"
+          ],
+          "longitude": [
+            "2.9166672",
+            "4.083334"
+          ]
+        },
+        "temporal_semantics": "source-native hourly fields",
+        "issued_at": null
+      },
+      "currents": {
+        "path": "data/copernicus/cmems_mod_med_phy-cur_my_4.2km_PT1H-m_20260701-20260930.nc",
+        "sha256": "6e6babc2c7f2384f4a443b41d5793399dd3238f5343a32423e576f47811ce5c1",
+        "role": "historical_reconstruction",
+        "available_to_player": false,
+        "variables": {
+          "uo": {
+            "unit": "m s-1",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "vo": {
+            "unit": "m s-1",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          }
+        },
+        "product": "MEDSEA_MULTIYEAR_PHY_006_004",
+        "dataset": "cmems_mod_med_phy-cur_my_4.2km_PT1H-m_202511",
+        "provenance": {
+          "Conventions": "CF-1.11",
+          "title": "Horizontal Surface Velocity (2D) - Hourly Mean",
+          "institution": "Centro Euro-Mediterraneo sui Cambiamenti Climatici - CMCC, Italy",
+          "source": "MFS E3R1I",
+          "contact": "servicedesk.cmems@mercator-ocean.eu",
+          "references": "Escudier, R., Clementi, E., Omar, M., Cipollone, A., Pistoia, J., Aydogdu, A., Drudi, M., Grandi, A., Lyubartsev, V., Lecci, R., Creti, S., Masina, S., Coppini, G., & Pinardi, N. (2020). Mediterranean Sea Physical Reanalysis (CMEMS MED-Currents) (Version 1) [Data set]. Copernicus Monitoring Environment Marine Service (CMEMS). https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_PHY_006_004_E3R1 ; Nigam, T., Escudier, R., Pistoia, J., Aydogdu, A., Omar, M., Clementi, E., Cipollone, A., Drudi, M., Grandi, A., Mariani, A., Lyubartsev, V., Lecci, R., Creti, S., Masina, S., Coppini, G., & Pinardi, N. (2021). Mediterranean Sea Physical Reanalysis INTERIM (CMEMS MED-Currents, E3R1i system) (Version 1) [Data set]. Copernicus Monitoring Environment Marine Service (CMEMS). https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_PHY_006_004_E3R1I",
+          "comment": "Please check in CMEMS catalogue the INFO section for product MEDSEA_MULTIYEAR_PHY_006_004 - http://marine.copernicus.eu ",
+          "subset:source": "ARCO data downloaded from the Marine Data Store using the MyOcean Data Portal",
+          "subset:productId": "MEDSEA_MULTIYEAR_PHY_006_004",
+          "subset:datasetId": "cmems_mod_med_phy-cur_my_4.2km_PT1H-m_202511",
+          "subset:date": "2026-10-26T11:08:40.699Z"
+        },
+        "coverage": {
+          "time": [
+            "2026-06-30T23:00:00.000000000",
+            "2026-09-30T23:00:00.000000000"
+          ],
+          "latitude": [
+            "39.604168",
+            "40.270836"
+          ],
+          "longitude": [
+            "2.916667",
+            "4.0833335"
+          ]
+        },
+        "temporal_semantics": "source-native hourly fields",
+        "issued_at": null
+      },
+      "wind": {
+        "path": "data/copernicus/cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_20260701-20260930.nc",
+        "sha256": "48737addc83a58c42d1d9c027726f9f814aeba314c82f8fa0bb287da31b4398c",
+        "role": "historical_reconstruction",
+        "available_to_player": false,
+        "variables": {
+          "eastward_wind": {
+            "unit": "m s-1",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "northward_wind": {
+            "unit": "m s-1",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          }
+        },
+        "product": "WIND_GLO_PHY_L4_NRT_012_004",
+        "dataset": "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207",
+        "provenance": {
+          "Conventions": "CF-1.11",
+          "title": " Global Ocean - Wind and Stress - Hourly - From Scatterometer and Model",
+          "institution": "Royal Netherlands Meteorological Institute (KNMI)",
+          "history": "N/A",
+          "references": "Copernicus Marine Service Product User Manual CMEMS-TAC-WIND-PUM-012-004, Trindade et al. (2020) doi:10.1109/TGRS.2019.2946019",
+          "subset:source": "ARCO data downloaded from the Marine Data Store using the MyOcean Data Portal",
+          "subset:productId": "WIND_GLO_PHY_L4_NRT_012_004",
+          "subset:datasetId": "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207",
+          "subset:date": "2026-10-26T11:51:00.234Z"
+        },
+        "coverage": {
+          "time": [
+            "2026-06-30T23:00:00.000000000",
+            "2026-09-30T23:00:00.000000000"
+          ],
+          "latitude": [
+            "39.3125",
+            "40.5625"
+          ],
+          "longitude": [
+            "2.5625",
+            "4.4375"
+          ]
+        },
+        "temporal_semantics": "source-native hourly fields",
+        "issued_at": null
+      },
+      "temperature": {
+        "path": "data/copernicus/cmems_mod_med_phy-temp_my_4.2km_P1D-m_20260701-20260930.nc",
+        "sha256": "1d0aed0abcc9d4fcfe6242d482993984bc2848da392e4e6296860b0efa332309",
+        "role": "historical_reconstruction",
+        "available_to_player": false,
+        "variables": {
+          "bottomT": {
+            "unit": "degrees_C",
+            "dimensions": [
+              "time",
+              "latitude",
+              "longitude"
+            ]
+          },
+          "thetao": {
+            "unit": "degrees_C",
+            "dimensions": [
+              "time",
+              "depth",
+              "latitude",
+              "longitude"
+            ]
+          }
+        },
+        "product": "MEDSEA_MULTIYEAR_PHY_006_004",
+        "dataset": "cmems_mod_med_phy-temp_my_4.2km_P1D-m_202511",
+        "provenance": {
+          "Conventions": "CF-1.11",
+          "title": "Potential Temperature (3D) - Daily Mean",
+          "institution": "Centro Euro-Mediterraneo sui Cambiamenti Climatici - CMCC, Italy",
+          "source": "MFS E3R1I",
+          "contact": "servicedesk.cmems@mercator-ocean.eu",
+          "references": "Escudier, R., Clementi, E., Omar, M., Cipollone, A., Pistoia, J., Aydogdu, A., Drudi, M., Grandi, A., Lyubartsev, V., Lecci, R., Creti, S., Masina, S., Coppini, G., & Pinardi, N. (2020). Mediterranean Sea Physical Reanalysis (CMEMS MED-Currents) (Version 1) [Data set]. Copernicus Monitoring Environment Marine Service (CMEMS). https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_PHY_006_004_E3R1 ; Nigam, T., Escudier, R., Pistoia, J., Aydogdu, A., Omar, M., Clementi, E., Cipollone, A., Drudi, M., Grandi, A., Mariani, A., Lyubartsev, V., Lecci, R., Creti, S., Masina, S., Coppini, G., & Pinardi, N. (2021). Mediterranean Sea Physical Reanalysis INTERIM (CMEMS MED-Currents, E3R1i system) (Version 1) [Data set]. Copernicus Monitoring Environment Marine Service (CMEMS). https://doi.org/10.25423/CMCC/MEDSEA_MULTIYEAR_PHY_006_004_E3R1I",
+          "comment": "Please check in CMEMS catalogue the INFO section for product MEDSEA_MULTIYEAR_PHY_006_004 - http://marine.copernicus.eu ",
+          "subset:source": "ARCO data downloaded from the Marine Data Store using the MyOcean Data Portal",
+          "subset:productId": "MEDSEA_MULTIYEAR_PHY_006_004",
+          "subset:datasetId": "cmems_mod_med_phy-temp_my_4.2km_P1D-m_202511",
+          "subset:date": "2026-10-26T11:47:15.950Z"
+        },
+        "coverage": {
+          "time": [
+            "2026-06-30T00:00:00.000000000",
+            "2026-09-30T00:00:00.000000000"
+          ],
+          "latitude": [
+            "39.604168",
+            "40.270836"
+          ],
+          "longitude": [
+            "2.916667",
+            "4.0833335"
+          ]
+        },
+        "temporal_semantics": "UTC daily mean, held for UTC day",
+        "issued_at": null
+      }
+    },
+    "hourly": [
+      {
+        "time": "2026-09-09T15:00:00+00:00",
+        "initial": {
+          "hs": 3.56353759602895,
+          "tp": 8.390000343322754,
+          "wave_from_deg": 13.689040847620777,
+          "current_east_mps": -0.09788739572277638,
+          "current_north_mps": 0.02282526978790096,
+          "wind_east_mps": -6.903799877166758,
+          "wind_north_mps": -12.931200017929061,
+          "sst_c": 28.076776105911854
+        },
+        "target": {
+          "hs": 1.9094480477065618,
+          "tp": 9.229000091552734,
+          "wave_from_deg": 12.984521045236471,
+          "current_east_mps": -0.27481913428162963,
+          "current_north_mps": -0.02173278965685243,
+          "wind_east_mps": -7.286200013160695,
+          "wind_north_mps": -10.850999917984014,
+          "sst_c": 28.13786877032482
+        },
+        "statistics": {
+          "VHM0": {
+            "mean": 2.9299819469451904,
+            "max": 3.8520002365112305,
+            "missing_cells": 10
+          },
+          "VTPK": {
+            "mean": 8.031189918518066,
+            "max": 10.152000427246094,
+            "missing_cells": 10
+          },
+          "VHM0_WW": {
+            "mean": 2.43550443649292,
+            "max": 3.6630001068115234,
+            "missing_cells": 10
+          },
+          "VTM01_WW": {
+            "mean": 5.402567386627197,
+            "max": 6.720000267028809,
+            "missing_cells": 10
+          },
+          "VHM0_SW1": {
+            "mean": 1.4652704000473022,
+            "max": 2.123000144958496,
+            "missing_cells": 10
+          },
+          "VTM01_SW1": {
+            "mean": 8.63046932220459,
+            "max": 9.952000617980957,
+            "missing_cells": 10
+          }
+        }
+      },
+      {
+        "time": "2026-09-09T16:00:00+00:00",
+        "initial": {
+          "hs": 3.8448379098063237,
+          "tp": 9.229000091552734,
+          "wave_from_deg": 10.971216068938725,
+          "current_east_mps": -0.07162010187460838,
+          "current_north_mps": 0.018582612304435992,
+          "wind_east_mps": -5.867099895477299,
+          "wind_north_mps": -12.59110008239746,
+          "sst_c": 28.076776105911854
+        },
+        "target": {
+          "hs": 2.0006286716780872,
+          "tp": 9.413588539456452,
+          "wave_from_deg": 6.762774722623104,
+          "current_east_mps": -0.240295674641442,
+          "current_north_mps": 0.0037414756355793645,
+          "wind_east_mps": -5.817199926376332,
+          "wind_north_mps": -11.53240029335022,
+          "sst_c": 28.13786877032482
+        },
+        "statistics": {
+          "VHM0": {
+            "mean": 3.136216163635254,
+            "max": 4.094000339508057,
+            "missing_cells": 10
+          },
+          "VTPK": {
+            "mean": 8.627640724182129,
+            "max": 10.152000427246094,
+            "missing_cells": 10
+          },
+          "VHM0_WW": {
+            "mean": 2.7889280319213867,
+            "max": 3.946000099182129,
+            "missing_cells": 10
+          },
+          "VTM01_WW": {
+            "mean": 5.942008972167969,
+            "max": 7.021000385284424,
+            "missing_cells": 10
+          },
+          "VHM0_SW1": {
+            "mean": 1.2204506397247314,
+            "max": 1.6940001249313354,
+            "missing_cells": 10
+          },
+          "VTM01_SW1": {
+            "mean": 9.66816234588623,
+            "max": 11.032000541687012,
+            "missing_cells": 10
+          }
+        }
+      },
+      {
+        "time": "2026-09-09T17:00:00+00:00",
+        "initial": {
+          "hs": 4.041338362264814,
+          "tp": 9.229000091552734,
+          "wave_from_deg": 9.028412744409698,
+          "current_east_mps": -0.04010936729056417,
+          "current_north_mps": 0.0035993813789125277,
+          "wind_east_mps": -4.931999945640563,
+          "wind_north_mps": -12.893600196838372,
+          "sst_c": 28.076776105911854
+        },
+        "target": {
+          "hs": 2.162089837771285,
+          "tp": 9.395124624947659,
+          "wave_from_deg": 358.5462597875757,
+          "current_east_mps": -0.21306254453692908,
+          "current_north_mps": 0.01085690244695535,
+          "wind_east_mps": -4.3738999271392744,
+          "wind_north_mps": -12.327900056838981,
+          "sst_c": 28.13786877032482
+        },
+        "statistics": {
+          "VHM0": {
+            "mean": 3.343928098678589,
+            "max": 4.175000190734863,
+            "missing_cells": 10
+          },
+          "VTPK": {
+            "mean": 8.812929153442383,
+            "max": 11.167000770568848,
+            "missing_cells": 10
+          },
+          "VHM0_WW": {
+            "mean": 3.0483787059783936,
+            "max": 3.9860002994537354,
+            "missing_cells": 10
+          },
+          "VTM01_WW": {
+            "mean": 6.308981895446777,
+            "max": 7.164000511169434,
+            "missing_cells": 10
+          },
+          "VHM0_SW1": {
+            "mean": 1.0566847324371338,
+            "max": 1.5380001068115234,
+            "missing_cells": 10
+          },
+          "VTM01_SW1": {
+            "mean": 10.442225456237793,
+            "max": 11.355000495910645,
+            "missing_cells": 10
+          }
+        }
+      },
+      {
+        "time": "2026-09-09T18:00:00+00:00",
+        "initial": {
+          "hs": 4.058838617503753,
+          "tp": 9.229000091552734,
+          "wave_from_deg": 8.452215147293504,
+          "current_east_mps": -0.013701453283527726,
+          "current_north_mps": -0.008297565874939102,
+          "wind_east_mps": -4.895900011062624,
+          "wind_north_mps": -12.209900064468385,
+          "sst_c": 28.076776105911854
+        },
+        "target": {
+          "hs": 2.2545708585301134,
+          "tp": 9.229000091552734,
+          "wave_from_deg": 353.0306211650337,
+          "current_east_mps": -0.19037968949821354,
+          "current_north_mps": 0.005106917239716703,
+          "wind_east_mps": -4.610600123405449,
+          "wind_north_mps": -11.419899682998658,
+          "sst_c": 28.13786877032482
+        },
+        "statistics": {
+          "VHM0": {
+            "mean": 3.434774875640869,
+            "max": 4.13700008392334,
+            "missing_cells": 10
+          },
+          "VTPK": {
+            "mean": 8.790677070617676,
+            "max": 9.229000091552734,
+            "missing_cells": 10
+          },
+          "VHM0_WW": {
+            "mean": 3.1688921451568604,
+            "max": 3.828000068664551,
+            "missing_cells": 10
+          },
+          "VTM01_WW": {
+            "mean": 6.51277494430542,
+            "max": 7.184000492095947,
+            "missing_cells": 10
+          },
+          "VHM0_SW1": {
+            "mean": 0.896522581577301,
+            "max": 1.4980000257492065,
+            "missing_cells": 10
+          },
+          "VTM01_SW1": {
+            "mean": 11.033595085144043,
+            "max": 11.542000770568848,
+            "missing_cells": 10
+          }
+        }
+      }
+    ],
+    "information_policy": "Historical reconstruction drives physics; it is not a forecast released to players.",
+    "reports": {
+      "historical_bulletin": "unavailable",
+      "historical_warnings": "not_fetched"
+    }
+  },
+  "trials": [
+    {
+      "trial": "delayed",
+      "seed": 1,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 10275.0,
+      "distance_to_target_m": 994.9585216843578,
+      "final_lon_lat": [
+        3.7902408449404335,
+        39.85489257494858
+      ],
+      "exposure": {
+        "elapsed_s": 10275.0,
+        "roll_squared_rad2_s": 0.624034839978838,
+        "pitch_squared_rad2_s": 1.1873466773983945,
+        "lateral_squared_m2_s3": 151.57992067039936,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.994913569503811,
+      "max_lateral_acceleration_mps2": 0.4878968079115069,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.78522055935426,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 149.69517926841556,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 149.52700437529558,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 149.38031888175865,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 149.2326508585789,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 149.0815254549246,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 148.91243946375542,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 148.72577702460168,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 148.51140061269953,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 148.27281801693618,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 148.01178416521614,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 147.7300563786081,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 147.39293631308857,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 147.0358659916511,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 146.64557073793046,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 146.22538633346875,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 145.76858972006397,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 145.25450233698157,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 144.6813321939327,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 144.01630768566403,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 143.24765970496696,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 142.3463967194978,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8400.0,
+          "heading_deg": 141.2824920261635,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8700.0,
+          "heading_deg": 140.06091345568035,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9000.0,
+          "heading_deg": 138.63108746358816,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9300.0,
+          "heading_deg": 136.88332255299022,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9600.0,
+          "heading_deg": 134.59827700872287,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9900.0,
+          "heading_deg": 131.33498630788011,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 10200.0,
+          "heading_deg": 125.64801780911854,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 6115.700000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "detour",
+      "seed": 1,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 8315.0,
+      "distance_to_target_m": 991.3805961195457,
+      "final_lon_lat": [
+        3.7914023593751036,
+        39.8559940906592
+      ],
+      "exposure": {
+        "elapsed_s": 8315.0,
+        "roll_squared_rad2_s": 0.48329074030550745,
+        "pitch_squared_rad2_s": 0.7759900952909299,
+        "lateral_squared_m2_s3": 118.27684332714577,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 2.6730159231629416,
+      "max_lateral_acceleration_mps2": 0.7703799963076152,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 152.3872580481217,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 153.60415265992168,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 154.29394409582824,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 154.58257830673372,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 154.60654037337483,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 154.48585848296025,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 154.27580344109288,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 154.0271408905394,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 153.7431255205723,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 153.423730810504,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 153.06038978561563,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 152.64180633063904,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 152.17214834841053,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 151.66493499005773,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 151.09469477788392,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 150.47271883618754,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 149.74450595972692,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 148.9067677115045,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 147.9120122815275,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 146.70141225476968,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 145.27949468061718,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 143.50240714440102,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 141.12383498847964,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 137.38224293463378,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 3179.4,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "direct",
+      "seed": 1,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 8295.0,
+      "distance_to_target_m": 987.3183102402472,
+      "final_lon_lat": [
+        3.7903259458832883,
+        39.854866924527755
+      ],
+      "exposure": {
+        "elapsed_s": 8295.0,
+        "roll_squared_rad2_s": 0.5086192786371191,
+        "pitch_squared_rad2_s": 0.836401649278546,
+        "lateral_squared_m2_s3": 113.18845667635946,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 2.0273784850639722,
+      "max_lateral_acceleration_mps2": 0.4858887103253259,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 150.13933181821048,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 149.96396482918493,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 149.79252035882143,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 149.6161544083692,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 149.44557725532678,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 149.2765631366505,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.08705713645946,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 148.8586667512048,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 148.61374471150833,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 148.33991237086784,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 148.05000940543516,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 147.73126546459483,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 147.3613529713507,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 146.9435883949509,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 146.50014052282148,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 146.01484753565825,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 145.48826425183404,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 144.92050369340654,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 144.27657414003932,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 143.54903895761143,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 142.7264758213076,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 141.73166029463297,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 140.58429098350342,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 139.257850418113,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 137.6610491865888,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 135.67648779542705,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 132.93215793084033,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 128.556368354367,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 3339.3,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "reduced",
+      "seed": 1,
+      "reached": false,
+      "stopping_reason": "budget_reached",
+      "elapsed_s": 10800.0,
+      "distance_to_target_m": 9348.280273987524,
+      "final_lon_lat": [
+        3.7318544773167672,
+        39.91584933292728
+      ],
+      "exposure": {
+        "elapsed_s": 10800.0,
+        "roll_squared_rad2_s": 0.5888442795944743,
+        "pitch_squared_rad2_s": 1.5222762737637903,
+        "lateral_squared_m2_s3": 194.46903477869478,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.9893645188237163,
+      "max_lateral_acceleration_mps2": 0.5200125413494009,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 150.13933181821048,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 150.01196477603645,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 149.90590718605972,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 149.8125980408093,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 149.71760256959956,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 149.62422868736974,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.52811661829455,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 149.42965822153238,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 149.32003170915712,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 149.2065708003788,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 149.08335038947234,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 148.94882985558468,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 148.81226400437328,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 148.67792594898114,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 148.5155576948613,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 148.3486505560689,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 148.17741359898622,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 147.98636097795298,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 147.7766151998828,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 147.5644638394041,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 147.3436420119545,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 147.10138481309676,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 146.86272598765916,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 146.59777665459598,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 146.31308068571747,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 146.0268350222782,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 145.72766123620323,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 145.40063423446088,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8400.0,
+          "heading_deg": 145.05433856108806,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8700.0,
+          "heading_deg": 144.70100253820826,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9000.0,
+          "heading_deg": 144.32820760629497,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9300.0,
+          "heading_deg": 143.93271734545667,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9600.0,
+          "heading_deg": 143.52177242967923,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9900.0,
+          "heading_deg": 143.07717166551987,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 10200.0,
+          "heading_deg": 142.6014385761948,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 10500.0,
+          "heading_deg": 142.0951410613617,
+          "speed_mps": 1.5
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 10078.900000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "delayed",
+      "seed": 2,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 10305.0,
+      "distance_to_target_m": 990.3321437848068,
+      "final_lon_lat": [
+        3.790344171291528,
+        39.854937280439124
+      ],
+      "exposure": {
+        "elapsed_s": 10305.0,
+        "roll_squared_rad2_s": 0.5839437111038961,
+        "pitch_squared_rad2_s": 1.1548761315112925,
+        "lateral_squared_m2_s3": 156.0765534771023,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.8573362278149754,
+      "max_lateral_acceleration_mps2": 0.5244557654074324,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.76685360977152,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 149.69191038713322,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 149.55917022492764,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 149.39917185710965,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 149.23922972236045,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 149.0919608581605,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 148.93112899683223,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 148.73411104754203,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 148.5173894300601,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 148.2833220367574,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 148.0241274670049,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 147.72769678917686,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 147.39796413361208,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 147.03922767403054,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 146.65230525996978,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 146.2431663517352,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 145.81135079344676,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 145.3363747884512,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 144.78638380983043,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 144.1563702957689,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 143.43020915825718,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 142.5823775719005,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8400.0,
+          "heading_deg": 141.60038724324139,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8700.0,
+          "heading_deg": 140.41774226196355,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9000.0,
+          "heading_deg": 139.03520909974412,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9300.0,
+          "heading_deg": 137.37363247597,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9600.0,
+          "heading_deg": 135.27223228009223,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9900.0,
+          "heading_deg": 132.30157149639442,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 10200.0,
+          "heading_deg": 126.98403306857648,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 6159.900000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "detour",
+      "seed": 2,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 8315.0,
+      "distance_to_target_m": 996.495724168759,
+      "final_lon_lat": [
+        3.791273705316578,
+        39.855952985041654
+      ],
+      "exposure": {
+        "elapsed_s": 8315.0,
+        "roll_squared_rad2_s": 0.498568012239536,
+        "pitch_squared_rad2_s": 0.7681054780479052,
+        "lateral_squared_m2_s3": 119.55947974739539,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 2.215761359623654,
+      "max_lateral_acceleration_mps2": 0.6584606991767946,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 152.2279278219552,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 153.44564791276684,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 154.15476076935133,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 154.46046102024246,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 154.47482921554814,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 154.3373551954127,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 154.11810814616774,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 153.86135928663242,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 153.56021454273053,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 153.2243699954833,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 152.84923249875987,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 152.42378545430984,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 151.9612830089603,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 151.44157581902988,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 150.8518281738111,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 150.22292053102956,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 149.48105931766744,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 148.6171979885288,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 147.58712651243061,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 146.37574129401423,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 144.9431346404003,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 143.1344174142132,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 140.71471101714351,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 136.89004876811745,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 3186.7000000000003,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "direct",
+      "seed": 2,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 8295.0,
+      "distance_to_target_m": 997.2637009515418,
+      "final_lon_lat": [
+        3.7902158687639176,
+        39.85490112991657
+      ],
+      "exposure": {
+        "elapsed_s": 8295.0,
+        "roll_squared_rad2_s": 0.46626089530571346,
+        "pitch_squared_rad2_s": 0.8134085871009095,
+        "lateral_squared_m2_s3": 112.55258475936105,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.9206620929331455,
+      "max_lateral_acceleration_mps2": 0.43859752932619844,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 150.13933181821048,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 149.94155831660564,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 149.76282586634554,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 149.59471098235983,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 149.42744142688494,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 149.25115522151256,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.03703368890382,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 148.80603693032361,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 148.56727793287783,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 148.3114128751605,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 148.0175129083983,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 147.6856417948492,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 147.32880946803192,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 146.92833454418766,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 146.49980388024727,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 146.02506573749648,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 145.51061390850708,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 144.94154203206446,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 144.29385115978158,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 143.57000659296367,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 142.7185596863199,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 141.72838173890844,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 140.59555567866795,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 139.2537450456505,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 137.60853913355263,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 135.60489623552976,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 132.90703361463991,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 128.5407005526131,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 3341.6000000000004,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "reduced",
+      "seed": 2,
+      "reached": false,
+      "stopping_reason": "budget_reached",
+      "elapsed_s": 10800.0,
+      "distance_to_target_m": 9341.884755912324,
+      "final_lon_lat": [
+        3.731987944445616,
+        39.915857103134684
+      ],
+      "exposure": {
+        "elapsed_s": 10800.0,
+        "roll_squared_rad2_s": 0.5470284238555752,
+        "pitch_squared_rad2_s": 1.5249899981513646,
+        "lateral_squared_m2_s3": 194.84611930456498,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.817933898293074,
+      "max_lateral_acceleration_mps2": 0.45142666470608345,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 150.13933181821048,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 149.99823863094278,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 149.8943440628094,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 149.7977321005888,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 149.70154607707263,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 149.6055729301184,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.5087926508028,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 149.41076073134434,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 149.30821533639178,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 149.1975196837769,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 149.08391637006352,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 148.95782150135256,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 148.82957415539417,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 148.68749603617573,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 148.53574353008383,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 148.37592278373734,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 148.20284590867251,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 148.00869928153836,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 147.8107936443364,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 147.60422384938758,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 147.38283175652057,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 147.13613965823444,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 146.88226977807716,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 146.61917882139971,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 146.33886751374703,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 146.04466642484448,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 145.73356623721017,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 145.40588517193342,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8400.0,
+          "heading_deg": 145.07267834583524,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8700.0,
+          "heading_deg": 144.72422575715208,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9000.0,
+          "heading_deg": 144.36595798593012,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9300.0,
+          "heading_deg": 143.97851088079082,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9600.0,
+          "heading_deg": 143.55016708026898,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9900.0,
+          "heading_deg": 143.1071355104699,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 10200.0,
+          "heading_deg": 142.64415018190795,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 10500.0,
+          "heading_deg": 142.1462597079585,
+          "speed_mps": 1.5
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 10074.400000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "delayed",
+      "seed": 3,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 10270.0,
+      "distance_to_target_m": 985.5819329895135,
+      "final_lon_lat": [
+        3.7903257232599614,
+        39.85483810977116
+      ],
+      "exposure": {
+        "elapsed_s": 10270.0,
+        "roll_squared_rad2_s": 0.6245132865742592,
+        "pitch_squared_rad2_s": 1.2908862996652315,
+        "lateral_squared_m2_s3": 147.85429514604917,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 2.4942304662745185,
+      "max_lateral_acceleration_mps2": 0.47148353265216836,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 155,
+          "speed_mps": 0
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.7823032731468,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 149.68883382930167,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 149.52691834612736,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 149.3628326133755,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 149.18929456337395,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 149.01800461220577,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 148.82466293036936,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 148.6196319003704,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 148.4025827766402,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 148.16455439323457,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 147.89843075461067,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 147.59528885251754,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 147.26389638489266,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 146.91564635875923,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 146.5328336552396,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 146.11042522887675,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 145.66204350839593,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 145.19429634836,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 144.66578087441238,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 144.04292659380852,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 143.31275786709736,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 142.43978917259795,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8400.0,
+          "heading_deg": 141.3985597892976,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8700.0,
+          "heading_deg": 140.21157479498314,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9000.0,
+          "heading_deg": 138.77946451009993,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9300.0,
+          "heading_deg": 137.02087930730966,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9600.0,
+          "heading_deg": 134.79535589967386,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 9900.0,
+          "heading_deg": 131.55610528027935,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 10200.0,
+          "heading_deg": 125.55876665373033,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 6109.200000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "detour",
+      "seed": 3,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 8315.0,
+      "distance_to_target_m": 987.0169471009739,
+      "final_lon_lat": [
+        3.7914423859845394,
+        39.85596954952617
+      ],
+      "exposure": {
+        "elapsed_s": 8315.0,
+        "roll_squared_rad2_s": 0.4646438235575296,
+        "pitch_squared_rad2_s": 0.7759248514028328,
+        "lateral_squared_m2_s3": 112.67892374152375,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.995567472812023,
+      "max_lateral_acceleration_mps2": 0.6321970293220474,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 90,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 152.35140098946786,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 153.51757229559234,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 154.22926681057342,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 154.51831645859912,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 154.54806322592756,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 154.44173601002785,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 154.2519414233716,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 154.00685065437952,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 153.72363449604632,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 153.40208963858257,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 153.04418771359468,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 152.6434414786334,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 152.20401102978357,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 151.7113687910685,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 151.15700789000988,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 150.53589952533014,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 149.80991904007936,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 148.9701611333628,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 147.99599856102228,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 146.8217731313222,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 145.4278694372343,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 143.6537246001819,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 141.27901470593613,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 137.49134939675318,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 3180.5,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "direct",
+      "seed": 3,
+      "reached": true,
+      "stopping_reason": "target_reached",
+      "elapsed_s": 8295.0,
+      "distance_to_target_m": 993.765353902667,
+      "final_lon_lat": [
+        3.7902368915578495,
+        39.854868249498956
+      ],
+      "exposure": {
+        "elapsed_s": 8295.0,
+        "roll_squared_rad2_s": 0.4869939561877217,
+        "pitch_squared_rad2_s": 0.8114757415612661,
+        "lateral_squared_m2_s3": 113.98508685006199,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.5592535217959853,
+      "max_lateral_acceleration_mps2": 0.42193071753522315,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 150.13933181821048,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 149.9591029780232,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 149.7915929634758,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 149.6299351418842,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 149.46356314110827,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 149.28647083969017,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.0959424418571,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 148.88685025202787,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 148.64705020970754,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 148.35715543295944,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 148.04329853759984,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 147.70215129597753,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 147.33991178781204,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 146.94571090316785,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 146.50061258670684,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 146.03050475261855,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 145.5002298910486,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 144.89900719168207,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 144.23934259079377,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 143.5170579475271,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 142.6694260335875,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 141.68775931992408,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 140.54094170823709,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 139.24306583432465,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 137.68581118271908,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 135.71197347152435,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 133.0271795482344,
+          "speed_mps": 3
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 128.58318065478406,
+          "speed_mps": 3
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 3340.8,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    },
+    {
+      "trial": "reduced",
+      "seed": 3,
+      "reached": false,
+      "stopping_reason": "budget_reached",
+      "elapsed_s": 10800.0,
+      "distance_to_target_m": 9338.60776720463,
+      "final_lon_lat": [
+        3.7319390092866347,
+        39.91578969918269
+      ],
+      "exposure": {
+        "elapsed_s": 10800.0,
+        "roll_squared_rad2_s": 0.5508521288757809,
+        "pitch_squared_rad2_s": 1.5914170367640568,
+        "lateral_squared_m2_s3": 199.55551936267207,
+        "roll_exceeded_s": 0.0,
+        "lateral_exceeded_s": 0.0
+      },
+      "max_roll_deg": 1.6481613401127497,
+      "max_lateral_acceleration_mps2": 0.4915899707857104,
+      "commands": [
+        {
+          "time_s": 0.0,
+          "heading_deg": 150.13933181821048,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 300.0,
+          "heading_deg": 150.01327603586833,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 600.0,
+          "heading_deg": 149.90949788628268,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 900.0,
+          "heading_deg": 149.80875790714543,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1200.0,
+          "heading_deg": 149.70797773936218,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1500.0,
+          "heading_deg": 149.60386165580695,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 1800.0,
+          "heading_deg": 149.50220098164263,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2100.0,
+          "heading_deg": 149.40565647841296,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2400.0,
+          "heading_deg": 149.2990541262843,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 2700.0,
+          "heading_deg": 149.1950450734704,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3000.0,
+          "heading_deg": 149.0849295384341,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3300.0,
+          "heading_deg": 148.96081984869562,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3600.0,
+          "heading_deg": 148.82420938023256,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 3900.0,
+          "heading_deg": 148.6824850295187,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4200.0,
+          "heading_deg": 148.53040418859618,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4500.0,
+          "heading_deg": 148.36901230474837,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 4800.0,
+          "heading_deg": 148.19182951992343,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5100.0,
+          "heading_deg": 148.0070004611215,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5400.0,
+          "heading_deg": 147.81170499271317,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 5700.0,
+          "heading_deg": 147.6073510928733,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6000.0,
+          "heading_deg": 147.38741112681947,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6300.0,
+          "heading_deg": 147.14299446888597,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6600.0,
+          "heading_deg": 146.8844496605227,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 6900.0,
+          "heading_deg": 146.62149991011646,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7200.0,
+          "heading_deg": 146.34175434283787,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7500.0,
+          "heading_deg": 146.0465188451454,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 7800.0,
+          "heading_deg": 145.7381003074088,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8100.0,
+          "heading_deg": 145.412241383273,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8400.0,
+          "heading_deg": 145.07361932728256,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 8700.0,
+          "heading_deg": 144.71690692368688,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9000.0,
+          "heading_deg": 144.34539960577297,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9300.0,
+          "heading_deg": 143.94063085254555,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9600.0,
+          "heading_deg": 143.51147604124813,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 9900.0,
+          "heading_deg": 143.0671029650694,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 10200.0,
+          "heading_deg": 142.60660923415813,
+          "speed_mps": 1.5
+        },
+        {
+          "time_s": 10500.0,
+          "heading_deg": 142.1080285195236,
+          "speed_mps": 1.5
+        }
+      ],
+      "events": [
+        {
+          "time_s": 628.2,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 1470.6000000000001,
+          "kind": "wave_quality",
+          "detail": "spectrum_underresolved"
+        },
+        {
+          "time_s": 10073.5,
+          "kind": "wave_quality",
+          "detail": "spectrum_assumption"
+        }
+      ],
+      "wave_flags": [
+        "spectrum_underresolved",
+        "spectrum_assumption"
+      ]
+    }
+  ],
+  "definition_sha256": "741963d71495d4efa0dbdc2e21ac5688f194ee4a439639407c557edb8452fc69"
+}
