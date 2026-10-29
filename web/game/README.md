@@ -16,6 +16,10 @@ Controls: drag to orbit, wheel to zoom, Space play/pause, 1–4 playback rate, C
 
 What is data and what is not:
 - Sea state, wind and current at the ship: Copernicus Marine (products listed in each scene file).
+- Cloud cover and precipitation: ERA5 (Copernicus Climate Change Service) via the Open-Meteo historical
+  weather API, hourly at the scene's start point (`pipeline.export_scene --weather-only <ids>` adds them).
+- Light: computed sun position for the scene time and place. Whitecap cover: wind speed
+  (Monahan & O'Muircheartaigh 1980).
 - Roll, pitch, heading and cargo loss: TIDE simulation with the game cargo model.
 - The rendered sea surface is synthesised from Hs, Tp and direction; individual crests are not data. The ship's
   vertical position follows that surface.

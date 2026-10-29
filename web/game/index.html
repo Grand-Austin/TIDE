@@ -132,9 +132,25 @@ const camera = new THREE.PerspectiveCamera(50, 1, 1, 9000);
 // overcast sky: a large sphere shaded from zenith to horizon, centred on the camera
 const sky = new THREE.Mesh(new THREE.SphereGeometry(8000, 32, 16), new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
-  uniforms: { uTop: { value: new THREE.Color(0x4a565f) }, uHorizon: { value: STORM_SKY } },
-  vertexShader: `varying float vY; void main() { vY = normalize(position).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: `uniform vec3 uTop, uHorizon; varying float vY; void main() { gl_FragColor = vec4(mix(uHorizon, uTop, smoothstep(0.0, 0.45, vY)), 1.0); }`,
+  uniforms: { uTop: { value: new THREE.Color(0x4a565f) }, uHorizon: { value: STORM_SKY.clone() },
+              uCloudColor: { value: new THREE.Color(0x9aa3aa) }, uCloud: { value: 0 }, uTime: { value: 0 } },
+  vertexShader: `varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  // cloud layer: the share of sky covered follows ERA5 cloud cover; full cover is an even grey deck
+  fragmentShader: `
+    uniform vec3 uTop, uHorizon, uCloudColor; uniform float uCloud, uTime; varying vec3 vDir;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+    float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p + 9.1; a *= 0.5; } return v; }
+    void main() {
+      vec3 sky = mix(uHorizon, uTop, smoothstep(0.0, 0.45, vDir.y));
+      vec2 uv = vDir.xz / (vDir.y + 0.12) * 1.6 + vec2(uTime * 0.004, uTime * 0.002);
+      float f = fbm(uv);
+      float cover = smoothstep(1.0 - uCloud - 0.05, 1.0 - uCloud + 0.25, f);
+      vec3 cloud = uCloudColor * (0.82 + 0.3 * f);
+      vec3 color = mix(sky, cloud, max(cover, uCloud * uCloud * 0.85));
+      gl_FragColor = vec4(mix(color, uHorizon, smoothstep(0.12, 0.0, vDir.y)), 1.0);
+    }`,
 }));
 scene.add(sky);
 const hemi = new THREE.HemisphereLight(0xcfd8de, 0x2a3a44, 2.4);
@@ -160,7 +176,7 @@ function sunPosition(date, lat, lon) {
 const NIGHT_TOP = new THREE.Color(0x070d16), NIGHT_HORIZON = new THREE.Color(0x152030);
 const DAY_TOP = new THREE.Color(0x5b84ad), DAY_HORIZON = new THREE.Color(0xb9c7d1), DUSK = new THREE.Color(0xd99566);
 const DEEP = new THREE.Color(0x17394a), SHALLOW = new THREE.Color(0x4f7f8c);
-function applyDaylight(sun) {
+function applyDaylight(sun, cloud = null, precip = 0) {
   const day = THREE.MathUtils.smoothstep(sun.elev, -6, 12), dusk = Math.exp(-(((sun.elev - 2) / 6) ** 2));
   const top = NIGHT_TOP.clone().lerp(DAY_TOP, day), horizon = NIGHT_HORIZON.clone().lerp(DAY_HORIZON, day).lerp(DUSK, dusk * 0.55);
   sky.material.uniforms.uTop.value.copy(top);
@@ -170,9 +186,17 @@ function applyDaylight(sun) {
   const e = rad(Math.max(sun.elev, 4)), a = rad(sun.az);
   const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e));
   sunLight.position.copy(dir).multiplyScalar(1000);
-  sunLight.intensity = 0.12 + 2.6 * day;
+  // ERA5 cloud cover dims direct sun and greys the horizon; rain lowers it further
+  const c = cloud === null ? 0 : cloud / 100;
+  sky.material.uniforms.uCloud.value = c;
+  sky.material.uniforms.uCloudColor.value.set(0x9aa3aa).multiplyScalar((0.18 + 0.82 * day) * (1 - Math.min(0.35, precip * 0.08)));
+  horizon.lerp(sky.material.uniforms.uCloudColor.value, c * 0.6);
+  sky.material.uniforms.uHorizon.value.copy(horizon);
+  scene.fog.color.copy(horizon);
+  oceanUniforms.uSky.value.copy(horizon);
+  sunLight.intensity = (0.12 + 2.6 * day) * (1 - 0.75 * c);
   sunLight.color.set(0xf4f6f8).lerp(DUSK, dusk * 0.5);
-  hemi.intensity = 0.3 + 2.1 * day;
+  hemi.intensity = (0.3 + 2.1 * day) * (1 - 0.25 * c);
   oceanUniforms.uLight.value.copy(dir);
   oceanUniforms.uDeep.value.copy(DEEP).multiplyScalar(0.3 + 0.7 * day);
   oceanUniforms.uShallow.value.copy(SHALLOW).multiplyScalar(0.3 + 0.7 * day);
@@ -532,7 +556,7 @@ async function load(id) {
   $("notes").innerHTML = `Copernicus Marine (${Object.values(data.copernicus_products).join(", ")}) at the ship's position. ` +
     `Roll, pitch and cargo loss: TIDE simulation of the S175 (game cargo model). ` +
     `Sea surface synthesised from Hs, Tp and direction; whitecap cover from wind speed (Monahan & O'Muircheartaigh 1980); ` +
-    `light from the computed sun position. ${F.precip === undefined ? "No cloud or rain data in this scene. " : ""}${data.plan_note}`;
+    `light from the computed sun position. ${data.weather ? `Cloud and rain: ${data.weather.credit}. ` : "No cloud or rain data in this scene. "}${data.plan_note}`;
   t = data.samples[0][0];
   $("log").innerHTML = "";
   lastToast = -1;
@@ -616,9 +640,11 @@ function toast(text, kind) {
 }
 function updateHud(s) {
   const start = new Date(data.start), now = new Date(start.getTime() + (t - data.samples[0][0]) * 1000);
-  const sun = sunPosition(now, s.lat, s.lon), light = applyDaylight(sun);
+  const cloud = F.cloud === undefined ? null : s.cloud, precip = F.precip === undefined ? 0 : s.precip;
+  const sun = sunPosition(now, s.lat, s.lon), light = applyDaylight(sun, cloud, precip);
   $("clock").textContent = `${now.toISOString().slice(0, 16).replace("T", " ")} UTC · ${light}, sun ${sun.elev.toFixed(0)}° · ` +
-    `whitecaps ${(whitecapFraction(Math.hypot(s.wind_e, s.wind_n)) * 100).toFixed(0)}%`;
+    `whitecaps ${(whitecapFraction(Math.hypot(s.wind_e, s.wind_n)) * 100).toFixed(0)}%` +
+    (cloud === null ? "" : ` · cloud ${cloud.toFixed(0)}% · rain ${precip.toFixed(1)} mm/h`);
   const order = [...data.orders].reverse().find((o) => o.t <= t) || data.orders[0];
   $("heading").textContent = `${s.heading.toFixed(0)}°`;
   $("order").textContent = `order ${order.heading_deg.toFixed(0)}°`;
@@ -684,6 +710,7 @@ function frame(now) {
                         z - Math.cos(bearing) * horizontal);
     camera.lookAt(x, y * 0.5 + 12, z);
     sky.position.copy(camera.position);
+    sky.material.uniforms.uTime.value = visualTime;
     ocean.position.set(Math.round(x / NEAR_STEP) * NEAR_STEP, 0, Math.round(z / NEAR_STEP) * NEAR_STEP);
     farSea.position.set(Math.round(x / FAR_STEP) * FAR_STEP, -0.3, Math.round(z / FAR_STEP) * FAR_STEP);
     farMaterial.uniforms.uHole.value.set(ocean.position.x, ocean.position.z, NEAR / 2 - 30);
@@ -705,7 +732,7 @@ function frame(now) {
     containerMesh.instanceMatrix.needsUpdate = true;
     // rain around the camera, heavier with wind
     const windMs = Math.hypot(s.wind_e, s.wind_n), precip = F.precip === undefined ? 0 : s.precip; // mm/h, ERA5 when present
-    const n = Math.min(RAIN, Math.floor(RAIN * precip / 8));
+    const n = Math.min(RAIN, Math.floor(RAIN * Math.min(1, precip / 4)));
     oceanUniforms.uWhitecap.value = whitecapFraction(windMs);
     oceanUniforms.uWindDir.value.set(s.wind_e, -s.wind_n); // direction the wind blows towards, in scene axes
     const wx = s.wind_e * 0.6, wz = -s.wind_n * 0.6;

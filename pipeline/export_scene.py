@@ -13,7 +13,10 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -38,6 +41,11 @@ DURATION_S = 1800
 RECORD_S = 0.5
 MARGIN = 0.5  # degrees kept between the start and the data edge
 CREDIT = "Generated using E.U. Copernicus Marine Service Information"
+# Cloud cover and precipitation are not in Copernicus Marine products. ERA5 (Copernicus Climate Change
+# Service) has them; Open-Meteo serves ERA5 hourly by point without an account.
+WEATHER_URL = "https://archive-api.open-meteo.com/v1/archive"
+WEATHER_CREDIT = ("Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, "
+                  "Copernicus Climate Change Service (C3S)")
 
 
 def environment(region: str, start: datetime, lon: float, lat: float) -> CopernicusEnvironment:
@@ -111,6 +119,32 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
     return path
 
 
+def add_weather(path: Path) -> Path:
+    """Add hourly ERA5 cloud cover (%) and precipitation (mm/h) at the scene's start point to each sample."""
+    scene = json.loads(path.read_text())
+    if "cloud" in scene["fields"]:
+        return path
+    lon, lat = scene["start_lon_lat"]
+    start = pd.Timestamp(scene["start"]).tz_convert(None)
+    times = start + pd.to_timedelta([row[0] for row in scene["samples"]], unit="s")
+    query = urlencode({"latitude": round(lat, 3), "longitude": round(lon, 3), "models": "era5",
+                       "start_date": f"{times[0]:%Y-%m-%d}", "end_date": f"{times[-1]:%Y-%m-%d}",
+                       "hourly": "cloud_cover,precipitation"})
+    with urlopen(f"{WEATHER_URL}?{query}", timeout=60) as response:
+        hourly = json.load(response)["hourly"]
+    hours = pd.to_datetime(hourly["time"]).astype("int64") / 1e9
+    at = times.astype("int64") / 1e9
+    # precipitation is the total of the hour ending at each stamp; cloud cover is instantaneous
+    cloud = np.interp(at, hours, hourly["cloud_cover"])
+    precip = np.array(hourly["precipitation"], dtype=float)[np.clip(np.searchsorted(hours, at), 0, len(hours) - 1)]
+    for row, c, r in zip(scene["samples"], cloud, precip):
+        row += [round(float(c)), round(float(r), 2)]
+    scene["fields"] += ["cloud", "precip"]
+    scene["weather"] = {"source": WEATHER_URL, "model": "era5", "point_lat_lon": [lat, lon], "credit": WEATHER_CREDIT}
+    path.write_text(json.dumps(scene, separators=(",", ":")))
+    return path
+
+
 def write_index(region: str) -> Path:
     """List every catalogued storm for the scene picker, marking the ones with an exported scene."""
     catalogue = json.loads((STORMS / f"{region}.json").read_text())
@@ -127,13 +161,18 @@ def main() -> None:
     parser.add_argument("storms", nargs="*")
     parser.add_argument("--index", choices=REGIONS, help="only rewrite scenes/index.json for this region")
     parser.add_argument("--start", help="UTC start, e.g. 2026-01-23T11:40Z (default: 20 min before the peak)")
+    parser.add_argument("--weather-only", action="store_true", help="add ERA5 cloud and rain to existing scenes")
     args = parser.parse_args()
     if args.index:
         print(write_index(args.index))
         return
+    if args.weather_only:
+        for storm_id in args.storms:
+            print(add_weather(OUT / f"{storm_id}.json"))
+        return
     for storm_id in args.storms:
         start = datetime.fromisoformat(args.start.replace("Z", "+00:00")) if args.start else None
-        path = export(storm_id, start)
+        path = add_weather(export(storm_id, start))
         scene = json.loads(path.read_text())
         print(f"{path.name}: {len(scene['samples'])} samples, lost {scene['cargo']['lost_teu']} TEU, stop {scene['stop']}"
               f", {path.stat().st_size / 1e6:.2f} MB")
