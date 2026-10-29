@@ -3,9 +3,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { spectrumWaves, waveUniforms, detailWaves, heightAt, OCEAN_VERTEX, OCEAN_FRAGMENT } from "./ocean.js";
 import { CargoFallView } from "./cargo-fall-view.js";
+import { createPanel } from "./panel.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout } from "./cargo-layout.js";
-import { sampleAt, latest, toLocal, fromScene } from "./replay.js";
+import { sampleAt, toLocal, fromScene } from "./replay.js";
 
 const q = new URLSearchParams(location.search);
 const loader = new GLTFLoader();
@@ -255,7 +256,7 @@ function placeShip(s) {
 }
 
 // --- playback controls
-const ui = Object.fromEntries(["play", "scrub", "clock", "sea", "helm", "motion", "cargo", "weather", "fps", "scene", "credit", "slowmo"].map((id) => [id, document.getElementById(id)]));
+const ui = Object.fromEntries(["play", "scrub", "fps", "scene", "credit", "slowmo", "panel", "panel-toggle"].map((id) => [id, document.getElementById(id)]));
 let simT = 0, rate = 5, playing = true;
 ui.scrub.max = duration;
 ui.play.onclick = () => {
@@ -269,20 +270,13 @@ for (const b of document.querySelectorAll("[data-rate]"))
     document.querySelectorAll("[data-rate]").forEach((x) => x.setAttribute("aria-pressed", x === b));
   };
 
-const fmt = (s) => new Date(s * 1000).toISOString().slice(11, 19);
-function showState(s) {
-  const order = latest(replay.orders, s.t), cargo = latest(replay.cargo, s.t);
-  const windSpeed = Math.hypot(s.wind_e, s.wind_n);
-  ui.play.textContent = playing ? "Pause" : "Play";
-  ui.clock.textContent = `${new Date(startMs + s.t * 1000).toISOString().slice(11, 19)} UTC · elapsed ${fmt(s.t)} / ${fmt(duration)}`;
-  ui.helm.textContent = `Heading ${s.heading.toFixed(0)}° → ${order.heading_deg}° · speed ${replay.speed_label ?? "over ground"} ` +
-    `${(s.sog * 3600 / 1852).toFixed(1)} → ${order.speed_knots.toFixed(1)} kn`;
-  ui.motion.textContent = `Roll ${s.roll.toFixed(1)}° · pitch ${s.pitch.toFixed(1)}° · heave ${s.heave.toFixed(1)} m`;
-  ui.sea.textContent = `${dev ? "DEV OVERRIDE · " : ""}Hs ${(dev ? sea.hs : s.hs).toFixed(2)} m · Tp ${(dev ? sea.tp : s.tp).toFixed(1)} s · ` +
-    `waves from ${Math.round(dev ? sea.fromDeg : s.wave_from)}° · wind ${windSpeed.toFixed(1)} m/s`;
-  ui.cargo.textContent = `Cargo ${(cargo.total_teu - cargo.lost_teu).toLocaleString()} / ${cargo.total_teu.toLocaleString()} TEU · grade ${cargo.grade}`;
-  ui.weather.textContent = s.cloud === undefined ? "" : `Cloud ${Math.round(s.cloud)}% · rain ${s.precip.toFixed(1)} mm/h (ERA5)`;
-}
+const updatePanel = createPanel({ replay, startMs, duration, dev, sea });
+let slowUntil = 0; // after a cargo grade rise
+ui["panel-toggle"].onclick = () => {
+  const open = ui.panel.dataset.collapsed === "true";
+  ui.panel.dataset.collapsed = String(!open);
+  ui["panel-toggle"].setAttribute("aria-expanded", String(open));
+};
 
 ui.scene.value = sceneId ?? "replay";
 ui.scene.onchange = () => (location.search = ui.scene.value === "replay" ? "?replay=./replays/menorca-20260909.json" : `?scene=${ui.scene.value}`);
@@ -308,7 +302,7 @@ const prev = new THREE.Vector3();
 renderer.setAnimationLoop((now) => {
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
-  const slow = ui.slowmo.checked && fallView.falling(simT); // watch each fall at 2x at most
+  const slow = ui.slowmo.checked && (fallView.falling(simT) || now < slowUntil); // watch each fall at 2x at most
   if (playing) simT = Math.min(simT + dt * (slow ? Math.min(rate, 2) : rate), duration);
   if (simT >= duration) playing = false;
   const s = sampleAt(replay, simT);
@@ -351,7 +345,8 @@ renderer.setAnimationLoop((now) => {
   if (now - uiAt > 100) {
     uiAt = now;
     if (document.activeElement !== ui.scrub) ui.scrub.value = simT;
-    showState(s);
+    ui.play.textContent = playing ? "Pause" : "Play";
+    if (updatePanel(s, now)) slowUntil = now + 2500;
   }
   frames++;
   if (now - lastFps > 1000) {

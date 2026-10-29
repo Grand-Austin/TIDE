@@ -5,6 +5,19 @@ import { sunPosition } from "./sky.js";
 import { sampleAt, latest, fromScene } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
 
+test("panel numbers come from released cargo and sea state", async () => {
+  globalThis.document ??= {}; // panel.js only touches the DOM inside createPanel
+  const { cargoStatus, relativeSea, lossLog } = await import("./panel.js");
+  expect(cargoStatus({ total_teu: 1200, lost_teu: 480, grade: 5 })).toMatchObject({ totalPct: 60, deckPct: 0 });
+  expect(relativeSea(287, 287).label).toBe("head seas");
+  expect(relativeSea(17, 287).label).toBe("beam seas, port");
+  expect(relativeSea(62, 287).label).toBe("quartering seas, port");
+  expect(relativeSea(100, 190).label).toBe("beam seas, starboard");
+  const log = lossLog({ events: [{ time_s: 5, kind: "cargo_lost", unit_ids: ["deck-180"] }],
+    cargo: [{ t: 0, grade: 0 }, { t: 5, grade: 1 }] }, 10);
+  expect(log.map((e) => e.text)).toEqual(["1 unit overboard", "Cargo loss grade 1"]);
+});
+
 test("ship frame turns like the rendered ship", () => {
   // heading 90 (east): the bow (-z in the model) points to +x and starboard (+x) to +z (south)
   const east = { heading: 90, pitch: 0, roll: 0 };
