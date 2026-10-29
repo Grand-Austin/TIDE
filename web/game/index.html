@@ -313,7 +313,7 @@ scene.add(ship);
   deck.lineTo(-L / 2, -half);
   const hullGeom = new THREE.ExtrudeGeometry(deck, { depth: DRAFT + FREEBOARD, bevelEnabled: false });
   hullGeom.rotateX(Math.PI / 2).translate(0, FREEBOARD, 0); // shape y → scene z (starboard = +z)
-  const hull = new THREE.Mesh(hullGeom, new THREE.MeshStandardMaterial({ color: 0x1d3557, roughness: 0.6 }));
+  const hull = new THREE.Mesh(hullGeom, new THREE.MeshStandardMaterial({ color: 0x16191d, roughness: 0.55 }));
   ship.add(hull);
   const boot = new THREE.Mesh(hullGeom.clone().scale(1.002, 0.62, 1.002).translate(0, -3.9, 0),
     new THREE.MeshStandardMaterial({ color: 0x8b2a22, roughness: 0.7 }));
@@ -338,11 +338,36 @@ scene.add(ship);
   const bridge = new THREE.Mesh(new THREE.BoxGeometry(8, 3, B + 4), white);
   bridge.position.set(-L / 2 + 17, FREEBOARD + 19, 0);
   ship.add(bridge);
+  const mast = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 1), white);
+  mast.position.set(-L / 2 + 17, FREEBOARD + 24, 0);
+  ship.add(mast);
+  const yard = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 9), white);
+  yard.position.set(-L / 2 + 17, FREEBOARD + 26.5, 0);
+  ship.add(yard);
+  // lashing bridges between container bays
+  const steel = new THREE.MeshStandardMaterial({ color: 0x7d858c, roughness: 0.7, metalness: 0.3 });
+  for (let bay = 0; bay <= 10; bay++) {
+    const x = -L / 2 + 24 + bay * 12.9 - 0.35;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.4, B - 1.2), steel);
+    frame.position.set(x, FREEBOARD + 2.7, 0);
+    ship.add(frame);
+  }
+  // hull name on both bows: a fictional training ship, not a real operator's livery
+  const label = document.createElement("canvas"); label.width = 512; label.height = 128;
+  const lc = label.getContext("2d"); lc.fillStyle = "#f2f4f5"; lc.font = "bold 86px system-ui"; lc.textAlign = "center"; lc.textBaseline = "middle";
+  lc.fillText("TIDE S175", 256, 66);
+  const nameMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(label), transparent: true });
+  for (const sideZ of [-1, 1]) {
+    const name = new THREE.Mesh(new THREE.PlaneGeometry(22, 5.5), nameMat);
+    name.position.set(L / 2 - 36, FREEBOARD - 2.2, sideZ * (B / 2 + 0.05));
+    name.rotation.y = sideZ > 0 ? 0 : Math.PI;
+    ship.add(name);
+  }
   const funnel = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3, 8, 16), new THREE.MeshStandardMaterial({ color: 0xc0392b }));
   funnel.position.set(-L / 2 + 6, FREEBOARD + 24, 0);
   ship.add(funnel);
 }
-const COLORS = [0xb04a3a, 0x2f5fa8, 0x5b8fd0, 0xc25a45, 0x3d6fb8, 0xd9dde0, 0xa34536, 0x4a7cc4, 0x8a9199, 0x3b8f8a];
+const COLORS = [0xa33a2c, 0x7a2a26, 0xd9a520, 0xe4e6e8, 0x9aa1a8, 0x2f5fa8, 0xc8642c, 0x2f8f8a, 0xb8453a, 0xcfd3d6];
 const SLOT = { length: 12.2, pitch: 12.9, width: 2.28, height: 2.6, rows: 11, x0: -L / 2 + 24 };
 const containerMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.75 }), 320);
 ship.add(containerMesh);
