@@ -81,11 +81,12 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
             events.append({"t": round(sample.time_s, 2), "kind": event["kind"], "detail": event["detail"],
                            "units": event.get("unit_ids", [])})
         if round(sample.time_s / sim.settings.dt_s) % record_ticks == 0:
-            samples.append([round(v, 3) for v in (
+            # lon/lat need 6 decimals (about 0.1 m); 3 decimals moved the ship in 75–110 m jumps
+            samples.append([round(v, 6 if i in (1, 2) else 3) for i, v in enumerate((
                 sample.time_s, sample.lon, sample.lat, sample.heading_deg, sample.roll_deg, sample.pitch_deg,
                 sample.heave_m, sample.speed_through_water_mps, sample.hs_m, sample.tp_s, sample.wave_from_deg,
                 sample.wind_east_mps, sample.wind_north_mps, sample.current_east_mps, sample.current_north_mps,
-                cargo["lost_teu"], cargo["grade"])])
+                cargo["lost_teu"], cargo["grade"]))])
         return None
 
     stop = "duration_reached"
