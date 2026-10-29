@@ -30,6 +30,26 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def check_vessel(model, pinned):
+    """Accept the pinned prepared file, or one prepared elsewhere from the same pinned source.
+
+    Prepared bytes differed between two machines with identical source files, so a fresh
+    clone also accepts a file whose provenance names the pinned commit, loading condition
+    and source checksum. load_s175 still checks the file against its own provenance.
+    """
+    if digest(model / "vessel.npz") == pinned["sha256"]:
+        return
+    provenance = json.loads((model / "provenance.json").read_text())
+    manifest = json.loads((ROOT / "data/vessels/s175/manifest.json").read_text())
+    source = next(f["sha256"] for f in manifest["source_files"] if f["path"].endswith("s175.mat"))
+    if (
+        provenance.get("source_commit") != pinned["source_commit"]
+        or provenance.get("loading_condition") != pinned["loading_condition"]
+        or provenance.get("source_sha256") != source
+    ):
+        raise ValueError("Scenario vessel checksum mismatch")
+
+
 @dataclass(frozen=True)
 class Scenario:
     definition: dict
@@ -59,8 +79,7 @@ class Scenario:
     def simulation(self, environment, seed=None):
         d = self.definition
         model = self.root / d["vessel"]["path"]
-        if digest(model / "vessel.npz") != d["vessel"]["sha256"]:
-            raise ValueError("Scenario vessel checksum mismatch")
+        check_vessel(model, d["vessel"])
         return Simulation(
             load_s175(model),
             environment,

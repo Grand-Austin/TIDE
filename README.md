@@ -54,6 +54,8 @@ uv run python -m game.simulation --seconds 60
 uv run python -m pytest
 ```
 
+CI (`.github/workflows/ci.yml`) runs the same steps on a fresh clone for every push and pull request, plus a two-minute scripted game run. No secrets are needed: tests use the committed Copernicus subsets.
+
 Copernicus Marine data needs a free account. Log in once with `copernicusmarine login`; credentials stay on your machine and must never be committed.
 
 ## Copernicus Marine products

@@ -51,6 +51,23 @@ def test_heading_and_distance():
     assert heading == 180
 
 
+def test_vessel_prepared_elsewhere_from_the_pinned_source_is_accepted(tmp_path):
+    import shutil
+    from game.scenario import check_vessel
+
+    model = tmp_path / "s175"
+    shutil.copytree("data/processed/s175", model)
+    pinned = json.loads(SOURCE.read_text())["vessel"]
+    check_vessel(model, dict(pinned, sha256="prepared on another machine"))
+    with pytest.raises(ValueError, match="vessel checksum"):
+        check_vessel(model, dict(pinned, sha256="other", source_commit="other"))
+    provenance = json.loads((model / "provenance.json").read_text())
+    provenance["source_sha256"] = "other"
+    (model / "provenance.json").write_text(json.dumps(provenance))
+    with pytest.raises(ValueError, match="vessel checksum"):
+        check_vessel(model, dict(pinned, sha256="other"))
+
+
 def test_scenario_split_run_preserves_runtime_state():
     import numpy as np
     from game.simulation.runtime import Command
