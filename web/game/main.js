@@ -131,6 +131,9 @@ const oceanUniforms = {
   uB: { value: wu.b.map((v) => new THREE.Vector4(...v)) },
   uDetailMap: { value: detailTexture },
   uShip: { value: new THREE.Vector4() },
+  uSplash: { value: [] },
+  uFloat: { value: [] },
+  uBowFoam: { value: 0 },
   uEnv: { value: cubeTarget.texture },
   uTime: { value: 0 },
   uAmp: { value: 1 },
@@ -240,7 +243,13 @@ const waterAt = (x, z, t) => {
   if (t !== ampT) [ampT, amp] = [t, dev ? 1 : sampleAt(replay, t).hs / sea.hs];
   return heightAt(waves, x, z, t, amp);
 };
-const fallView = new CargoFallView({ units, parts, lostAt, env: { poseAt, waterAt } });
+const windAt = (t) => {
+  const s = sampleAt(replay, t);
+  return [s.wind_e, s.wind_n];
+};
+const fallView = new CargoFallView({ units, parts, lostAt, env: { poseAt, waterAt, windAt } });
+oceanUniforms.uSplash.value = fallView.splashSpots;
+oceanUniforms.uFloat.value = fallView.floatSpots;
 scene.add(fallView.object);
 const bowSpray = new BowSpray(waterAt);
 scene.add(bowSpray.points);
@@ -311,7 +320,7 @@ ui.credit.textContent = [replay.note, ...(replay.credits ?? ["Recorded TIDE sess
 function resize() {
   renderer.setSize(innerWidth, innerHeight);
   // pixels per metre at 1 m distance, for spray points
-  sprayUniforms.uPixels.value = bowSpray.points.material.uniforms.uPixels.value =
+  sprayUniforms.uPixels.value = bowSpray.points.material.uniforms.uPixels.value = fallView.splash.material.uniforms.uPixels.value =
     (innerHeight * renderer.getPixelRatio()) / (2 * Math.tan((camera.fov * Math.PI) / 360));
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
@@ -360,16 +369,18 @@ renderer.setAnimationLoop((now) => {
   rainUniforms.uTime.value = now / 1000;
   rainUniforms.uLight.value = THREE.MathUtils.lerp(0.4, 1, day);
   updateCargo(simT);
-  fallView.update(simT);
+  fallView.update(simT, ship.position);
   ship.updateMatrixWorld();
   const [a, b] = [poseAt(simT - 0.5), poseAt(simT + 0.5)];
   bowSpray.update(ship, simT, simT - lastSimT, wind, shipVelocity.set(b.x - a.x, 0, b.z - a.z));
   lastSimT = simT;
+  oceanUniforms.uBowFoam.value = bowSpray.slam;
   oceanUniforms.uShip.value.set(ship.position.x, ship.position.z, s.heading * RAD, s.sog);
   sprayUniforms.uWind.value.copy(oceanUniforms.uWind.value);
   sprayUniforms.uWindSpeed.value = wind.length();
   sprayUniforms.uStorm.value = storm;
-  sprayUniforms.uLight.value = bowSpray.points.material.uniforms.uLight.value = THREE.MathUtils.lerp(0.35, 1, day);
+  sprayUniforms.uLight.value = bowSpray.points.material.uniforms.uLight.value = fallView.splash.material.uniforms.uLight.value =
+    THREE.MathUtils.lerp(0.35, 1, day);
   updateSun(simT);
   sky.position.copy(camera.position);
   sun.target.position.copy(ship.position);

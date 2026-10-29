@@ -4,14 +4,22 @@
 //
 // env.poseAt(t)       -> { x, y, z, heading, pitch, roll } ship pose in world metres (x east, y up, z south) and degrees
 // env.waterAt(x, z, t) -> water surface height (m)
+// env.windAt(t)        -> [east, north] wind (m/s), optional: floating boxes drift with it
 // unit                -> { position: [x, y, z] } box bottom centre in the ship frame (x starboard, y up, -z forward)
 
 const G = 9.81, RAD = Math.PI / 180;
 const EDGE = 14.0; // box centre is clear of the 25.4 m beam
-const HALF_HEIGHT = 1.3, FREEBOARD = 0.7, BOX_HEIGHT = 2.591;
+const HALF_HEIGHT = 1.3, BOX_HEIGHT = 2.591;
 const TUMBLE = 1.2; // rad/s while airborne
-// shortcut: real boxes can float for days; these sink after FLOAT_S so the sea clears, raise it if that matters
-const FLOAT_S = 120, SINK_RATE = 0.08, GONE_DEPTH = 10;
+// shortcut: about a third of the boxes stay afloat (real ones can float for days, low in the water);
+// the rest plunge, bob up and go down end first within a minute. FLOATER_S keeps the sea from filling up.
+const FLOATER_SHARE = 0.3, FLOATER_S = 900, SINK_RATE = 0.15, GONE_DEPTH = 10, LEEWAY = 0.035;
+
+// Stable per-box numbers in [0, 1) from its deck position, so a replay always looks the same.
+const hash = (x, z, k) => {
+  const v = Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453;
+  return v - Math.floor(v);
+};
 
 // Rotate a ship-frame vector into the world like three.js Euler(pitch, -heading, -roll, "YXZ").
 export function shipToWorld(pose, [x, y, z]) {
@@ -49,10 +57,15 @@ export function cargoFall(unit, lostAt, env) {
     }
   }
   const tImpact = tEdge + airS, impact = flight(airS);
-  const spin = side * TUMBLE * airS;
+  const spin = side * TUMBLE * airS, impactSpeed = Math.hypot(v0[0], v0[1] - G * airS, v0[2]);
+  const floater = hash(x0, z0, 1) < FLOATER_SHARE;
+  const floatS = floater ? FLOATER_S : 20 + 40 * hash(x0, z0, 2);
+  const freeboard = floater ? 0.25 + 0.5 * hash(x0, z0, 3) : 0.6;
+  const endFirst = hash(x0, z0, 4) < 0.5 ? 1 : -1;
+  const [we, wn] = env.windAt ? env.windAt(tImpact) : [0, 0];
 
   return {
-    side, tEdge, tImpact, impact,
+    side, tEdge, tImpact, impact, impactSpeed, floatS,
     at(t) {
       if (t < lostAt) return { phase: "deck" };
       if (t < tEdge) {
@@ -64,17 +77,20 @@ export function cargoFall(unit, lostAt, env) {
         const dt = t - tEdge;
         return { phase: "air", position: flight(dt), euler: [pe.pitch * RAD, -pe.heading * RAD, -pe.roll * RAD - side * TUMBLE * dt] };
       }
-      const age = t - tImpact, keep = 8 * (1 - Math.exp(-age / 8)); // drift that dies out in the water
-      const x = impact[0] + v0[0] * keep, z = impact[2] + v0[2] * keep;
-      const sink = Math.max(0, age - FLOAT_S) * SINK_RATE;
+      const age = t - tImpact, keep = 8 * (1 - Math.exp(-age / 8)); // momentum that dies out in the water
+      const x = impact[0] + v0[0] * keep + we * LEEWAY * age, z = impact[2] + v0[2] * keep - wn * LEEWAY * age;
+      const sink = Math.max(0, age - floatS) * SINK_RATE;
       if (sink > GONE_DEPTH) return { phase: "gone" };
+      // it plunges under on impact, then bobs back up to its floating level
+      const plunge = Math.min(impactSpeed * 0.3, 4) * Math.exp(-age * 0.9) * Math.cos(age * 2.2);
       const h = env.waterAt(x, z, t);
       const sx = (env.waterAt(x + 2, z, t) - env.waterAt(x - 2, z, t)) / 4;
       const sz = (env.waterAt(x, z + 2, t) - env.waterAt(x, z - 2, t)) / 4;
+      const nose = endFirst * Math.min(sink / 5, 1) * 0.9; // a sinking box goes down one end first
       return {
-        phase: "water",
-        position: [x, h - BOX_HEIGHT + FREEBOARD - sink, z],
-        euler: [Math.atan(sz) * 0.7, -pe.heading * RAD + age * 0.02 * side, -pe.roll * RAD - spin - Math.atan(sx) * 0.7],
+        phase: "water", floater, sinking: sink > 0,
+        position: [x, h - BOX_HEIGHT + freeboard - sink - plunge, z],
+        euler: [Math.atan(sz) * 0.7 + nose, -pe.heading * RAD + age * 0.004 * side, -pe.roll * RAD - spin - Math.atan(sx) * 0.7],
       };
     },
   };

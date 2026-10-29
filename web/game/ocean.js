@@ -3,6 +3,7 @@
 
 const G = 9.81;
 export const N_WAVES = 24;
+export const FOAM_SPOTS = 12; // splash rings and floating boxes the sea shows as white water
 
 function mulberry32(seed) {
   return () => {
@@ -144,7 +145,9 @@ uniform sampler2D uDetailMap;
 uniform vec3 uSun, uSunColor, uDeep, uScatter, uFogColor;
 uniform vec2 uWind;
 uniform vec4 uShip;    // x, z, heading (rad), speed (m/s)
-uniform float uTime, uHs, uFogDensity, uFoamAmount, uRipple, uDay;
+uniform vec4 uSplash[${FOAM_SPOTS}]; // x, z, age (s), strength: rings where boxes hit the water
+uniform vec4 uFloat[${FOAM_SPOTS}];  // x, z, yaw (rad), half length (m): white water round floating boxes
+uniform float uTime, uHs, uFogDensity, uFoamAmount, uRipple, uDay, uBowFoam;
 varying vec3 vWorld;
 varying vec3 vNormal;
 varying float vFoam;
@@ -166,10 +169,26 @@ float shipFoam(vec2 p) {
   float stb = rel.x * cos(uShip.z) + rel.y * sin(uShip.z);
   float body = max(abs(fwd) - 20.0, 0.0) / 71.0;
   float half_b = 12.7 * sqrt(max(1.0 - body * body, 0.0));
-  float hull = abs(fwd) < 91.0 ? smoothstep(4.5, 0.5, abs(abs(stb) - half_b)) * (0.35 + 0.65 * smoothstep(20.0, 85.0, fwd)) : 0.0;
+  float bow = smoothstep(20.0, 85.0, fwd);
+  float hull = abs(fwd) < 91.0 ? smoothstep(4.5 + 4.0 * uBowFoam * bow, 0.5, abs(abs(stb) - half_b)) * (0.35 + (0.65 + uBowFoam) * bow) : 0.0;
   float aft = -fwd - 88.0, width = 8.0 + aft * 0.36; // wake widens behind the stern
   float wake = aft > 0.0 ? smoothstep(width, width * 0.25, abs(stb)) * exp(-aft / 380.0) : 0.0;
   return (hull + 0.8 * wake) * smoothstep(0.5, 4.0, uShip.w);
+}
+
+float cargoFoam(vec2 p) {
+  float f = 0.0;
+  for (int i = 0; i < ${FOAM_SPOTS}; i++) {
+    vec4 s = uSplash[i];
+    float dist = length(p - s.xy), r = 2.0 + s.z * 3.5, fade = exp(-s.z / 4.0) * s.w;
+    f += (smoothstep(2.5, 0.0, abs(dist - r)) + smoothstep(r, 0.0, dist) * exp(-s.z / 1.5)) * fade;
+    vec4 b = uFloat[i];
+    vec2 rel = p - b.xy;
+    vec2 local = vec2(dot(rel, vec2(cos(b.z), -sin(b.z))), dot(rel, vec2(sin(b.z), cos(b.z)))); // across, along the box
+    float e = length(vec2(local.x / 2.2, local.y / max(b.w, 0.1)));
+    f += b.w > 0.0 ? smoothstep(1.8, 1.0, e) * 0.8 : 0.0;
+  }
+  return f;
 }
 
 void main() {
@@ -199,7 +218,7 @@ void main() {
   vec2 q = toWind * vWorld.xz;
   float bubbles = texture2D(uDetailMap, q / vec2(9.0, 26.0) + vec2(0.0, uTime * 0.03)).a * 0.6
                 + texture2D(uDetailMap, q / vec2(2.7, 6.0) + vec2(0.3, uTime * 0.08)).a * 0.4;
-  float cover = vFoam * uFoamAmount * 1.6 + shipFoam(vWorld.xz);
+  float cover = vFoam * uFoamAmount * 1.6 + shipFoam(vWorld.xz) + cargoFoam(vWorld.xz);
   float foam = clamp(cover - (1.0 - smoothstep(0.25, 0.7, bubbles)) * 0.9, 0.0, 1.0);
   col = mix(col, vec3(0.8, 0.84, 0.86) * (0.6 + 0.4 * max(dot(vNormal, uSun), 0.0)) * mix(vec3(0.3, 0.36, 0.48), vec3(1.0), uDay), foam);
 

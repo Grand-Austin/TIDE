@@ -38,10 +38,21 @@ test("a lost box leaves the low side, splashes, floats, then sinks", () => {
   expect(air.phase).toBe("air");
   expect(air.position[0]).toBeGreaterThan(12);
   expect(f.impact[1] + 1.3).toBeLessThanOrEqual(0.01);
-  const floating = f.at(f.tImpact + 30);
-  expect(floating.phase).toBe("water");
-  expect(floating.position[1]).toBeCloseTo(0.7 - 2.591, 6);
-  expect(f.at(f.tImpact + 120 + 200).phase).toBe("gone");
+  const settled = f.at(f.tImpact + Math.min(f.floatS, 15));
+  expect(settled.phase).toBe("water");
+  expect(settled.position[1]).toBeGreaterThan(-2.6);
+  expect(settled.position[1]).toBeLessThan(0);
+  expect(f.at(f.tImpact + f.floatS + 100).phase).toBe("gone");
+});
+
+test("about a third of the lost boxes stay afloat, the rest sink within a minute", () => {
+  const env = { poseAt: () => ({ x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 15 }), waterAt: () => 0, windAt: () => [10, 0] };
+  const falls = deckLayout([-11, 7.7, 47.45]).map((u) => cargoFall(u, 0, env));
+  const share = falls.filter((f) => f.floatS > 60).length / falls.length;
+  expect(share).toBeGreaterThan(0.2);
+  expect(share).toBeLessThan(0.4);
+  const f = falls.find((x) => x.floatS > 60), a = f.at(f.tImpact + 60), b = f.at(f.tImpact + 120);
+  expect(b.position[0] - a.position[0]).toBeCloseTo(10 * 0.035 * 60, 1); // drifts downwind (east) at the leeway rate
 });
 
 test("replay interpolation passes through samples and turns the short way", () => {
