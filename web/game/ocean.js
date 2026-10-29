@@ -103,7 +103,7 @@ varying float vFoam;
 void main() {
   float jac;
   vWorld = gerstner(position.xz + uCenter.xz, length(position.xz), uTime, vNormal, jac);
-  vFoam = smoothstep(0.6, 0.3, jac);
+  vFoam = 1.0 - smoothstep(0.3, 0.6, jac);
   gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.0);
 }`;
 
@@ -170,9 +170,9 @@ float shipFoam(vec2 p) {
   float body = max(abs(fwd) - 20.0, 0.0) / 71.0;
   float half_b = 12.7 * sqrt(max(1.0 - body * body, 0.0));
   float bow = smoothstep(20.0, 85.0, fwd);
-  float hull = abs(fwd) < 91.0 ? smoothstep(4.5 + 4.0 * uBowFoam * bow, 0.5, abs(abs(stb) - half_b)) * (0.35 + (0.65 + uBowFoam) * bow) : 0.0;
+  float hull = abs(fwd) < 91.0 ? (1.0 - smoothstep(0.5, 4.5 + 4.0 * uBowFoam * bow, abs(abs(stb) - half_b))) * (0.35 + (0.65 + uBowFoam) * bow) : 0.0;
   float aft = -fwd - 88.0, width = 8.0 + aft * 0.36; // wake widens behind the stern
-  float wake = aft > 0.0 ? smoothstep(width, width * 0.25, abs(stb)) * exp(-aft / 380.0) : 0.0;
+  float wake = aft > 0.0 ? (1.0 - smoothstep(width * 0.25, width, abs(stb))) * exp(-aft / 380.0) : 0.0;
   return (hull + 0.8 * wake) * smoothstep(0.5, 4.0, uShip.w);
 }
 
@@ -181,12 +181,12 @@ float cargoFoam(vec2 p) {
   for (int i = 0; i < ${FOAM_SPOTS}; i++) {
     vec4 s = uSplash[i];
     float dist = length(p - s.xy), r = 2.0 + s.z * 3.5, fade = exp(-s.z / 4.0) * s.w;
-    f += (smoothstep(2.5, 0.0, abs(dist - r)) + smoothstep(r, 0.0, dist) * exp(-s.z / 1.5)) * fade;
+    f += ((1.0 - smoothstep(0.0, 2.5, abs(dist - r))) + (1.0 - smoothstep(0.0, r, dist)) * exp(-s.z / 1.5)) * fade;
     vec4 b = uFloat[i];
     vec2 rel = p - b.xy;
     vec2 local = vec2(dot(rel, vec2(cos(b.z), -sin(b.z))), dot(rel, vec2(sin(b.z), cos(b.z)))); // across, along the box
     float e = length(vec2(local.x / 2.2, local.y / max(b.w, 0.1)));
-    f += b.w > 0.0 ? smoothstep(1.8, 1.0, e) * 0.8 : 0.0;
+    f += b.w > 0.0 ? (1.0 - smoothstep(1.0, 1.8, e)) * 0.8 : 0.0;
   }
   return f;
 }
@@ -244,11 +244,11 @@ void main() {
   vec3 n;
   float jac;
   vec3 P = gerstner(uCenter.xz + vec2(cos(ang), sin(ang)) * rad, rad, uTime - age, n, jac);
-  float breaking = smoothstep(0.45, 0.28, jac) * uStorm;
+  float breaking = (1.0 - smoothstep(0.28, 0.45, jac)) * uStorm;
   vec3 pos = P + vec3(uWind.x, 0.0, uWind.y) * uWindSpeed * 0.45 * age + vec3(0.0, 3.0 * age - 4.9 * age * age, 0.0);
   vAlpha = breaking * (1.0 - age / life);
   vec4 mv = viewMatrix * vec4(pos, 1.0);
-  gl_PointSize = breaking > 0.02 ? uPixels * (0.7 + 1.2 * age) / -mv.z : 0.0;
+  gl_PointSize = breaking > 0.02 ? min(uPixels * (0.7 + 1.2 * age) / -mv.z, 96.0) : 0.0;
   gl_Position = projectionMatrix * mv;
 }`;
 
@@ -257,5 +257,5 @@ uniform float uLight;
 varying float vAlpha;
 void main() {
   float d = length(gl_PointCoord - 0.5);
-  gl_FragColor = vec4(vec3(0.88, 0.91, 0.93) * uLight, vAlpha * 0.55 * smoothstep(0.5, 0.1, d));
+  gl_FragColor = vec4(vec3(0.88, 0.91, 0.93) * uLight, vAlpha * 0.55 * (1.0 - smoothstep(0.1, 0.5, d)));
 }`;

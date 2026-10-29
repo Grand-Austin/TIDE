@@ -16,7 +16,7 @@ export function sprayMaterial() {
       void main() {
         vec2 c = gl_PointCoord - 0.5;
         float ragged = 0.7 + 0.3 * sin(c.x * 11.0 + vSeed * 6.3) * sin(c.y * 9.0 + vSeed * 4.1);
-        float a = vA * smoothstep(0.5, 0.12, length(c)) * ragged;
+        float a = vA * (1.0 - smoothstep(0.12, 0.5, length(c))) * ragged;
         gl_FragColor = vec4(vec3(0.9, 0.94, 0.96) * uLight, a);
       }`,
   });

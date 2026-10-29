@@ -53,6 +53,18 @@
 </head>
 <body>
 <div id="fps"></div>
+<pre id="errors" hidden style="position: fixed; left: 12px; top: 36px; max-width: calc(100% - 380px); max-height: 50vh; overflow: auto; margin: 0;
+  padding: 10px 12px; border-radius: 6px; background: #3a1418; color: #ffd7d7; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; z-index: 9"></pre>
+<script>
+  // Show load, script and shader errors on the page so a screenshot is enough to report them.
+  (function () {
+    const box = document.getElementById("errors"), show = (msg) => { box.hidden = false; box.textContent += msg + "\n\n"; };
+    addEventListener("error", (e) => show(`${e.message} (${(e.filename || "").split("/").pop()}:${e.lineno})`));
+    addEventListener("unhandledrejection", (e) => show(String(e.reason && e.reason.stack || e.reason)));
+    const error = console.error.bind(console);
+    console.error = (...a) => { error(...a); show(a.map(String).join(" ")); }; // three.js reports shader errors here
+  })();
+</script>
 <div id="p-toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <aside class="panel" id="panel" aria-label="Ship and cargo state" data-collapsed="true">
