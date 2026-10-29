@@ -256,7 +256,7 @@ function placeShip(s) {
 
 // --- playback controls
 const ui = Object.fromEntries(["play", "scrub", "clock", "sea", "helm", "motion", "cargo", "weather", "fps", "scene", "credit", "slowmo"].map((id) => [id, document.getElementById(id)]));
-let simT = 0, rate = 20, playing = true;
+let simT = 0, rate = 5, playing = true;
 ui.scrub.max = duration;
 ui.play.onclick = () => {
   if (simT >= duration) simT = 0;
