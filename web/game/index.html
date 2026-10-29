@@ -248,6 +248,7 @@ const oceanUniforms = {
   uWave2: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
   uHs: { value: 1 },
   uWhitecap: { value: 0 },
+  uWindDir: { value: new THREE.Vector2(1, 0) },
   uSky: { value: STORM_SKY.clone() },
   uDeep: { value: new THREE.Color(0x17394a) },
   uShallow: { value: new THREE.Color(0x4f7f8c) },
@@ -260,16 +261,27 @@ const oceanUniforms = {
 };
 const NEAR = 1400, NEAR_STEP = 5, FAR = 9000, FAR_STEP = 60;
 const oceanMaterial = new THREE.ShaderMaterial({
-    uniforms: { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, 0) } },
+    uniforms: { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, 0) },
+                uMinLength: { value: 0 }, uPatch: { value: new THREE.Vector3(0, 0, NEAR / 2) } },
     vertexShader: `
       #define N ${N_WAVES}
+      #define FAR_MIN 240.0
       uniform float uTime; uniform vec4 uWave[N]; uniform vec4 uWave2[N];
+      // uMinLength drops waves a mesh cannot resolve; uPatch fades short waves out towards the near
+      // patch edge so near and far sea meet at the same height
+      uniform float uMinLength; uniform vec3 uPatch;
       varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
       void main() {
         vec4 world = modelMatrix * vec4(position, 1.0);
         vec3 p = world.xyz; vec3 n = vec3(0.0, 1.0, 0.0); float crest = 0.0;
         for (int i = 0; i < N; i++) {
           vec2 d = uWave[i].xy; float k = uWave[i].z; float a = uWave[i].w;
+          float len = 6.2831853 / max(k, 1e-6);
+          if (len < uMinLength) continue;
+          if (uPatch.z > 0.0 && len < FAR_MIN) {
+            vec2 off = abs(world.xz - uPatch.xy);
+            a *= 1.0 - smoothstep(0.55 * uPatch.z, 0.92 * uPatch.z, max(off.x, off.y));
+          }
           float w = uWave2[i].x; float q = uWave2[i].y; float ph0 = uWave2[i].z;
           float ph = k * dot(d, world.xz) - w * uTime + ph0;
           float c = cos(ph), s = sin(ph);
@@ -283,29 +295,37 @@ const oceanMaterial = new THREE.ShaderMaterial({
     fragmentShader: `
       #define W 24
       uniform vec3 uSky, uDeep, uShallow, uLight, uCamera; uniform float uFogDensity, uHs;
-      uniform vec3 uWake[W]; uniform vec4 uShip; uniform vec2 uBow; uniform float uTime, uWhitecap; uniform vec3 uHole;
+      uniform vec3 uWake[W]; uniform vec4 uShip; uniform vec2 uBow; uniform float uTime, uWhitecap; uniform vec3 uHole; uniform vec2 uWindDir;
       float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float noise(vec2 p) {
         vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
       }
-      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v * 1.14; }
+      // each octave is rotated as well as scaled so the lattice of the value noise never lines up
+      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { v += a * noise(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p + 17.3; a *= 0.5; } return v * 1.14; }
       varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
       void main() {
         // the far sea skips the square the fine near patch already covers
         if (uHole.z > 0.0 && abs(vWorld.x - uHole.x) < uHole.z && abs(vWorld.z - uHole.y) < uHole.z) discard;
         vec3 n = normalize(vNormal); vec3 v = normalize(uCamera - vWorld);
-        // short wind ripples on top of the resolved waves; rougher with stronger wind, faded with distance
-        vec2 dp = vWorld.xz * 0.18 + vec2(uTime * 0.4, uTime * 0.25);
-        float r0 = noise(dp), rx = noise(dp + vec2(0.6, 0.0)), rz = noise(dp + vec2(0.0, 0.6));
-        float rough = (0.25 + uWhitecap * 2.0) * exp(-length(uCamera - vWorld) / 700.0);
-        n = normalize(n + vec3(r0 - rx, 0.0, r0 - rz) * rough * 1.6);
+        // short wind waves on top of the resolved sea: six small trains spread around the wind
+        // direction, 7–34 m long, moving at deep-water speed; slopes are analytic so there is no lattice
+        vec2 wdir = normalize(uWindDir + vec2(1e-4, 0.0)), grad = vec2(0.0);
+        for (int i = 0; i < 6; i++) {
+          float fi = float(i), ang = (fi - 2.5) * 0.42 + 0.17 * sin(fi * 1.7);
+          vec2 d = vec2(wdir.x * cos(ang) - wdir.y * sin(ang), wdir.x * sin(ang) + wdir.y * cos(ang));
+          float len = 7.0 * pow(1.37, fi), kk = 6.2831853 / len;
+          float ph = kk * dot(d, vWorld.xz) - sqrt(9.81 * kk) * uTime + fi * 2.1;
+          grad += d * 0.22 * cos(ph);
+        }
+        float rough = (0.2 + uWhitecap * 1.5) * exp(-length(uCamera - vWorld) / 320.0);
+        n = normalize(n - vec3(grad.x, 0.0, grad.y) * rough);
         float fresnel = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
         float lit = max(dot(n, uLight), 0.0);
         vec3 water = mix(uDeep * 0.8, uShallow * 1.15, pow(lit, 3.0));
         vec3 color = mix(water, uSky, fresnel * 0.8);
-        float spec = pow(max(dot(reflect(-uLight, n), v), 0.0), 60.0);
-        color += spec * 0.25;
+        float spec = pow(max(dot(reflect(-uLight, n), v), 0.0), 36.0);
+        color += spec * 0.14;
         // whitecaps cover roughly the wind-derived fraction uWhitecap, favouring steep crests
         float caps = fbm(vWorld.xz * 0.035 + vec2(uTime * 0.05, -uTime * 0.03)) * 0.6 + clamp(vCrest, 0.0, 1.0) * 0.4;
         float foam = smoothstep(1.0 - 1.6 * uWhitecap - 0.05, 1.0 - 1.6 * uWhitecap + 0.08, caps);
@@ -352,7 +372,8 @@ const oceanMaterial = new THREE.ShaderMaterial({
 // near patch: 5 m cells resolve the short wind waves; the far sea reuses the same uniforms with a hole
 const ocean = new THREE.Mesh(new THREE.PlaneGeometry(NEAR, NEAR, NEAR / NEAR_STEP, NEAR / NEAR_STEP).rotateX(-Math.PI / 2), oceanMaterial);
 const farMaterial = oceanMaterial.clone();
-farMaterial.uniforms = { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, NEAR / 2 - 30) } };
+farMaterial.uniforms = { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, NEAR / 2 - 30) },
+                          uMinLength: { value: 4 * FAR_STEP }, uPatch: { value: new THREE.Vector3(0, 0, 0) } };
 const farSea = new THREE.Mesh(new THREE.PlaneGeometry(FAR, FAR, FAR / FAR_STEP, FAR / FAR_STEP).rotateX(-Math.PI / 2), farMaterial);
 scene.add(ocean, farSea);
 
@@ -655,7 +676,7 @@ function frame(now) {
     // follow camera behind the stern (chase) or at a fixed compass bearing (free)
     if (camHeading === null) camHeading = s.heading;
     let turn = s.heading - camHeading; turn -= 360 * Math.round(turn / 360);
-    camHeading = wrap(camHeading + turn * Math.min(1, real * 1.5));
+    camHeading = wrap(camHeading + turn * Math.min(1, real * 0.35)); // swing round slowly after a turn
     const bearing = rad((chase ? camHeading + 180 : 180) + deg(view.azimuth));
     const horizontal = view.distance * Math.cos(view.elevation);
     // the camera rides a third of the ship's vertical motion so the horizon stays calm
@@ -666,6 +687,7 @@ function frame(now) {
     ocean.position.set(Math.round(x / NEAR_STEP) * NEAR_STEP, 0, Math.round(z / NEAR_STEP) * NEAR_STEP);
     farSea.position.set(Math.round(x / FAR_STEP) * FAR_STEP, -0.3, Math.round(z / FAR_STEP) * FAR_STEP);
     farMaterial.uniforms.uHole.value.set(ocean.position.x, ocean.position.z, NEAR / 2 - 30);
+    oceanMaterial.uniforms.uPatch.value.set(ocean.position.x, ocean.position.z, NEAR / 2);
     oceanUniforms.uCamera.value.copy(camera.position);
     // cargo: lost units slide over the low side and sink
     for (const u of units) {
@@ -685,6 +707,7 @@ function frame(now) {
     const windMs = Math.hypot(s.wind_e, s.wind_n), precip = F.precip === undefined ? 0 : s.precip; // mm/h, ERA5 when present
     const n = Math.min(RAIN, Math.floor(RAIN * precip / 8));
     oceanUniforms.uWhitecap.value = whitecapFraction(windMs);
+    oceanUniforms.uWindDir.value.set(s.wind_e, -s.wind_n); // direction the wind blows towards, in scene axes
     const wx = s.wind_e * 0.6, wz = -s.wind_n * 0.6;
     for (let i = 0; i < RAIN; i++) {
       const d = drops[i];
