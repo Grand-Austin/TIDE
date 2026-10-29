@@ -208,6 +208,7 @@ const oceanUniforms = {
   uFogDensity: { value: 0.00045 },
   uWake: { value: Array.from({ length: 24 }, () => new THREE.Vector3(0, 0, 9999)) },
   uShip: { value: new THREE.Vector4() },
+  uBow: { value: new THREE.Vector2() },
 };
 const ocean = new THREE.Mesh(
   new THREE.PlaneGeometry(4200, 4200, 200, 200).rotateX(-Math.PI / 2),
@@ -235,7 +236,13 @@ const ocean = new THREE.Mesh(
     fragmentShader: `
       #define W 24
       uniform vec3 uSky, uDeep, uShallow, uLight, uCamera; uniform float uFogDensity, uHs;
-      uniform vec3 uWake[W]; uniform vec4 uShip;
+      uniform vec3 uWake[W]; uniform vec4 uShip; uniform vec2 uBow; uniform float uTime;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+      }
+      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
       varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
       void main() {
         vec3 n = normalize(vNormal); vec3 v = normalize(uCamera - vWorld);
@@ -248,26 +255,40 @@ const ocean = new THREE.Mesh(
         float streak = 0.5 + 0.5 * sin(vWorld.x * 0.21 + vWorld.z * 0.17) * sin(vWorld.x * 0.13 - vWorld.z * 0.29);
         float foam = smoothstep(0.3, 0.75, vCrest + 0.25 * streak) * clamp(uHs / 6.0, 0.25, 1.0);
         color = mix(color, vec3(0.92, 0.95, 0.97), foam * 0.85);
-        // wake: churned band along the stern track, widening and fading with age
+        // wake. Foam is broken up by drifting noise so it reads as spray, not lines.
+        float speed = clamp(uShip.w / 4.0, 0.0, 1.2);
+        float grain = fbm(vWorld.xz * 0.11 + vec2(uTime * 0.21, -uTime * 0.13));
+        float fine = fbm(vWorld.xz * 0.45 - vec2(uTime * 0.6, uTime * 0.35));
+        vec2 fwd = vec2(sin(uShip.z), -cos(uShip.z)), side = vec2(-fwd.y, fwd.x);
+        // bow wave: hugs the hull, then diverges at the Kelvin angle (tan 19.5° = 0.354) as feathered crests
+        vec2 qb = vWorld.xz - uBow;
+        float behind = -dot(qb, fwd), lateral = abs(dot(qb, side));
+        float bowFoam = 0.0;
+        if (behind > -4.0 && behind < 900.0) {
+          float hullHalf = 12.7 * clamp(behind / 22.0, 0.0, 1.0);
+          float edge = hullHalf + max(behind, 0.0) * 0.354;
+          float w = 2.5 + behind * 0.03;
+          float fade = exp(-max(behind, 0.0) / 260.0) * speed;
+          float crest = exp(-pow((lateral - edge) / w, 2.0));
+          // short crests set obliquely inside the arm, like the feathers in an aerial photo
+          float feather = smoothstep(0.55, 1.0, sin((behind * 0.94 - lateral * 0.34) * 0.16));
+          float inside = exp(-pow((lateral - edge + 2.0 * w) / (2.2 * w), 2.0));
+          float alongHull = behind < 175.0 ? exp(-max(lateral - hullHalf, 0.0) / 5.0) * smoothstep(-4.0, 6.0, behind) : 0.0;
+          bowFoam = (crest * 0.75 + feather * inside * 0.45) * fade + alongHull * 0.6 * speed;
+        }
+        // stern: churned propeller wash along the real track, widening and fading with age
         float band = 0.0;
         for (int i = 0; i < W - 1; i++) {
           vec2 a = uWake[i].xy, ab = uWake[i + 1].xy - a;
           float h = clamp(dot(vWorld.xz - a, ab) / max(dot(ab, ab), 1e-3), 0.0, 1.0);
           float d = length(vWorld.xz - a - ab * h), age = mix(uWake[i].z, uWake[i + 1].z, h);
-          float width = 9.0 + age * 0.12;
-          band = max(band, exp(-d * d / (width * width)) * exp(-age / 160.0));
+          float width = 6.0 + age * 0.07;
+          band = max(band, exp(-d * d / (width * width)) * exp(-age / 110.0));
         }
-        // Kelvin arms and transverse ripples behind the stern
-        vec2 fwd = vec2(sin(uShip.z), -cos(uShip.z)), side = vec2(-fwd.y, fwd.x), q = vWorld.xz - uShip.xy;
-        float along = -dot(q, fwd), lateral = abs(dot(q, side)), arms = 0.0;
-        if (along > 0.0 && along < 700.0) {
-          float edge = along * 0.354, w = 3.0 + along * 0.03;
-          float strength = clamp(uShip.w / 4.0, 0.0, 1.0) * exp(-along / 380.0);
-          arms = exp(-pow((lateral - edge) / w, 2.0)) * (0.55 + 0.45 * sin(along * 0.18)) * strength;
-          arms += step(lateral, edge) * 0.3 * pow(0.5 + 0.5 * sin(along * 0.12), 6.0) * strength;
-        }
-        float churn = 0.6 + 0.4 * sin(vWorld.x * 0.9 + vWorld.z * 0.7) * sin(vWorld.x * 0.5 - vWorld.z * 1.1);
-        color = mix(color, vec3(0.9, 0.94, 0.96), clamp(band * churn * 0.5 + arms * 0.4, 0.0, 0.7));
+        float wakeFoam = bowFoam * smoothstep(0.4, 0.68, grain) + band * smoothstep(0.32, 0.65, grain * 0.6 + fine * 0.5) * speed * 0.8;
+        color = mix(color, vec3(0.93, 0.96, 0.98), clamp(wakeFoam, 0.0, 0.9));
+        // slightly lighter, aerated water under the foam
+        color = mix(color, uShallow * 1.3, clamp((bowFoam + band) * 0.18, 0.0, 0.22));
         float dist = length(uCamera - vWorld);
         float fog = 1.0 - exp(-pow(uFogDensity * dist, 2.0));
         gl_FragColor = vec4(mix(color, uSky, fog), 1.0);
@@ -285,9 +306,9 @@ scene.add(ship);
   const half = B / 2;
   const deck = new THREE.Shape();
   deck.moveTo(-L / 2, -half);
-  deck.lineTo(L / 2 - 34, -half);
-  deck.quadraticCurveTo(L / 2 - 4, -half * 0.85, L / 2, 0);
-  deck.quadraticCurveTo(L / 2 - 4, half * 0.85, L / 2 - 34, half);
+  deck.lineTo(L / 2 - 24, -half);
+  deck.quadraticCurveTo(L / 2 - 2, -half * 0.92, L / 2, 0);
+  deck.quadraticCurveTo(L / 2 - 2, half * 0.92, L / 2 - 24, half);
   deck.lineTo(-L / 2, half);
   deck.lineTo(-L / 2, -half);
   const hullGeom = new THREE.ExtrudeGeometry(deck, { depth: DRAFT + FREEBOARD, bevelEnabled: false });
@@ -297,6 +318,19 @@ scene.add(ship);
   const boot = new THREE.Mesh(hullGeom.clone().scale(1.002, 0.62, 1.002).translate(0, -3.9, 0),
     new THREE.MeshStandardMaterial({ color: 0x8b2a22, roughness: 0.7 }));
   ship.add(boot);
+  const deckPlate = new THREE.Mesh(new THREE.ShapeGeometry(deck).rotateX(Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x6a7076, roughness: 0.9, side: THREE.DoubleSide }));
+  deckPlate.position.y = FREEBOARD + 0.05;
+  ship.add(deckPlate);
+  const bow = new THREE.Shape();
+  bow.moveTo(L / 2 - 24, -half + 0.4);
+  bow.quadraticCurveTo(L / 2 - 2.4, -half * 0.88, L / 2 - 0.5, 0);
+  bow.quadraticCurveTo(L / 2 - 2.4, half * 0.88, L / 2 - 24, half - 0.4);
+  bow.lineTo(L / 2 - 24, -half + 0.4);
+  const forecastle = new THREE.Mesh(new THREE.ShapeGeometry(bow).rotateX(Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x4e7d55, roughness: 0.85, side: THREE.DoubleSide }));
+  forecastle.position.y = FREEBOARD + 1.6;
+  ship.add(forecastle);
   const white = new THREE.MeshStandardMaterial({ color: 0xeef1f3, roughness: 0.5 });
   const house = new THREE.Mesh(new THREE.BoxGeometry(16, 20, B - 2), white);
   house.position.set(-L / 2 + 14, FREEBOARD + 10, 0);
@@ -308,8 +342,8 @@ scene.add(ship);
   funnel.position.set(-L / 2 + 6, FREEBOARD + 24, 0);
   ship.add(funnel);
 }
-const COLORS = [0xc0392b, 0x2e86c1, 0x27ae60, 0xd68910, 0x7d3c98, 0xe5e7e9, 0x1abc9c, 0x34495e, 0xe67e22, 0x2c3e50];
-const SLOT = { length: 12.4, width: 2.5, height: 2.6, bays: 11, rows: 10, x0: -L / 2 + 26 };
+const COLORS = [0xb04a3a, 0x2f5fa8, 0x5b8fd0, 0xc25a45, 0x3d6fb8, 0xd9dde0, 0xa34536, 0x4a7cc4, 0x8a9199, 0x3b8f8a];
+const SLOT = { length: 12.2, pitch: 12.9, width: 2.28, height: 2.6, rows: 11, x0: -L / 2 + 24 };
 const containerMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.75 }), 320);
 ship.add(containerMesh);
 let units = []; // {id, tier, teu, home: Matrix4, lostAt, side}
@@ -319,12 +353,13 @@ function layoutCargo(cargo) {
     const slot = perTier[u.tier]++;
     const bay = Math.floor(slot / SLOT.rows), row = slot % SLOT.rows;
     const length = u.teu === 2 ? SLOT.length - 0.4 : SLOT.length / 2 - 0.3;
-    const x = SLOT.x0 + bay * SLOT.length + SLOT.length / 2;
+    const x = SLOT.x0 + bay * SLOT.pitch + SLOT.length / 2;
     const z = (row - (SLOT.rows - 1) / 2) * SLOT.width;
     const y = FREEBOARD + SLOT.height * (u.tier + 0.5) + 0.2;
     const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(),
       new THREE.Vector3(length, SLOT.height - 0.15, SLOT.width - 0.15));
-    containerMesh.setColorAt(i, new THREE.Color(COLORS[(i * 7 + u.tier * 3) % COLORS.length]));
+    const pick = Math.floor(Math.abs(Math.sin(i * 12.9898 + u.tier * 78.233)) * 43758.5453) % COLORS.length;
+    containerMesh.setColorAt(i, new THREE.Color(COLORS[pick]));
     return { ...u, index: i, home: m, pos: new THREE.Vector3(x, y, z), lostAt: null };
   });
   containerMesh.instanceColor.needsUpdate = true;
@@ -351,6 +386,7 @@ function updateWake(time) {
   }
   const now = sampleAt(time), [x, z] = local(now.lon, now.lat), h = rad(now.heading);
   oceanUniforms.uShip.value.set(x - Math.sin(h) * L / 2, z + Math.cos(h) * L / 2, h, now.stw);
+  oceanUniforms.uBow.value.set(x + Math.sin(h) * L / 2, z - Math.cos(h) * L / 2);
 }
 const drops = Array.from({ length: RAIN }, () => [Math.random() * 900 - 450, Math.random() * 300, Math.random() * 900 - 450]);
 
