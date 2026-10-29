@@ -1,4 +1,6 @@
-# Numerical verification
+# Stage-2 numerical verification (baseline)
+
+For current game-rule and Director verification, see [GAME_VERIFICATION.md](../../docs/GAME_VERIFICATION.md). This document preserves the earlier numerical baseline.
 
 Local verification completed on 29 October 2026. The scenario uses the original committed environmental fields and existing S175 model; no physics thresholds were changed.
 

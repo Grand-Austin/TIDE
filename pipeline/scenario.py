@@ -298,6 +298,11 @@ def build(path, out, validation=None):
     scenario = load_scenario(path)
     analysis = analyze(scenario)
     analysis["official_report_evidence"] = report_evidence(scenario)
+    gameplay = scenario.gameplay() if 'gameplay' in scenario.definition else None
+    if gameplay is not None:
+        analysis['gameplay'] = dict(scenario.definition['gameplay'],
+            region_snapshots=len(gameplay['regions']), reports=len(gameplay['reports']),
+            cargo=gameplay['cargo'])
     reviewed = None
     if validation is not None:
         reviewed = json.loads(Path(validation).read_text())
@@ -308,6 +313,8 @@ def build(path, out, validation=None):
     out.mkdir(parents=True, exist_ok=True)
     write_json(out / "scenario.json", scenario.definition)
     write_json(out / "data-manifest.json", analysis)
+    if gameplay is not None:
+        write_json(out / 'gameplay.json', gameplay)
     start = analysis["hourly"][0]
     text = (
         f"# {scenario.definition['title']}\n\n开始：{scenario.definition['start']}。任务预算 {scenario.definition['mission']['budget_s'] / 3600:g} 小时。\n\n"
@@ -320,6 +327,11 @@ def build(path, out, validation=None):
         "https://doi.org/10.48670/mds-00375, https://doi.org/10.48670/moi-00305\n"
     )
     (out / "briefing.md").write_text(text)
+    if gameplay is not None:
+        text = text.replace('向目标区撤离，比较时间与累计暴露。目标区代表较低浪高水域，不是港口或安全认证。',
+            '驶离整片随时间变化的险情海域，在时限内进入外部有效水域即完成脱困；内部低浪区不算完成。货损等级单独结算。')
+        text += '\n本场景提供明确标注的游戏模拟预报，按游戏时间发布，不代表同期官方预报。船舶采用固定满载游戏模板；货损不改变水动力参数。\n'
+        (out / 'briefing.md').write_text(text)
     if reviewed is not None:
         write_json(out / "validation.json", reviewed)
     return out

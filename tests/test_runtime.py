@@ -185,3 +185,21 @@ def test_sst_does_not_add_spurious_forces(vessel):
     np.testing.assert_array_equal(a.state.x, b.state.x)
     assert a.trajectory[-1].sst_c == 10
     assert b.trajectory[-1].sst_c == 30
+
+
+def test_accepted_step_callback_stops_without_changing_numerics(vessel):
+    sim = Simulation(vessel, ConstantEnvironment())
+    state = sim.initial_state(START, 3.5, 40, speed_mps=1)
+    samples = []
+    def observe(sample, dt):
+        samples.append((sample.time_s, dt))
+        return 'checkpoint' if sample.time_s >= 0.2 else None
+    result = sim.advance(state, Command(0, 1), 1, on_step=observe)
+    reference = sim.advance(state, Command(0, 1), 0.2)
+    assert result.stopping_reason == 'checkpoint'
+    assert len(samples) == 4
+    np.testing.assert_array_equal(result.state.x, reference.state.x)
+    assert result.state.exposure == reference.state.exposure
+    samples.clear()
+    sim.advance(state, Command(0, 1), 1, on_step=observe, should_pause=lambda: True)
+    assert samples == []

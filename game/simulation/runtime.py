@@ -150,6 +150,11 @@ class Simulation:
     run identical to one uninterrupted run, including wave and controller state.
     """
 
+    algorithm_id = 's175_fixed_clock_v1'
+
+    def observe(self, state: State) -> Sample:
+        return self._sample(state, self._sea(state), 0.)
+
     def __init__(self, vessel: Vessel, environment, *, seed: int = 1, settings: Settings | None = None,
                  wind_parameters: WindParameters | None = WindParameters()):
         self.vessel = vessel
@@ -160,7 +165,7 @@ class Simulation:
 
     def initial_state(self, time: datetime, lon: float, lat: float, *, heading_deg: float = 0,
                       speed_mps: float = 0) -> State:
-        self._validate_command(Command(heading_deg, speed_mps))
+        self.validate_command(Command(heading_deg, speed_mps))
         if time.tzinfo is None or time.utcoffset() is None:
             raise ValueError("Initial time must have a UTC offset")
         if not all(map(math.isfinite, (lon, lat))) or not -180 <= lon <= 180 or not -85 < lat < 85:
@@ -179,7 +184,7 @@ class Simulation:
         lon = state.origin_lon + math.degrees(state.x[7] / (EARTH_RADIUS_M * math.cos(math.radians(state.origin_lat))))
         return lon, lat
 
-    def _validate_command(self, command: Command):
+    def validate_command(self, command: Command):
         if not math.isfinite(command.heading_deg) or not math.isfinite(command.speed_mps):
             raise ValueError("Commands must be finite")
         if not 0 <= command.speed_mps <= self.vessel.max_speed_mps:
@@ -226,13 +231,14 @@ class Simulation:
                       float(state.wind_force[1]), float(state.wind_force[5]), sea.sst_c)
 
     def advance(self, state: State, command: Command, duration_s: float, *,
-                should_pause: Callable[[], bool] | None = None) -> AdvanceResult:
+                should_pause: Callable[[], bool] | None = None,
+                on_step: Callable[[Sample, float], str | None] | None = None) -> AdvanceResult:
         """Advance a copy; return the last valid state at any mandatory stop.
 
         duration_s must be a positive multiple of dt_s. Threshold events report
         teaching exposure only; game cargo loss and mission outcomes live elsewhere.
         """
-        self._validate_command(command)
+        self.validate_command(command)
         cfg = self.settings
         if not math.isfinite(duration_s) or duration_s <= 0:
             raise ValueError("duration_s must be finite and positive")
@@ -328,6 +334,11 @@ class Simulation:
             last_sample = self._sample(out, endpoint_sea, accel1)
             if out.tick % record_ticks == 0:
                 trajectory.append(last_sample)
+            if on_step is not None:
+                stop = on_step(last_sample, h)
+                if stop:
+                    reason = stop
+                    break
         if out.tick > state.tick and (not trajectory or trajectory[-1].time_s != out.tick * cfg.dt_s):
             trajectory.append(last_sample)
         if reason != "duration_reached" and not any(e.kind == reason for e in events):

@@ -43,15 +43,53 @@ Implementation, reuse and verification: [DATA_PIPELINE.md](docs/DATA_PIPELINE.md
 
 ## 3. Game Rules and Events
 
-- [ ] Implement the escape objective, time budget, and explicit game cargo-loss rules.
-- [ ] Return updated state, metrics, events, and stopping reasons from each advance.
-- [ ] Complete a scripted mission with repeated decisions and interpretable consequences, without a frontend or Agent.
+Confirmed product decisions are recorded in [Product.md](docs/Product.md), sections 1.3, 2.2, 3.4 and 4. Execution order, interfaces and initial defaults are specified in [PROTOTYPE_IMPLEMENTATION.md](docs/PROTOTYPE_IMPLEMENTATION.md). Checked items below are implemented and verified; validation evidence is in [GAME_VERIFICATION.md](docs/GAME_VERIFICATION.md). Implementation authorized on 29 October 2026. Checkboxes are updated only after the corresponding checks pass.
+
+### 3.1 Replaceable simulation algorithms and cargo
+
+- [x] Define independent motion and cargo algorithm contracts with explicit units, state and version identifiers; reuse the existing S175 motion implementation.
+- [x] Add a plausible full-load container-ship template, including protected hold cargo, exposed deck units, and simple stowage categories.
+- [x] Assign seeded vulnerability thresholds once, accumulate damage from calculated responses over simulation time, and record each unit's irreversible overboard transition.
+- [x] Calibrate cargo grades and response-to-damage parameters; retain fixed vessel mass, centre of gravity and hydrodynamic coefficients after loss.
+- [x] Verify identical consequences across advance segmentation, pause/resume and time-rate changes, with no repeated losses or damage during pauses.
+
+### 3.2 Escape region and released information
+
+- [x] Extend scenario construction to derive, review and freeze a changing adverse-weather region from historical fields. Require exit from the whole region; exclude internal low-wave pockets as completion areas.
+- [x] Enforce the time budget and valid operating domain. Assess escape and cargo loss separately; cargo loss alone does not terminate play.
+- [x] Author explicitly labelled game forecast releases for the current and neighbouring sea areas when historical forecasts are unavailable. Record issue time, validity and provenance.
+- [x] Expose local observations, cargo status and released reports while keeping region boundaries, vulnerability thresholds and unreleased future fields private.
+- [x] Rebuild the first scenario and revalidate representative strategies against the new rules; do not reuse target-disk trial success as proof of region escape.
+
+### 3.3 Continuous advancement and events
+
+- [x] Return updated vessel/cargo state, metrics, events and stopping reasons through one local advancement tool, with consistent state commits and immediate mandatory stops.
+- [x] Keep heading and speed active until changed. Add game-time rate controls and immediate manual pause/resume without requiring player-specified durations.
+- [x] Detect mandatory cargo/mission/validity events locally; validate Director attention requests before pausing, and resume only on player confirmation. Deduplicate events across internal advance segments.
+- [x] Complete a scripted mission without an Agent, including cargo consequences, timed reports, escape, timeout and invalid-domain cases.
 
 ## 4. Director Game Engine
 
-- [ ] Connect the Director to scenario loading, validation, simulation, and game-rule tools.
-- [ ] Run the action → simulation → event → next-action loop and record the results.
-- [ ] Complete the mission through the Director using command-line input. Keep local execution functions minimal.
+### 4.1 Model configuration and constrained tools
+
+- [x] Add asynchronous Director judgment for issued report delivery and evidence-backed attention pauses; keep sailing during assessment, reject stale/cancelled decisions, and fall back to fixed report delivery.
+
+- [x] Add versioned Director skill instructions, explicit workflow recipes and a shared tool registry; load them into the harness and verify authority/information boundaries.
+
+- [x] Use a small LangGraph StateGraph for Director orchestration, with local SQLite checkpoints; keep simulation ticks, immediate pause and authoritative game state outside the graph.
+- [x] Add extensible `models.json` profiles for provider, model and per-Agent settings, plus a separate ignored local API-key JSON and a key-free example.
+- [x] Use NVIDIA NIM by default, targeting Nemotron 3.5 Lightning 30B A3B; support explicit OpenRouter selection without automatic provider fallback.
+- [x] Implement only the Director role, with explicit operating instructions and a restricted tool set for scenario loading, command validation, advancement and released-state inspection.
+- [x] Enforce player command authority and information access in local tools. Reject invented tool names, invalid arguments and duplicate state-changing requests.
+
+### 4.2 Command-line play, recovery and verification
+
+- [x] Provide text-only coordinates, vessel targets and actual response, sea observations, weather briefings, cargo status and game time; support direct controls without Copilot or graphics.
+- [x] Connect continuous local execution to the Director's action → simulation → event → decision loop without model calls on numerical ticks or a second game-flow controller.
+- [x] Automatically fall back to local orchestration for the current step after Director failures, without duplicate advancement or overriding player pause; default to the local engine without model configuration or API keys, with `--engine director` as an explicit experiment.
+- [x] Record commands, released evidence, model/tool calls and outcomes without credentials. Save complete state for exit/resume, including wave phase, controller state, cargo damage and consumed events.
+- [x] Verify malformed responses, interrupted calls, stale/duplicate requests, hidden-information boundaries, and exact save/resume continuation with deterministic model fixtures.
+- [x] Complete a command-line mission with the configured live Director and record provider/model settings, outcomes and limitations. Live verification requires a configured API key.
 
 ## 5. Scenario Construction Automation
 

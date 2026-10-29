@@ -1,0 +1,222 @@
+{
+  "passed": true,
+  "definition_sha256": "0da7d62a08ae8e1dd6fb9d32597c5dd276ea58243c04db02054be52a96c34d86",
+  "trials": [
+    {
+      "seed": 1,
+      "strategy": "direct",
+      "elapsed_s": 9142.95,
+      "outcome": "escaped",
+      "reason": "escaped",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 2,
+      "strategy": "direct",
+      "elapsed_s": 9144.85,
+      "outcome": "escaped",
+      "reason": "escaped",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 1,
+      "strategy": "detour",
+      "elapsed_s": 9175.9,
+      "outcome": "escaped",
+      "reason": "escaped",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 2,
+      "strategy": "reduced",
+      "elapsed_s": 10800.0,
+      "outcome": "timeout",
+      "reason": "timeout",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 1,
+      "strategy": "reduced",
+      "elapsed_s": 10800.0,
+      "outcome": "timeout",
+      "reason": "timeout",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 1,
+      "strategy": "delayed",
+      "elapsed_s": 10800.0,
+      "outcome": "timeout",
+      "reason": "timeout",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 2,
+      "strategy": "detour",
+      "elapsed_s": 9179.5,
+      "outcome": "escaped",
+      "reason": "escaped",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 3,
+      "strategy": "direct",
+      "elapsed_s": 9144.7,
+      "outcome": "escaped",
+      "reason": "escaped",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 2,
+      "strategy": "delayed",
+      "elapsed_s": 10800.0,
+      "outcome": "timeout",
+      "reason": "timeout",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 3,
+      "strategy": "detour",
+      "elapsed_s": 9173.25,
+      "outcome": "escaped",
+      "reason": "escaped",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 3,
+      "strategy": "reduced",
+      "elapsed_s": 10800.0,
+      "outcome": "timeout",
+      "reason": "timeout",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    },
+    {
+      "seed": 3,
+      "strategy": "delayed",
+      "elapsed_s": 10800.0,
+      "outcome": "timeout",
+      "reason": "timeout",
+      "cargo": {
+        "total_units": 800,
+        "total_teu": 1200,
+        "deck_units": 320,
+        "hold_units": 480,
+        "lost_units": 0,
+        "lost_teu": 0,
+        "remaining_units": 800,
+        "loss_fraction": 0.0,
+        "grade": 0
+      }
+    }
+  ]
+}

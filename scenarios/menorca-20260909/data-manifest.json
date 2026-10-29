@@ -650,5 +650,20 @@
     "historical_warnings": "not_fetched",
     "archive_directory": "data/raw/aemet"
   },
-  "official_report_evidence": []
+  "official_report_evidence": [],
+  "gameplay": {
+    "path": "scenarios/menorca-20260909/gameplay.json",
+    "sha256": "ac9b561a9cd6da4ff557fa469c9215df77d633761023e2879a0529a36329b1dd",
+    "region_snapshots": 181,
+    "reports": 24,
+    "cargo": {
+      "threshold_g": 0.3,
+      "damage_time_s": 60.0,
+      "multipliers": [
+        1.0,
+        1.15,
+        1.3
+      ]
+    }
+  }
 }

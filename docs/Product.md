@@ -26,7 +26,7 @@ The exercise targets the application of knowledge:
 
 ### 1.3 Initial scope and success conditions
 
-The initial implementation needs one vessel with a coherent performance and response model. A container ship is the preferred starting point because it fits the cargo-loss mission and has a promising public modelling reference (S175). A Ro-Ro vessel remains possible if an equally suitable model becomes available.
+The prototype uses the S175 motion model with one fixed loading condition and a full-load game cargo template. The template should resemble a plausible container ship without reproducing an exact S175 stowage plan. Loading is not player-configurable in this prototype.
 
 The first release should provide:
 
@@ -39,7 +39,11 @@ The first release should provide:
 
 The scenario defines an escape objective, a time budget, and an interpretable cargo-loss mapping. The objective must reward progress as well as exposure reduction. Waiting indefinitely or always using maximum speed must not become a trivial winning strategy.
 
-Precise weights, pass criteria, and the treatment of reasonable decisions with unlucky outcomes remain design questions. They should be settled through a complete worked scenario with instructors, rather than hidden inside a single aggregate score.
+Escape means leaving the scenario's whole, time-varying adverse-weather region and entering valid waters outside it. A low-wave pocket inside the region does not count. Scenario authors derive and review the region from historical fields before publication; its boundary and completion criteria remain hidden during play. The region follows the frozen environmental timeline, so slower progress can expose the ship to an expanding region.
+
+Escape and cargo loss are assessed separately. Cargo loss does not end the mission; the player can continue trying to escape within the time budget. Cargo grade thresholds remain to be calibrated through worked scenarios.
+
+The current delivery covers game rules, events, the command-line Director loop, and extensible model configuration (PLAN stages 3 and 4). Copilot, Builder, Tutor, and the frontend remain later work.
 
 ## 2. Data Sources and Scenario Construction
 
@@ -63,6 +67,8 @@ The weather timeline remains fixed during a session. The player's route through 
 
 The approximately 4 km regional ocean grid supports bounded open-water exercises. 
 
+Players receive local sea-state observations, their own cargo status, and weather reports for their current and neighbouring sea areas at defined simulation times. Reports carry issue and validity times. Issue time determines when a report becomes available to the Director; the Director can then select its delivery time. Pure local mode delivers reports on the fixed issue schedule. Where historical forecasts are unavailable, the prototype may use forecasts authored offline from historical fields and explicitly labelled as game simulations. These reports are distinct from official historical forecasts; unreleased future fields remain hidden.
+
 ### 2.3 Vessel reference package
 
 The leading candidate is the **S175 container-ship dataset in the Marine Systems Simulator (MSS)**. Its [ShipX input report](https://github.com/cybergalactic/MSS/blob/master/HYDRO/vessels_shipx/s175/input.hyd) specifies a 175 m length between perpendiculars, 25.4 m breadth, 9.5 m draft, and a design-waterline loading condition. The [dataset directory](https://github.com/cybergalactic/MSS/tree/master/HYDRO/vessels_shipx/s175) includes hydrodynamic outputs and transfer-function data. MSS provides a [six-degree-of-freedom vessel model](https://github.com/cybergalactic/MSS/blob/master/CRAFT/hydroVessel.m) and a [simulation example](https://github.com/cybergalactic/MSS/blob/master/CRAFT/SIMhydroVessel.m). This is a candidate foundation for one consistent teaching vessel.
@@ -71,7 +77,7 @@ The leading candidate is the **S175 container-ship dataset in the Marine Systems
 ### 2.5 Scenario-building workflow
 
 1. **Search historical fields.** Identify candidate windows with relevant changes in wave systems, direction, period, current, or forecast information. Find available scenarios.
-2. **Assemble the mission.** Select an initial state, scenario area, ...
+2. **Assemble the mission.** Select an initial state and operating area. Generate and review the changing adverse-weather region, cargo template, and timed information releases.
 3. **Run numerical trials.** Test representative heading and speed sequences with the same model used during play. Confirm that supported actions produce interpretable tradeoffs. Record at least one model-feasible completion.
 4. **Publish a versioned package.** Create Mission Briefing, etc.
 
@@ -92,6 +98,8 @@ The toolkit converts commands and environmental inputs into reproducible vessel 
 | Numerical integration and event detection | Advance the state and locate relevant changes between decisions. | Updated state, event records, and stopping reasons. |
 
 Geographic validity, missing data, model applicability, and numerical validity apply across these modules. 
+
+Motion simulation and cargo-loss simulation are independently replaceable algorithm modules. The cargo algorithm consumes calculated vessel responses and elapsed simulation time, and returns cargo state and loss events. A common local execution tool advances both consistently; neither algorithm depends on the Director or its model provider.
 
 ### 3.2 Practical modelling level
 
@@ -115,9 +123,15 @@ Nevertheless, the simulation of ships within the scene remains relatively coarse
 
 The consequence chain is:
 
-**Sea conditions + vessel state + control history → supported response or risk indicators → accumulated exposure → declared game cargo loss.**
+**Sea conditions + vessel state + control history → calculated vessel response → accumulated cargo damage → individual cargo losses.**
 
 Cargo loss provides visible feedback and a mission objective. It does not represent a validated prediction of real container failures. Actual failures depend on stowage, securing, loading, structural response, and other information outside the initial model.
+
+Each cargo unit has a persistent identity and an overboard state. A fixed seed assigns initial vulnerability thresholds; response-driven damage accumulates until a unit's threshold is crossed. One severe motion episode can therefore cause several units to fall overboard. The full-load template distinguishes protected hold cargo from exposed deck cargo, with simple stowage categories rather than detailed lashing mechanics. Lost units cannot be lost again or recover.
+
+The initial template has 800 mixed 20/40-foot units, totalling 1,200 TEU: 320 units on deck and 480 in holds. This is an authored game loading, not a verified S175 cargo manifest. Mild responses may produce zero loss; the algorithm must not force losses merely to make each voyage eventful.
+
+Loss counts and proportions determine the game cargo grade. Loss does not change vessel mass, centre of gravity, or hydrodynamic coefficients in this prototype. TopTier may inform the algorithm's criteria, but it does not supply a calibrated loss-count formula. A separate risk-warning mechanic is not required.
 
 The mapping should satisfy four requirements:
 
@@ -171,25 +185,33 @@ These boxes are responsibilities, not a requirement for separate services or sep
 
 The Director provides dynamic, extensible orchestration with the aim of reducing custom game-flow and branch logic. Physics, event detection, and state updates remain local tools. The Director calls them for each game-advance segment, rather than at every numerical integration step, to limit model-call overhead.
 
+The prototype targets a fast, relatively small model, such as Nemotron 3.5 Lightning 30B A3B. It follows explicit procedures and a restricted tool set. It receives player information, cargo events, authoritative mission results, and already-issued report candidates for the current and neighbouring sectors. It cannot access hidden region boundaries, cargo vulnerability thresholds, unissued reports, or raw future environmental fields. It cannot invent events, alter player heading or speed, or override tool results.
+
+The planned Director implementation uses a small LangGraph workflow for tool orchestration, player decision checkpoints, and recovery. Continuous simulation and immediate pause remain local execution responsibilities. Graph recovery must not repeat a committed game advance.
+
+An extensible `models.json` selects provider, model, and generation settings for named Agent profiles. NVIDIA NIM is the default provider; OpenRouter is selected manually. API keys belong in a local JSON configuration excluded from version control. Only the Director role is implemented in the current delivery. Persistent model or tool-call failures fall back to the deterministic local workflow for the current step. The fallback never repeats committed advancement or overrides a player pause. Local-engine mode is the default and runs the same game without model calls or API credentials. Director mode is explicitly enabled for experiments.
+
 ### 4.3 Event-driven progression
 
 1. The Director loads the frozen scenario and presents the briefing and initial information.
-2. The Director receives a command from the player or through the Copilot.
+2. The player sets target heading and speed. The command remains active until changed; the player does not supply an advance duration.
 3. The Director calls local tools to validate the command against vessel capability, geographic bounds, and scenario permissions.
-4. The Director invokes the simulation to advance until a relevant event, player-defined review condition, manual pause, or mission end.
-5. The tools return the updated state and event results. The Director inspects them, presents available information, and request input.
-6. The player can consult the Copilot, revise the command to continue.
+4. The Director invokes local advancement under the active command. The player can adjust the game-time rate or pause to revise the command.
+5. Mandatory cargo, mission and validity stops pause locally. A separate background Director review chooses when to deliver issued reports and whether current evidence warrants player attention. Simulation continues during that review and pauses only if the resulting attention request passes local validation.
+6. The player can keep or revise the command, then explicitly resume. Ordinary internal simulation segments do not require a new player decision.
 7. The Director repeats the tool-driven loop from the current state.
 
-Checkpoint triggers can include a new forecast issue, a supported risk-criterion crossing, a completed manoeuvre, an information gap, an approaching domain boundary, or the completion of a player-defined condition, etc. Mandatory stop conditions belong to program logic. The Director may add contextual review requests using documented triggers and tool evidence.
+Cargo-grade increases and terminal/validity conditions are mandatory local checkpoints. Weather-report importance is evidence for the Director rather than an automatic pause trigger. The Director may defer delivery, publish without stopping, or request an evidence-backed attention pause; pure local mode leaves weather-related pauses to the player. Individual cargo losses update the displayed status without a separate first-loss interruption. Local code detects triggers and enforces mandatory stops. The Director uses only issued reports and current observations, with a review interval, stale-result rejection and pause cooldown. It cannot generate weather changes or override player control.
 
-Trigger persistence, hysteresis, and review intervals should prevent repeated interruptions around the same threshold. A maximum advance interval can preserve observability when no event occurs. 
+Trigger persistence and deduplication should prevent repeated interruptions for the same event. A maximum internal advance interval preserves observability and responsiveness without imposing turn-based play.
+
+Sessions record player commands, released evidence, tool calls, events, and outcomes, and support saving and resuming after exit. Saved state preserves wave continuity, cargo vulnerabilities and accumulated damage, and consumed events. Time scaling changes playback pace without changing the simulated consequences.
 
 ### 4.4 Plans and branching
 
 The game does not require authors to enumerate every future branch. A command changes state. A conditional plan changes which command should become active when a supported condition holds. Subsequent environmental sampling follows the new trajectory.
 
-The interpreter can translate a request into a bounded plan containing heading or waypoint targets, speed targets, duration or completion conditions, and pause conditions. Deterministic checks then establish whether the plan is executable. 
+Later Copilot work may translate a request into a bounded plan containing heading or waypoint targets, speed targets, duration or completion conditions, and pause conditions. Deterministic checks then establish whether the plan is executable. The current command-line prototype uses persistent heading and speed controls.
 
 [WhatELSE, CHI 2025](https://arxiv.org/abs/2502.18641) provides a design reference for author-controlled narrative spaces and runtime generation of executable events. TIDE adapts that idea to an instructional decision space. This is a proposed transfer, not evidence that WhatELSE validates maritime physics or learning outcomes.
 
@@ -204,7 +226,7 @@ The main workspace combines:
 - A map with the vessel, recent track, intended path, operating boundaries, and selectable environmental layers.
 - Instruments showing time, heading, course, speeds, relevant sea-state components, and supported response indicators.
 - A mission panel showing the time budget, and game cargo status.
-- Direct heading and speed controls, a pause/resume control, and voice interaction for voice command (with copilot)
+- Direct heading and speed controls, game-time rate and pause/resume controls, and later voice commands through Copilot.
 
 The interface should connect environmental values to the vessel's location and expected arrival times. Encounter diagrams, response plots, and exposure timelines are more useful than an undifferentiated set of raw map layers. Model outputs, forecasts, observations, and game indicators need distinct labels.
 
@@ -213,6 +235,8 @@ An evidence-credit budget remains an optional game experiment. It is not part of
 ### 5.2 Direct commands and natural-language commands
 
 The player can issue precise orders through controls or ask the Copilot to construct a command from a broader intention.
+
+Before the frontend and Copilot exist, the entire prototype must be playable from the terminal. When standard input and output are terminals, the game uses a fullscreen live UI. `--plain` provides the line-command interface. The live screen displays coordinates, vessel state, target and actual heading/speed, local sea conditions, released weather briefings, cargo status, and game time. Players enter target heading and speed manually and can pause at any time without waiting for an Agent. The motion model executes turning, acceleration and deceleration continuously rather than instantly setting the vessel state.
 
 The Copilot retrieves the applicable evidence and vessel constraints, proposes executable commands, and calls the Director to run trial simulations and continue game process. 
 

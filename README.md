@@ -4,7 +4,7 @@
 
 TIDE is a maritime training-game prototype. Players command a vessel in historical marine conditions through repeated heading and speed decisions. The target architecture uses a Director Agent to orchestrate local simulation tools and game rules. A Copilot translates natural-language input into actions.
 
-The Python simulation toolkit implements continuous S175 six-degree-of-freedom motion, environmental sampling and exposure. See [SIMULATION.md](docs/SIMULATION.md) for setup, Python calls and modelling limits. Game rules and Agents remain to be implemented. The scenario pipeline builds and validates a curated historical escape exercise; see [DATA_PIPELINE.md](docs/DATA_PIPELINE.md). Earlier route-selection analysis and export tools remain in `pipeline/` for reference and reuse; existing browser prototypes remain available.
+The Python simulation toolkit implements continuous S175 six-degree-of-freedom motion, environmental sampling and exposure. See [SIMULATION.md](docs/SIMULATION.md) for setup, Python calls and modelling limits. Game rules and Director implementation are tracked in PLAN.md; see [GAME_RUNTIME.md](docs/GAME_RUNTIME.md) for command-line operation and credential setup. The scenario pipeline builds and validates a curated historical escape exercise; see [DATA_PIPELINE.md](docs/DATA_PIPELINE.md). Earlier route-selection analysis and export tools remain in `pipeline/` for reference and reuse; existing browser prototypes remain available.
 
 > TIDE is a training prototype, not a navigation or safety decision tool.
 

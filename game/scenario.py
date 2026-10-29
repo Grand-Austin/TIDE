@@ -35,6 +35,16 @@ class Scenario:
     definition: dict
     root: Path
 
+    def gameplay(self):
+        source = self.definition['gameplay']
+        path = self.root / source['path']
+        if digest(path) != source['sha256']:
+            raise ValueError('Gameplay artifact checksum mismatch')
+        result = json.loads(path.read_text())
+        if result.get('version') != 1:
+            raise ValueError('Unsupported gameplay version')
+        return result
+
     @contextmanager
     def environment(self):
         with ExitStack() as stack:
