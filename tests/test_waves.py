@@ -7,10 +7,12 @@ from game.simulation.environment import SeaState
 from game.simulation.waves import WaveModel, jonswap
 
 
-def model(seed=1):
+def model(seed=1, force_rao=None):
+    if force_rao is None:
+        force_rao = np.ones((6, 40, 12), dtype=complex)
     return WaveModel(SimpleNamespace(main={'g':9.81}, freqs=np.linspace(.1, 4, 40),
                      headings=np.arange(0, 2*np.pi, np.pi/6),
-                     force_rao=np.ones((6,40,12), dtype=complex)), seed=seed)
+                     force_rao=force_rao), seed=seed)
 
 
 def test_calm_and_constant_rao_force():
@@ -53,6 +55,22 @@ def test_full_spectrum_energy_and_truncation_reporting():
     assert result.retained_energy > .95
     with pytest.raises(ValueError,match='outside'):
         m.evaluate(m.initial_state(),0,SeaState(2,1,0),0,[0,0])
+
+
+def test_tiny_negative_angle_preserves_directional_force_across_seam():
+    directions = np.arange(12)
+    force_rao = np.broadcast_to((1 + 0.5j) * (1 + 0.2j * directions), (6, 40, 12)).copy()
+    m = model(force_rao=force_rao)
+    sea = SeaState(1, 8, 0)
+    seam_heading = np.nextafter(np.pi + m.mu[0], np.inf)
+    nearby_heading = np.nextafter(np.pi + m.mu[0], -np.inf)
+
+    seam = m.evaluate(m.initial_state(), 0, sea, seam_heading, [0, 0])
+    nearby = m.evaluate(m.initial_state(), 0, sea, nearby_heading, [0, 0])
+
+    assert np.all(np.isfinite(seam.force))
+    assert np.all(np.isfinite(nearby.force))
+    np.testing.assert_allclose(seam.force, nearby.force, rtol=1e-12, atol=1e-10)
 
 
 def test_direction_wrap_and_time_order():

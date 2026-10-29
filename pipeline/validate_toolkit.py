@@ -41,11 +41,14 @@ def assess(seconds=120):
         "new_heading": lambda s: {},
         "new_speed": lambda s: {},
     }
-    vessel = load_s175()
     results = {}
     with CopernicusEnvironment.from_directory(ROOT / "data/copernicus") as source:
-        inputs = asdict(source.sample(start, 3.5, 40))
         available_sources = tuple(source.provenance)
+        missing_sources = [name for name in ("wind", "temperature") if name not in available_sources]
+        if missing_sources:
+            raise ValueError(f"Missing required environmental sources: {', '.join(missing_sources)}")
+        inputs = asdict(source.sample(start, 3.5, 40))
+        vessel = load_s175()
         for name, changes in variants.items():
             sim = Simulation(vessel, TrialEnvironment(source, changes), seed=1)
             state = sim.initial_state(start, 3.5, 40, heading_deg=90, speed_mps=2)

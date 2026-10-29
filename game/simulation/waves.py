@@ -97,6 +97,7 @@ class WaveModel:
         density, retained, underresolved = self._spectrum(float(sea.tp))
         amplitude = np.sqrt(2 * density[:, None] * self.dw[:, None] * self.direction_weights) * sea.hs
         lower = np.searchsorted(self.headings, relative, side='right') - 1
+        lower = np.minimum(lower, len(self.headings) - 2)
         weight = (relative - self.headings[lower]) / (self.headings[lower+1] - self.headings[lower])
         rao = self.rao[:, :, lower] * (1-weight) + self.rao[:, :, lower+1] * weight
         phasor = amplitude * np.exp(1j*phase)
