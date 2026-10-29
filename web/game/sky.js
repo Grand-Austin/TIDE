@@ -63,7 +63,7 @@ void main() {
   } else {
     col = uHorizon * mix(0.55, 1.0, exp(d.y * 10.0));
   }
-  col *= mix(0.04, 1.0, uDay); // overcast night: no moon or stars
+  col *= mix(0.14, 1.0, uDay); // overcast night: no moon or stars
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

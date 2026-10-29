@@ -86,7 +86,9 @@ function updateSun(t) {
   day = THREE.MathUtils.smoothstep(pos.elevation, -6, 6);
   skyMaterial.uniforms.uDay.value = oceanUniforms.uDay.value = day;
   sun.intensity = 2.2 * day;
-  renderer.toneMappingExposure = THREE.MathUtils.lerp(2.4, 0.95, day); // the camera opens up at night
+  renderer.toneMappingExposure = THREE.MathUtils.lerp(3.2, 0.95, day); // the camera opens up at night
+  nightAmbient.intensity = 1.4 * (1 - day);
+  for (const f of floodlights) f.intensity = 9 * (1 - day);
   cubeCamera.update(renderer, envScene);
   scene.environment?.dispose();
   scene.environment = pmrem.fromCubemap(cubeTarget.texture).texture;
@@ -148,6 +150,24 @@ hull.scene.traverse((o) => {
 });
 ship.add(hull.scene);
 scene.add(ship);
+
+// Night on board. Navigation lights sit at their usual places (masthead, sidelights on the bridge wings, stern);
+// deck floodlights and a faint ambient are a viewing aid, not something the data says.
+const nightAmbient = new THREE.HemisphereLight("#7d93b0", "#0b1622", 0);
+scene.add(nightAmbient);
+for (const [color, x, y, z] of [["#fff6e0", 0, 18.8, -80.55], ["#fff6e0", 0, 28.2, 67.45], ["#ff3b30", -12.9, 22.2, 60.5],
+  ["#34c759", 12.9, 22.2, 60.5], ["#fff6e0", 0, 7.0, 87.6]]) {
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 8), new THREE.MeshBasicMaterial({ color, toneMapped: false }));
+  lamp.position.set(x, y, z);
+  ship.add(lamp);
+}
+const floodlights = [[0, 23, 59, 0, 8, -20], [0, 18, -80, 0, 8, -30], [-12, 21, 60, -10, 8, 20], [12, 21, 60, 10, 8, 20]].map(([x, y, z, tx, ty, tz]) => {
+  const f = new THREE.SpotLight("#ffe9c4", 0, 190, 0.75, 0.7, 0);
+  f.position.set(x, y, z);
+  f.target.position.set(tx, ty, tz);
+  ship.add(f, f.target);
+  return f;
+});
 
 const slots = new Map(); // unit id -> [instanced mesh, index] for each part of its box
 const units = deckLayout(hull.scene.getObjectByName("CargoOrigin").position.toArray());
@@ -293,14 +313,14 @@ renderer.setAnimationLoop((now) => {
   // shortcut: without scene cloud data (Menorca replay) the cover is a fixed artistic 0.55
   skyMaterial.uniforms.uCover.value = s.cloud === undefined ? 0.55 : 0.2 + (0.75 * s.cloud) / 100;
   skyMaterial.uniforms.uTime.value = simT;
-  fogNow.copy(HORIZON).multiplyScalar(THREE.MathUtils.lerp(0.04, 1, day));
+  fogNow.copy(HORIZON).multiplyScalar(THREE.MathUtils.lerp(0.16, 1, day));
   scene.fog.color.copy(fogNow);
   oceanUniforms.uFogColor.value = fogNow;
   rain.geometry.setDrawRange(0, 2 * Math.round(RAIN_MAX * THREE.MathUtils.clamp((s.precip ?? 0) / 2, 0, 1)));
   rainUniforms.uCam.value.copy(camera.position);
   rainUniforms.uVel.value.set(wind.x, -9, wind.y); // drops fall at about 9 m/s and drift with the wind
   rainUniforms.uTime.value = now / 1000;
-  rainUniforms.uLight.value = THREE.MathUtils.lerp(0.15, 1, day);
+  rainUniforms.uLight.value = THREE.MathUtils.lerp(0.4, 1, day);
   updateCargo(simT);
   updateSun(simT);
   sky.position.copy(camera.position);
