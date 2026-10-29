@@ -23,13 +23,16 @@ stowage. CI does not run it yet.
 | Path | Contents |
 |---|---|
 | `main.js` | Scene, lighting, playback loop and HUD |
-| `ocean.js` | JONSWAP-scaled Gerstner sea and its shaders |
+| `ocean.js` | JONSWAP-scaled Gerstner sea (24 components), tileable detail map, hull and wake foam, crest spray shaders |
 | `sky.js` | Sun position, overcast sky dome |
 | `replay.js` | Sampling a replay between its 1 s records |
 | `cargo-layout.js` | Deck stowage rule shared with the Blender preview |
 | `cargo-fall.js` | Path of a lost unit (slide, fall, float, sink) as a pure function of time; no three.js, reusable |
 | `cargo-fall-view.js` | three.js drawing of those paths and the splash spray |
+| `panel.js` | Side panel: helm compass, sea, roll trace, cargo bars by grade, loss log (released numbers only) |
+| `bow-spray.js` | Spray where the bow drops into the sea; a look only |
 | `assets/` | `s175.glb` and `containers.glb`, exported from `assets/blender/s175.blend` |
 | `replays/` | Replays written by `pipeline.export_replay` |
+| `scenes/` | Storm scenes copied unchanged from `web/3d-scene` (`pipeline.export_scene`) |
 
 The existing `web/prototype/`, `web/map-spike/`, and `web/public/` remain available as reference experiments and exports.

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { spectrumWaves, displace, heightAt } from "./ocean.js";
+import { spectrumWaves, displace, heightAt, detailMap } from "./ocean.js";
 import { deckLayout } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
 import { sampleAt, latest, fromScene } from "./replay.js";
@@ -112,4 +112,15 @@ test("storm scene reads like a replay", () => {
   expect(r.events[0].unit_ids).toEqual(["deck-180", "deck-282"]);
   expect(r.orders[0].speed_knots).toBeCloseTo(9.72, 2);
   expect(sampleAt(r, 0.75).cloud).toBe(100);
+});
+
+test("detail map tiles without a seam", () => {
+  const { data, size } = detailMap(64);
+  const at = (i, j, c) => data[(j * size + i) * 4 + c];
+  let edge = 0, inner = 0;
+  for (let j = 0; j < size; j++) {
+    edge = Math.max(edge, Math.abs(at(size - 1, j, 0) - at(0, j, 0))); // last column next to the first
+    for (let i = 0; i + 1 < size; i++) inner = Math.max(inner, Math.abs(at(i + 1, j, 0) - at(i, j, 0)));
+  }
+  expect(edge).toBeLessThanOrEqual(inner);
 });

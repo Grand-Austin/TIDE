@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { spectrumWaves, waveUniforms, detailWaves, heightAt, OCEAN_VERTEX, OCEAN_FRAGMENT } from "./ocean.js";
+import { spectrumWaves, waveUniforms, detailMap, heightAt, OCEAN_VERTEX, OCEAN_FRAGMENT, SPRAY_VERTEX, SPRAY_FRAGMENT } from "./ocean.js";
+import { BowSpray } from "./bow-spray.js";
 import { CargoFallView } from "./cargo-fall-view.js";
 import { createPanel } from "./panel.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
@@ -104,7 +105,7 @@ controls.minDistance = 30;
 controls.maxDistance = 1500;
 
 // Grid that is dense next to the ship (about 2.4 m) and coarse at the horizon (about 85 m).
-function oceanGrid(segments = 400, radius = 6000) {
+function oceanGrid(segments = 480, radius = 6000) {
   const map = (u) => radius * u * (0.08 + 0.92 * u * u);
   const pos = [], idx = [];
   for (let j = 0; j <= segments; j++)
@@ -121,10 +122,15 @@ function oceanGrid(segments = 400, radius = 6000) {
 }
 
 const wu = waveUniforms(waves);
+const detail = detailMap();
+const detailTexture = new THREE.DataTexture(detail.data, detail.size, detail.size, THREE.RGBAFormat);
+Object.assign(detailTexture, { wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, generateMipmaps: true,
+  minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, anisotropy: renderer.capabilities.getMaxAnisotropy(), needsUpdate: true });
 const oceanUniforms = {
   uA: { value: wu.a.map((v) => new THREE.Vector4(...v)) },
   uB: { value: wu.b.map((v) => new THREE.Vector4(...v)) },
-  uDetail: { value: detailWaves({ windEast: start.wind_e, windNorth: start.wind_n }).map((v) => new THREE.Vector4(...v)) },
+  uDetailMap: { value: detailTexture },
+  uShip: { value: new THREE.Vector4() },
   uEnv: { value: cubeTarget.texture },
   uTime: { value: 0 },
   uAmp: { value: 1 },
@@ -143,6 +149,20 @@ const oceanUniforms = {
 };
 const ocean = new THREE.Mesh(oceanGrid(), new THREE.ShaderMaterial({ vertexShader: OCEAN_VERTEX, fragmentShader: OCEAN_FRAGMENT, uniforms: oceanUniforms }));
 ocean.frustumCulled = false; // vertices move in the shader
+
+// Spray off breaking crests within 350 m of the ship, worked out on the GPU from the same wave sum.
+const SPRAY = 6000, spraySeeds = new Float32Array(SPRAY * 3).map(() => Math.random());
+const sprayGeometry = new THREE.BufferGeometry();
+sprayGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(SPRAY * 3), 3));
+sprayGeometry.setAttribute("seed", new THREE.BufferAttribute(spraySeeds, 3));
+const sprayUniforms = {
+  uA: oceanUniforms.uA, uB: oceanUniforms.uB, uAmp: oceanUniforms.uAmp, uTime: oceanUniforms.uTime, uCenter: oceanUniforms.uCenter,
+  uWind: { value: new THREE.Vector2() }, uStorm: { value: 0 }, uRadius: { value: 350 }, uWindSpeed: { value: 0 }, uPixels: { value: 900 }, uLight: { value: 1 },
+};
+const crestSpray = new THREE.Points(sprayGeometry, new THREE.ShaderMaterial({ vertexShader: SPRAY_VERTEX, fragmentShader: SPRAY_FRAGMENT,
+  uniforms: sprayUniforms, transparent: true, depthWrite: false }));
+crestSpray.frustumCulled = false;
+scene.add(crestSpray);
 scene.add(ocean);
 
 const ship = new THREE.Group();
@@ -222,6 +242,10 @@ const waterAt = (x, z, t) => {
 };
 const fallView = new CargoFallView({ units, parts, lostAt, env: { poseAt, waterAt } });
 scene.add(fallView.object);
+const bowSpray = new BowSpray(waterAt);
+scene.add(bowSpray.points);
+const shipVelocity = new THREE.Vector3();
+let lastSimT = 0;
 
 // Rain streaks around the camera, as dense as the scene's ERA5 precipitation. None without precipitation data.
 const RAIN_MAX = 8000;
@@ -286,6 +310,9 @@ ui.credit.textContent = [replay.note, ...(replay.credits ?? ["Recorded TIDE sess
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight);
+  // pixels per metre at 1 m distance, for spray points
+  sprayUniforms.uPixels.value = bowSpray.points.material.uniforms.uPixels.value =
+    (innerHeight * renderer.getPixelRatio()) / (2 * Math.tan((camera.fov * Math.PI) / 360));
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
@@ -334,6 +361,15 @@ renderer.setAnimationLoop((now) => {
   rainUniforms.uLight.value = THREE.MathUtils.lerp(0.4, 1, day);
   updateCargo(simT);
   fallView.update(simT);
+  ship.updateMatrixWorld();
+  const [a, b] = [poseAt(simT - 0.5), poseAt(simT + 0.5)];
+  bowSpray.update(ship, simT, simT - lastSimT, wind, shipVelocity.set(b.x - a.x, 0, b.z - a.z));
+  lastSimT = simT;
+  oceanUniforms.uShip.value.set(ship.position.x, ship.position.z, s.heading * RAD, s.sog);
+  sprayUniforms.uWind.value.copy(oceanUniforms.uWind.value);
+  sprayUniforms.uWindSpeed.value = wind.length();
+  sprayUniforms.uStorm.value = storm;
+  sprayUniforms.uLight.value = bowSpray.points.material.uniforms.uLight.value = THREE.MathUtils.lerp(0.35, 1, day);
   updateSun(simT);
   sky.position.copy(camera.position);
   sun.target.position.copy(ship.position);
