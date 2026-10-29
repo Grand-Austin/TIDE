@@ -65,11 +65,23 @@ test("height query lands on the displaced surface", () => {
   }
 });
 
-test("all 320 deck units get a slot inside the hatch area", () => {
+test("all 320 deck units stand on a box or the hatch, without overlaps", () => {
   const units = deckLayout([-11, 7.7, 47.45]);
   expect(units.length).toBe(320);
-  expect(new Set(units.map((u) => `${u.tier}:${u.bay}:${u.row}:${u.position[2].toFixed(2)}`)).size).toBe(320);
-  for (const u of units) expect(Math.abs(u.position[0])).toBeLessThan(11);
+  const halves = new Map(); // "tier:slot:half" -> unit id
+  for (const u of units) {
+    expect(Math.abs(u.position[0])).toBeLessThan(11);
+    for (const half of u.size === 40 ? [0, 1] : [u.half]) {
+      const key = `${u.tier}:${u.bay * 9 + u.row}:${half}`;
+      expect(halves.has(key)).toBe(false);
+      halves.set(key, u.id);
+    }
+  }
+  for (const key of halves.keys()) {
+    const [tier, slot, half] = key.split(":").map(Number);
+    if (tier > 0) expect(halves.has(`${tier - 1}:${slot}:${half}`)).toBe(true);
+  }
+  expect(units.filter((u) => u.tier !== (Number(u.id.slice(5)) - 1) % 3).map((u) => u.id)).toEqual(["deck-320", "deck-318"]);
 });
 
 test("storm scene reads like a replay", () => {
