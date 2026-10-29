@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIDE Storm Scene</title>
+<style>
+  :root {
+    --panel: rgba(12, 20, 28, 0.72);
+    --panel-edge: rgba(255, 255, 255, 0.12);
+    --text: #e8eef3;
+    --muted: #93a4b3;
+    --accent: #f2b544;
+    --danger: #ff6b5b;
+    --ok: #6fd3a0;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b1218; color: var(--text); font: 13px/1.4 var(--font); overflow: hidden; }
+  canvas#scene { display: block; width: 100vw; height: 100vh; }
+  .panel { position: absolute; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px;
+           padding: 10px 12px; backdrop-filter: blur(6px); }
+  .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .big { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; }
+  #title { top: 12px; left: 12px; max-width: min(460px, calc(100vw - 24px)); }
+  #title h1 { margin: 0 0 2px; font-size: 16px; }
+  #title select { margin-top: 6px; width: 100%; background: #101a23; color: var(--text); border: 1px solid var(--panel-edge);
+                  border-radius: 6px; padding: 4px 6px; font: inherit; }
+  #compass { top: 12px; right: 12px; width: 190px; text-align: center; }
+  #compass canvas { width: 166px; height: 166px; }
+  #relative { font-weight: 600; margin-top: 2px; }
+  #instruments { left: 12px; bottom: 96px; width: 250px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  #cargo { right: 12px; bottom: 96px; width: 250px; }
+  .bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
+  #grade { font-weight: 700; }
+  #log { margin: 6px 0 0; padding: 0; list-style: none; max-height: 96px; overflow: auto; font-size: 12px; color: var(--muted); }
+  #log li.loss { color: var(--danger); }
+  #timeline { left: 12px; right: 12px; bottom: 12px; height: 72px; display: flex; gap: 10px; align-items: center; }
+  #timeline canvas { flex: 1; min-width: 0; height: 48px; cursor: pointer; }
+  button { background: #18252f; color: var(--text); border: 1px solid var(--panel-edge); border-radius: 6px; padding: 5px 9px;
+           font: inherit; cursor: pointer; }
+  button:hover { background: #22323e; }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  #toast { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); padding: 10px 16px; border-radius: 8px;
+           background: rgba(120, 20, 10, .85); font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #toast.order { background: rgba(20, 60, 90, .85); }
+  #notes { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); color: rgba(232,238,243,.55); font-size: 11px;
+           text-align: center; width: min(560px, calc(100vw - 560px)); }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; background: #0b1218; font-size: 15px; }
+  @media (max-width: 900px) {
+    #instruments, #cargo { bottom: 96px; width: calc(50vw - 18px); }
+    #compass { width: 120px; } #compass canvas { width: 96px; height: 96px; }
+    #notes { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="panel" id="title">
+  <h1 id="storm-name">TIDE · storm scene</h1>
+  <div class="num" id="clock">—</div>
+  <select id="picker" aria-label="Storm"></select>
+</div>
+
+<div class="panel" id="compass">
+  <div class="label">Heading · waves · wind</div>
+  <canvas id="compass-canvas" width="332" height="332"></canvas>
+  <div id="relative">—</div>
+</div>
+
+<div class="panel" id="instruments">
+  <div><div class="label">Heading</div><div class="big num" id="heading">—</div><div class="num" id="order">—</div></div>
+  <div><div class="label">Speed</div><div class="big num" id="speed">—</div><div class="label">through water</div></div>
+  <div><div class="label">Sea · Hs / Tp</div><div class="big num" id="sea">—</div><div class="num" id="sea-dir">—</div></div>
+  <div><div class="label">Wind</div><div class="big num" id="wind">—</div><div class="num" id="wind-dir">—</div></div>
+  <div><div class="label">Roll</div><div class="big num" id="roll">—</div><div class="bar"><i id="roll-bar"></i></div></div>
+  <div><div class="label">Pitch</div><div class="big num" id="pitch">—</div><div class="bar"><i id="pitch-bar"></i></div></div>
+</div>
+
+<div class="panel" id="cargo">
+  <div class="label">Cargo</div>
+  <div class="big num"><span id="teu">1200</span> <span style="font-size:13px;color:var(--muted)">/ 1200 TEU</span></div>
+  <div>Grade <span id="grade">0</span> · <span id="units">0</span> deck units lost</div>
+  <div class="bar"><i id="loss-bar" style="background:var(--danger)"></i></div>
+  <ul id="log"></ul>
+</div>
+
+<div class="panel" id="timeline">
+  <button id="play" aria-label="Play or pause">Pause</button>
+  <div id="rates"></div>
+  <canvas id="trace"></canvas>
+  <button id="cam" title="C">Chase</button>
+</div>
+
+<div id="toast"></div>
+<div id="notes"></div>
+<div id="loading">Loading storm scene…</div>
+
+<script type="module">
+import * as THREE from "three";
+
+const G = 9.81;
+const RATES = [1, 5, 20, 60];
+const $ = (id) => document.getElementById(id);
+const deg = (r) => r * 180 / Math.PI;
+const rad = (d) => d * Math.PI / 180;
+const wrap = (d) => ((d % 360) + 360) % 360;
+const compassName = (d) => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(wrap(d) / 22.5) % 16];
+
+// ---------- renderer, scene, camera ----------
+const canvas = $("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const STORM_SKY = new THREE.Color(0x8d989f); // horizon haze; also the fog colour
+scene.fog = new THREE.FogExp2(STORM_SKY, 0.00045);
+const camera = new THREE.PerspectiveCamera(50, 1, 1, 9000);
+// overcast sky: a large sphere shaded from zenith to horizon, centred on the camera
+const sky = new THREE.Mesh(new THREE.SphereGeometry(8000, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uTop: { value: new THREE.Color(0x4a565f) }, uHorizon: { value: STORM_SKY } },
+  vertexShader: `varying float vY; void main() { vY = normalize(position).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform vec3 uTop, uHorizon; varying float vY; void main() { gl_FragColor = vec4(mix(uHorizon, uTop, smoothstep(0.0, 0.45, vY)), 1.0); }`,
+}));
+scene.add(sky);
+scene.add(new THREE.HemisphereLight(0xcfd8de, 0x2a3a44, 2.4));
+const sunLight = new THREE.DirectionalLight(0xf1f4f6, 2.2);
+sunLight.position.set(-400, 600, -300);
+scene.add(sunLight);
+// follow camera: azimuth relative to the stern (chase) or to north (free), elevation, distance
+const view = { azimuth: rad(-20), elevation: rad(8), distance: 330 };
+{
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointerup", () => (drag = null));
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    view.azimuth -= (e.clientX - drag[0]) * 0.005;
+    view.elevation = Math.min(rad(75), Math.max(rad(3), view.elevation + (e.clientY - drag[1]) * 0.004));
+    drag = [e.clientX, e.clientY];
+  });
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    view.distance = Math.min(1800, Math.max(140, view.distance * Math.exp(e.deltaY * 0.001)));
+  }, { passive: false });
+}
+
+// ---------- sea surface: Gerstner waves from Hs, Tp and direction ----------
+// The displayed surface is synthesised from the Copernicus statistics at the ship;
+// individual crests are not data (stated on screen).
+const N_WAVES = 8;
+const wave = { dir: [], k: [], w: [], a: [], q: [], phase: [] };
+for (let i = 0; i < N_WAVES; i++) wave.phase.push(Math.random() * Math.PI * 2);
+const spread = [-32, -18, -8, 0, 6, 14, 24, 38];
+const periodScale = [1.25, 1.1, 1.0, 0.95, 0.85, 0.75, 0.65, 0.55];
+function setSea(hs, tp, fromDeg) {
+  const weights = periodScale.map((s) => Math.exp(-((s - 0.95) ** 2) / 0.08));
+  const norm = Math.sqrt(weights.reduce((acc, w) => acc + w * w / 2, 0));
+  for (let i = 0; i < N_WAVES; i++) {
+    const toward = rad(fromDeg + 180 + spread[i]);
+    wave.dir[i] = [Math.sin(toward), -Math.cos(toward)]; // scene x = east, -z = north
+    const period = tp * periodScale[i];
+    const omega = 2 * Math.PI / period;
+    wave.w[i] = omega;
+    wave.k[i] = omega * omega / G;
+    wave.a[i] = weights[i] * hs / (4 * norm); // so that 4·sqrt(Σa²/2) = Hs
+    wave.q[i] = Math.min(0.9 / (wave.k[i] * wave.a[i] * N_WAVES + 1e-6), 1.0);
+  }
+  for (let i = 0; i < N_WAVES; i++) {
+    oceanUniforms.uWave.value[i].set(wave.dir[i][0], wave.dir[i][1], wave.k[i], wave.a[i]);
+    oceanUniforms.uWave2.value[i].set(wave.w[i], wave.q[i], wave.phase[i], 0);
+  }
+  oceanUniforms.uHs.value = hs;
+}
+function seaHeight(x, z, t) {
+  let y = 0;
+  for (let i = 0; i < N_WAVES; i++) {
+    const ph = wave.k[i] * (wave.dir[i][0] * x + wave.dir[i][1] * z) - wave.w[i] * t + wave.phase[i];
+    y += wave.a[i] * Math.sin(ph);
+  }
+  return y;
+}
+
+const oceanUniforms = {
+  uTime: { value: 0 },
+  uWave: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
+  uWave2: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
+  uHs: { value: 1 },
+  uSky: { value: STORM_SKY.clone() },
+  uDeep: { value: new THREE.Color(0x17394a) },
+  uShallow: { value: new THREE.Color(0x4f7f8c) },
+  uLight: { value: new THREE.Vector3(-0.45, 0.7, -0.35).normalize() },
+  uCamera: { value: new THREE.Vector3() },
+  uFogDensity: { value: 0.00045 },
+};
+const ocean = new THREE.Mesh(
+  new THREE.PlaneGeometry(4200, 4200, 360, 360).rotateX(-Math.PI / 2),
+  new THREE.ShaderMaterial({
+    uniforms: oceanUniforms,
+    vertexShader: `
+      #define N ${N_WAVES}
+      uniform float uTime; uniform vec4 uWave[N]; uniform vec4 uWave2[N];
+      varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vec3 p = world.xyz; vec3 n = vec3(0.0, 1.0, 0.0); float crest = 0.0;
+        for (int i = 0; i < N; i++) {
+          vec2 d = uWave[i].xy; float k = uWave[i].z; float a = uWave[i].w;
+          float w = uWave2[i].x; float q = uWave2[i].y; float ph0 = uWave2[i].z;
+          float ph = k * dot(d, world.xz) - w * uTime + ph0;
+          float c = cos(ph), s = sin(ph);
+          p.x += q * a * d.x * c; p.z += q * a * d.y * c; p.y += a * s;
+          n.x -= d.x * k * a * c; n.z -= d.y * k * a * c; n.y -= q * k * a * s;
+          crest += q * k * a * s;
+        }
+        vWorld = p; vNormal = normalize(n); vCrest = crest;
+        gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 uSky, uDeep, uShallow, uLight, uCamera; uniform float uFogDensity, uHs;
+      varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
+      void main() {
+        vec3 n = normalize(vNormal); vec3 v = normalize(uCamera - vWorld);
+        float fresnel = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
+        float lit = max(dot(n, uLight), 0.0);
+        vec3 water = mix(uDeep * 0.8, uShallow * 1.15, pow(lit, 3.0));
+        vec3 color = mix(water, uSky, fresnel * 0.8);
+        float spec = pow(max(dot(reflect(-uLight, n), v), 0.0), 60.0);
+        color += spec * 0.25;
+        float streak = 0.5 + 0.5 * sin(vWorld.x * 0.21 + vWorld.z * 0.17) * sin(vWorld.x * 0.13 - vWorld.z * 0.29);
+        float foam = smoothstep(0.3, 0.75, vCrest + 0.25 * streak) * clamp(uHs / 6.0, 0.25, 1.0);
+        color = mix(color, vec3(0.92, 0.95, 0.97), foam * 0.85);
+        float dist = length(uCamera - vWorld);
+        float fog = 1.0 - exp(-pow(uFogDensity * dist, 2.0));
+        gl_FragColor = vec4(mix(color, uSky, fog), 1.0);
+      }`,
+  }),
+);
+scene.add(ocean);
+
+// ---------- ship: S175-sized container ship, one box per deck cargo unit ----------
+const L = 175, B = 25.4, DRAFT = 9.5, FREEBOARD = 6.5;
+const ship = new THREE.Group();
+ship.rotation.order = "YZX";
+scene.add(ship);
+{
+  const half = B / 2;
+  const deck = new THREE.Shape();
+  deck.moveTo(-L / 2, -half);
+  deck.lineTo(L / 2 - 34, -half);
+  deck.quadraticCurveTo(L / 2 - 4, -half * 0.85, L / 2, 0);
+  deck.quadraticCurveTo(L / 2 - 4, half * 0.85, L / 2 - 34, half);
+  deck.lineTo(-L / 2, half);
+  deck.lineTo(-L / 2, -half);
+  const hullGeom = new THREE.ExtrudeGeometry(deck, { depth: DRAFT + FREEBOARD, bevelEnabled: false });
+  hullGeom.rotateX(Math.PI / 2).translate(0, FREEBOARD, 0); // shape y → scene z (starboard = +z)
+  const hull = new THREE.Mesh(hullGeom, new THREE.MeshStandardMaterial({ color: 0x1d3557, roughness: 0.6 }));
+  ship.add(hull);
+  const boot = new THREE.Mesh(hullGeom.clone().scale(1.002, 0.62, 1.002).translate(0, -3.9, 0),
+    new THREE.MeshStandardMaterial({ color: 0x8b2a22, roughness: 0.7 }));
+  ship.add(boot);
+  const white = new THREE.MeshStandardMaterial({ color: 0xeef1f3, roughness: 0.5 });
+  const house = new THREE.Mesh(new THREE.BoxGeometry(16, 20, B - 2), white);
+  house.position.set(-L / 2 + 14, FREEBOARD + 10, 0);
+  ship.add(house);
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(8, 3, B + 4), white);
+  bridge.position.set(-L / 2 + 17, FREEBOARD + 19, 0);
+  ship.add(bridge);
+  const funnel = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3, 8, 16), new THREE.MeshStandardMaterial({ color: 0xc0392b }));
+  funnel.position.set(-L / 2 + 6, FREEBOARD + 24, 0);
+  ship.add(funnel);
+}
+const COLORS = [0xc0392b, 0x2e86c1, 0x27ae60, 0xd68910, 0x7d3c98, 0xe5e7e9, 0x1abc9c, 0x34495e, 0xe67e22, 0x2c3e50];
+const SLOT = { length: 12.4, width: 2.5, height: 2.6, bays: 11, rows: 10, x0: -L / 2 + 26 };
+const containerMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.75 }), 320);
+ship.add(containerMesh);
+let units = []; // {id, tier, teu, home: Matrix4, lostAt, side}
+function layoutCargo(cargo) {
+  const perTier = [0, 0, 0];
+  units = cargo.units.map((u, i) => {
+    const slot = perTier[u.tier]++;
+    const bay = Math.floor(slot / SLOT.rows), row = slot % SLOT.rows;
+    const length = u.teu === 2 ? SLOT.length - 0.4 : SLOT.length / 2 - 0.3;
+    const x = SLOT.x0 + bay * SLOT.length + SLOT.length / 2;
+    const z = (row - (SLOT.rows - 1) / 2) * SLOT.width;
+    const y = FREEBOARD + SLOT.height * (u.tier + 0.5) + 0.2;
+    const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(),
+      new THREE.Vector3(length, SLOT.height - 0.15, SLOT.width - 0.15));
+    containerMesh.setColorAt(i, new THREE.Color(COLORS[(i * 7 + u.tier * 3) % COLORS.length]));
+    return { ...u, index: i, home: m, pos: new THREE.Vector3(x, y, z), lostAt: null };
+  });
+  containerMesh.instanceColor.needsUpdate = true;
+}
+
+// ---------- rain ----------
+const RAIN = 2200;
+const rainGeom = new THREE.BufferGeometry();
+const rainPos = new Float32Array(RAIN * 6);
+rainGeom.setAttribute("position", new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.LineSegments(rainGeom, new THREE.LineBasicMaterial({ color: 0xb8c6d0, transparent: true, opacity: 0.35 }));
+scene.add(rain);
+const drops = Array.from({ length: RAIN }, () => [Math.random() * 900 - 450, Math.random() * 300, Math.random() * 900 - 450]);
+
+// ---------- scene data and playback ----------
+let data = null, F = {}, dt = 0.5, t = 0, playing = true, rate = 5, chase = true;
+let lossTimes = new Map(), lastToast = -1;
+const origin = { lon: 0, lat: 0, kx: 1, ky: 1 };
+
+function field(i, name) { return data.samples[i][F[name]]; }
+function sampleAt(time) {
+  const s = data.samples, f = Math.max(0, Math.min(s.length - 1.001, (time - s[0][0]) / dt));
+  const i = Math.floor(f), u = f - i, a = s[i], b = s[i + 1] || a;
+  const out = {};
+  for (const [name, j] of Object.entries(F)) {
+    let va = a[j], vb = b[j];
+    if (name === "heading" || name === "wave_from") { if (vb - va > 180) vb -= 360; if (va - vb > 180) vb += 360; }
+    out[name] = va + (vb - va) * u;
+  }
+  out.heading = wrap(out.heading); out.wave_from = wrap(out.wave_from);
+  return out;
+}
+function local(lon, lat) { return [(lon - origin.lon) * origin.kx, -(lat - origin.lat) * origin.ky]; }
+
+async function load(id) {
+  $("loading").style.display = "grid";
+  data = await (await fetch(`scenes/${id}.json`)).json();
+  F = Object.fromEntries(data.fields.map((n, i) => [n, i]));
+  dt = data.samples[1][0] - data.samples[0][0];
+  [origin.lon, origin.lat] = data.start_lon_lat;
+  origin.ky = 110540; origin.kx = 111320 * Math.cos(rad(origin.lat));
+  layoutCargo(data.cargo);
+  camHeading = null;
+  lossTimes = new Map();
+  for (const e of data.events) if (e.kind === "cargo_lost") for (const u of e.units) lossTimes.set(u, e.t);
+  units.forEach((u) => { u.lostAt = lossTimes.get(u.id) ?? null; u.side = Math.random() < 0.5 ? -1 : 1; });
+  const s = data.storm;
+  $("storm-name").textContent = `${s.area} storm · ${s.peak.slice(0, 10)}`;
+  $("notes").innerHTML = `Copernicus Marine (${Object.values(data.copernicus_products).join(", ")}) at the ship's position. ` +
+    `Roll, pitch and cargo loss: TIDE simulation of the S175 (game cargo model). ` +
+    `Sea surface synthesised from Hs, Tp and direction. ${data.plan_note}`;
+  t = data.samples[0][0];
+  $("log").innerHTML = "";
+  lastToast = -1;
+  drawTrace();
+  $("loading").style.display = "none";
+}
+
+// ---------- HUD ----------
+const compassCtx = $("compass-canvas").getContext("2d");
+function arrow(ctx, r, bearing, color, width, inward) {
+  const a = rad(bearing - 90), c = 166;
+  const [x0, y0] = inward ? [c + Math.cos(a) * r, c + Math.sin(a) * r] : [c, c];
+  const [x1, y1] = inward ? [c + Math.cos(a) * r * 0.35, c + Math.sin(a) * r * 0.35] : [c + Math.cos(a) * r, c + Math.sin(a) * r];
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const h = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 18 * Math.cos(h - 0.45), y1 - 18 * Math.sin(h - 0.45));
+  ctx.lineTo(x1 - 18 * Math.cos(h + 0.45), y1 - 18 * Math.sin(h + 0.45)); ctx.fill();
+}
+function drawCompass(s, windFrom) {
+  const ctx = compassCtx, c = 166;
+  ctx.clearRect(0, 0, 332, 332);
+  ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(c, c, 150, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = "#93a4b3"; ctx.font = "bold 26px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([n, b]) => ctx.fillText(n, c + Math.sin(rad(b)) * 128, c - Math.cos(rad(b)) * 128));
+  arrow(ctx, 150, s.wave_from, "#4fc3f7", 7, true);
+  arrow(ctx, 150, windFrom, "rgba(255,255,255,.6)", 4, true);
+  arrow(ctx, 110, s.heading, "#f2b544", 9, false);
+}
+function encounter(s) {
+  const rel = wrap(s.wave_from - s.heading); // where the waves come from, seen from the bow
+  const a = rel > 180 ? 360 - rel : rel, side = rel > 180 ? "port" : "starboard";
+  if (a < 30) return ["Head seas", "var(--ok)"];
+  if (a < 60) return [`Bow-quartering seas (${side})`, "var(--accent)"];
+  if (a <= 120) return [`Beam seas from ${side}`, "var(--danger)"];
+  if (a <= 150) return [`Stern-quartering seas (${side})`, "var(--accent)"];
+  return ["Following seas", "var(--ok)"];
+}
+const traceCtx = $("trace").getContext("2d");
+function drawTrace() {
+  const cv = $("trace"), w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio;
+  const ctx = traceCtx, s = data.samples, t0 = s[0][0], t1 = s[s.length - 1][0];
+  ctx.clearRect(0, 0, w, h);
+  const maxRoll = Math.max(10, ...s.map((r) => Math.abs(r[F.roll])));
+  ctx.fillStyle = "rgba(79,195,247,.55)";
+  for (let i = 0; i < s.length; i += 2) {
+    const x = (s[i][0] - t0) / (t1 - t0) * w, y = Math.abs(s[i][F.roll]) / maxRoll * h;
+    ctx.fillRect(x, h - y, Math.max(1, w / s.length * 2), y);
+  }
+  for (const o of data.orders) {
+    const x = (o.t - t0) / (t1 - t0) * w;
+    ctx.fillStyle = "rgba(242,181,68,.9)"; ctx.fillRect(x, 0, 2 * devicePixelRatio, h);
+  }
+  for (const e of data.events) if (e.kind === "cargo_lost") {
+    const x = (e.t - t0) / (t1 - t0) * w;
+    ctx.fillStyle = "rgba(255,107,91,.95)"; ctx.fillRect(x - devicePixelRatio, 0, 2 * devicePixelRatio, h * 0.4);
+  }
+  ctx.fillStyle = "rgba(232,238,243,.6)"; ctx.font = `${11 * devicePixelRatio}px system-ui`;
+  ctx.fillText(`|roll| up to ${maxRoll.toFixed(0)}° · orange: orders · red: cargo lost`, 6, 13 * devicePixelRatio);
+}
+function drawCursor() {
+  const cv = $("trace"), s = data.samples, t0 = s[0][0], t1 = s[s.length - 1][0];
+  drawTrace();
+  const x = (t - t0) / (t1 - t0) * cv.width;
+  traceCtx.fillStyle = "#fff"; traceCtx.fillRect(x - devicePixelRatio, 0, 2 * devicePixelRatio, cv.height);
+}
+function toast(text, kind) {
+  const el = $("toast"); el.textContent = text; el.className = kind || ""; el.style.opacity = 1;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (el.style.opacity = 0), 2600);
+}
+function updateHud(s) {
+  const start = new Date(data.start), now = new Date(start.getTime() + (t - data.samples[0][0]) * 1000);
+  $("clock").textContent = `${now.toISOString().slice(0, 16).replace("T", " ")} UTC · Hs ${s.hs.toFixed(1)} m at the ship`;
+  const order = [...data.orders].reverse().find((o) => o.t <= t) || data.orders[0];
+  $("heading").textContent = `${s.heading.toFixed(0)}°`;
+  $("order").textContent = `order ${order.heading_deg.toFixed(0)}°`;
+  $("speed").textContent = `${(s.stw * 1.94384).toFixed(1)} kn`;
+  $("sea").textContent = `${s.hs.toFixed(1)} m · ${s.tp.toFixed(0)} s`;
+  $("sea-dir").textContent = `from ${s.wave_from.toFixed(0)}° ${compassName(s.wave_from)}`;
+  const windKn = Math.hypot(s.wind_e, s.wind_n) * 1.94384, windFrom = wrap(deg(Math.atan2(-s.wind_e, -s.wind_n)));
+  $("wind").textContent = `${windKn.toFixed(0)} kn`;
+  $("wind-dir").textContent = `from ${windFrom.toFixed(0)}° ${compassName(windFrom)}`;
+  $("roll").textContent = `${s.roll.toFixed(1)}°`;
+  $("pitch").textContent = `${s.pitch.toFixed(1)}°`;
+  $("roll-bar").style.width = `${Math.min(100, Math.abs(s.roll) / 20 * 100)}%`;
+  $("pitch-bar").style.width = `${Math.min(100, Math.abs(s.pitch) / 10 * 100)}%`;
+  const lostTeu = Math.round(s.lost_teu), lostUnits = units.filter((u) => u.lostAt !== null && u.lostAt <= t).length;
+  $("teu").textContent = 1200 - lostTeu;
+  $("units").textContent = lostUnits;
+  $("grade").textContent = Math.round(s.grade);
+  $("grade").style.color = s.grade >= 3 ? "var(--danger)" : s.grade > 0 ? "var(--accent)" : "var(--ok)";
+  $("loss-bar").style.width = `${Math.min(100, lostTeu / 120 * 100)}%`;
+  const [label, color] = encounter(s);
+  $("relative").textContent = label; $("relative").style.color = color;
+  drawCompass(s, windFrom);
+  // events that the playhead just passed
+  const passed = data.events.filter((e) => e.t > lastToast && e.t <= t);
+  const orders = data.orders.filter((o) => o.t > lastToast && o.t <= t && o.t > 0);
+  for (const o of orders) toast(`Order: steer ${o.heading_deg.toFixed(0)}° (${o.relative_to_waves_deg}° off the waves)`, "order");
+  for (const e of passed) {
+    if (e.kind === "cargo_lost") toast(`${e.units.length} deck units overboard · roll ${s.roll.toFixed(0)}°`);
+    const li = document.createElement("li");
+    li.className = e.kind === "cargo_lost" ? "loss" : "";
+    li.textContent = `${new Date(start.getTime() + (e.t - data.samples[0][0]) * 1000).toISOString().slice(11, 19)} ${e.kind.replace("_", " ")}: ${e.detail}`;
+    $("log").prepend(li);
+  }
+  lastToast = t;
+}
+
+// ---------- animation ----------
+const tmp = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+let clock = performance.now(), visualTime = 0, camHeading = null;
+function frame(now) {
+  const real = Math.min(0.1, (now - clock) / 1000); clock = now;
+  if (data) {
+    const end = data.samples[data.samples.length - 1][0];
+    if (playing) { t = Math.min(end, t + real * rate); if (t >= end) setPlaying(false); }
+    visualTime += real * (playing ? rate : 0);
+    const s = sampleAt(t);
+    setSea(s.hs, s.tp, s.wave_from);
+    oceanUniforms.uTime.value = visualTime;
+    const [x, z] = local(s.lon, s.lat);
+    const h = rad(s.heading), fx = Math.sin(h), fz = -Math.cos(h);
+    const y = (seaHeight(x + fx * 60, z + fz * 60, visualTime) + seaHeight(x, z, visualTime) + seaHeight(x - fx * 60, z - fz * 60, visualTime)) / 3;
+    ship.position.set(x, y, z);
+    ship.rotation.set(rad(s.roll), Math.PI / 2 - h, rad(s.pitch));
+    // follow camera behind the stern (chase) or at a fixed compass bearing (free)
+    if (camHeading === null) camHeading = s.heading;
+    let turn = s.heading - camHeading; turn -= 360 * Math.round(turn / 360);
+    camHeading = wrap(camHeading + turn * Math.min(1, real * 1.5));
+    const bearing = rad((chase ? camHeading + 180 : 180) + deg(view.azimuth));
+    const horizontal = view.distance * Math.cos(view.elevation);
+    // the camera rides a third of the ship's vertical motion so the horizon stays calm
+    camera.position.set(x + Math.sin(bearing) * horizontal, y * 0.3 + view.distance * Math.sin(view.elevation) + 20,
+                        z - Math.cos(bearing) * horizontal);
+    camera.lookAt(x, y * 0.5 + 12, z);
+    sky.position.copy(camera.position);
+    ocean.position.set(Math.round(x / 20) * 20, 0, Math.round(z / 20) * 20);
+    oceanUniforms.uCamera.value.copy(camera.position);
+    // cargo: lost units slide over the low side and sink
+    for (const u of units) {
+      if (u.lostAt === null || t < u.lostAt) { containerMesh.setMatrixAt(u.index, u.home); continue; }
+      const age = (t - u.lostAt) * 1.0;
+      const fall = Math.min(age, 40);
+      u.home.decompose(v, q, sc);
+      const side = Math.sign(s.roll || u.side) || u.side;
+      v.z += side * (B / 2 + 6) * Math.min(1, fall / 6);
+      v.y += -fall * fall * 0.05 - Math.max(0, fall - 6) * 0.6;
+      q.setFromEuler(new THREE.Euler(side * Math.min(1.2, fall * 0.08), 0, fall * 0.02));
+      if (v.y < -40) sc.set(0, 0, 0);
+      containerMesh.setMatrixAt(u.index, tmp.compose(v, q, sc));
+    }
+    containerMesh.instanceMatrix.needsUpdate = true;
+    // rain around the camera, heavier with wind
+    const windKn = Math.hypot(s.wind_e, s.wind_n) * 1.94384, n = Math.min(RAIN, Math.floor(RAIN * Math.max(0, windKn - 20) / 45));
+    const wx = s.wind_e * 0.6, wz = -s.wind_n * 0.6;
+    for (let i = 0; i < RAIN; i++) {
+      const d = drops[i];
+      d[1] -= real * 60; d[0] += wx * real; d[2] += wz * real;
+      if (d[1] < 0) { d[1] = 300; d[0] = Math.random() * 900 - 450; d[2] = Math.random() * 900 - 450; }
+      const p = i < n ? [camera.position.x + d[0], d[1] + camera.position.y - 150, camera.position.z + d[2]] : [0, -9999, 0];
+      rainPos.set([p[0], p[1], p[2], p[0] - wx * 0.15, p[1] + 6, p[2] - wz * 0.15], i * 6);
+    }
+    rainGeom.attributes.position.needsUpdate = true;
+    const fog = 0.00035 + Math.min(0.0006, windKn * 0.000008);
+    scene.fog.density = fog; oceanUniforms.uFogDensity.value = fog;
+    updateHud(s);
+    drawCursor();
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+// ---------- controls ----------
+function setPlaying(p) { playing = p; $("play").textContent = p ? "Pause" : "Play"; }
+$("play").onclick = () => { if (!playing && data && t >= data.samples[data.samples.length - 1][0]) t = data.samples[0][0], $("log").innerHTML = "", lastToast = -1; setPlaying(!playing); };
+RATES.forEach((r, i) => {
+  const b = document.createElement("button"); b.textContent = `${r}×`; b.title = String(i + 1);
+  b.onclick = () => setRate(r); $("rates").append(b);
+});
+function setRate(r) { rate = r; [...$("rates").children].forEach((b) => b.classList.toggle("on", b.textContent === `${r}×`)); }
+setRate(5);
+$("cam").onclick = () => { chase = !chase; $("cam").classList.toggle("on", chase); };
+$("cam").classList.add("on");
+$("trace").onclick = (e) => {
+  const r = e.target.getBoundingClientRect(), s = data.samples;
+  t = s[0][0] + (e.clientX - r.left) / r.width * (s[s.length - 1][0] - s[0][0]);
+  $("log").innerHTML = ""; lastToast = t;
+};
+addEventListener("keydown", (e) => {
+  if (e.target.tagName === "SELECT") return;
+  if (e.code === "Space") { e.preventDefault(); $("play").click(); }
+  if (e.key >= "1" && e.key <= "4") setRate(RATES[+e.key - 1]);
+  if (e.key === "c" || e.key === "C") $("cam").click();
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { t += e.key === "ArrowRight" ? 10 : -10; lastToast = t; }
+});
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  if (data) drawTrace();
+}
+addEventListener("resize", resize);
+
+// ---------- start ----------
+(async () => {
+  resize();
+  try {
+    const index = await (await fetch("scenes/index.json")).json();
+    const picker = $("picker");
+    for (const s of index.storms) {
+      const o = document.createElement("option");
+      o.value = s.id; o.disabled = !s.scene;
+      o.textContent = `${s.peak.slice(0, 10)} · ${s.area} · Hs ${s.hs_m} m · ${s.max_wind_kn} kn${s.scene ? "" : " (not exported)"}`;
+      picker.append(o);
+    }
+    const first = index.storms.find((s) => s.scene && s.id === "biscay-20260123-06") || index.storms.find((s) => s.scene);
+    picker.value = first.id;
+    picker.onchange = () => load(picker.value);
+    await load(first.id);
+    requestAnimationFrame(frame);
+  } catch (err) {
+    $("loading").textContent = `Could not load the storm scenes (${err.message}). Run python -m pipeline.export_scene first and serve web/ over HTTP.`;
+  }
+})();
+</script>
+</body>
+</html>
