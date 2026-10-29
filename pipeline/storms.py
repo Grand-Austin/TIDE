@@ -4,12 +4,17 @@ A storm step is a 3-hourly time at which the 90th percentile of Hs reaches 6 m i
 steps no more than 12 h apart belong to the same storm. Each storm keeps its peak cell and the
 sea state there.
 
-    python -m pipeline.storms biscay     # writes data/storms/biscay.json
+    python -m pipeline.storms biscay             # writes data/storms/biscay.json
+    python -m pipeline.storms biscay --subsets   # also data/storms/biscay/<id>/{waves,wind,currents}.nc
+
+The subsets (peak ±24 h, ±2° around the peak cell) are small enough to commit, so teammates can export
+scenes and build scenarios without the year of raw data or a Copernicus Marine account.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -80,9 +85,44 @@ def storms(region: str) -> list[dict]:
     return result
 
 
+SUBSET_HOURS = 24
+SUBSET_DEG = 2.0
+LAYERS = ("waves", "wind", "currents")
+
+
+def write_subsets(region: str) -> Path:
+    catalogue = json.loads((OUT / f"{region}.json").read_text())
+    raw = directory(region)
+    data = {name: xr.open_mfdataset(str(raw / f"{name}_*.nc")).sortby("time") for name in LAYERS}
+    pad = pd.Timedelta(hours=SUBSET_HOURS)
+    files = {}
+    for storm in catalogue["storms"]:
+        peak = pd.Timestamp(storm["peak"].rstrip("Z"))
+        folder = OUT / region / storm["id"]
+        folder.mkdir(parents=True, exist_ok=True)
+        for name, ds in data.items():
+            sub = ds.sel(time=slice(peak - pad, peak + pad),
+                         longitude=slice(storm["lon"] - SUBSET_DEG, storm["lon"] + SUBSET_DEG),
+                         latitude=slice(storm["lat"] - SUBSET_DEG, storm["lat"] + SUBSET_DEG)).load()
+            path = folder / f"{name}.nc"
+            sub.to_netcdf(path, encoding={v: {"zlib": True, "complevel": 4} for v in sub.data_vars})
+            files[f"{storm['id']}/{name}.nc"] = {
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size,
+                "time": [f"{pd.Timestamp(sub.time.values[0]):%Y-%m-%dT%H:%MZ}", f"{pd.Timestamp(sub.time.values[-1]):%Y-%m-%dT%H:%MZ}"],
+            }
+    manifest = OUT / region / "manifest.json"
+    manifest.write_text(json.dumps({
+        "window": f"storm peak ±{SUBSET_HOURS} h, ±{SUBSET_DEG:g}° around the peak cell, clipped to the region",
+        "copernicus_products": PRODUCTS, "credit": "Generated using E.U. Copernicus Marine Service Information",
+        "files": files,
+    }, indent=1) + "\n")
+    return manifest
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("region", choices=REGIONS)
+    parser.add_argument("--subsets", action="store_true", help="also write per-storm data subsets")
     args = parser.parse_args()
     found = storms(args.region)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -95,6 +135,8 @@ def main() -> None:
         "storms": found,
     }, indent=1) + "\n")
     print(f"{path}: {len(found)} storms")
+    if args.subsets:
+        print(write_subsets(args.region))
 
 
 if __name__ == "__main__":

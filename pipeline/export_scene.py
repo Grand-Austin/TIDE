@@ -48,13 +48,15 @@ WEATHER_CREDIT = ("Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, "
                   "Copernicus Climate Change Service (C3S)")
 
 
-def environment(region: str, start: datetime, lon: float, lat: float) -> CopernicusEnvironment:
-    raw = directory(region)
+def environment(region: str, start: datetime, lon: float, lat: float, storm_id: str | None = None) -> CopernicusEnvironment:
+    """Committed per-storm subsets (pipeline.storms --subsets) if present, else the region's raw year."""
+    subset = STORMS / region / storm_id if storm_id else None
+    raw = subset if subset is not None and subset.exists() else directory(region)
     pad = pd.Timedelta(hours=12)
     window = slice(pd.Timestamp(start.replace(tzinfo=None)) - pad, pd.Timestamp(start.replace(tzinfo=None)) + pad)
     data = {}
     for name in ("waves", "currents", "wind"):
-        ds = xr.open_mfdataset(str(raw / f"{name}_*.nc")).sortby("time")
+        ds = xr.open_mfdataset(str(raw / f"{name}*.nc")).sortby("time")
         data[name] = ds.sel(time=window, longitude=slice(lon - 1, lon + 1), latitude=slice(lat - 1, lat + 1)).load()
     return CopernicusEnvironment(**data)
 
@@ -67,7 +69,7 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
     lat = min(max(storm["lat"], south + MARGIN), north - MARGIN)
     if start is None:
         start = datetime.fromisoformat(storm["peak"].replace("Z", "+00:00")) - pd.Timedelta(seconds=LEAD_S)
-    sim = Simulation(load_s175(ROOT / "data/processed/s175"), environment(region, start, lon, lat), seed=1,
+    sim = Simulation(load_s175(ROOT / "data/processed/s175"), environment(region, start, lon, lat, storm_id), seed=1,
                      settings=Settings(**STORM_SETTINGS), wind_parameters=WindParameters(**REFERENCE["wind_parameters"]))
     wave_from = sim.observe(sim.initial_state(start, lon, lat, heading_deg=0, speed_mps=SPEED_MPS)).wave_from_deg
     state = sim.initial_state(start, lon, lat, heading_deg=wave_from, speed_mps=SPEED_MPS)
