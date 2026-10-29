@@ -147,7 +147,7 @@ void main() {
 
   float crest = clamp(vWorld.y / max(uHs, 0.5) + 0.25, 0.0, 1.0);
   float back = pow(max(dot(-v, uSun), 0.0), 3.0);
-  vec3 body = (uDeep * (0.25 + 0.4 * max(dot(n, uSun), 0.0)) + uScatter * crest * crest * (0.35 + 1.4 * back)) * mix(0.2, 1.0, uDay);
+  vec3 body = (uDeep * (0.25 + 0.4 * max(dot(n, uSun), 0.0)) + uScatter * crest * crest * (0.35 + 1.4 * back)) * mix(vec3(0.24, 0.3, 0.42), vec3(1.0), uDay);
   vec3 col = mix(body, sky, fres);
   vec3 h = normalize(uSun + v);
   col += uSunColor * pow(max(dot(n, h), 0.0), mix(60.0, 700.0, sharp / float(ND))) * (0.2 + fres) * 1.5;
@@ -155,7 +155,7 @@ void main() {
   vec2 drift = uWind * uTime * 0.35;
   float streaks = fbm(vWorld.xz * 0.11 - drift * 0.11) * 0.6 + fbm(vWorld.xz * 0.6 - drift * 0.6) * 0.4;
   float foam = clamp(vFoam * uFoamAmount * 1.8 - (1.0 - smoothstep(0.3, 0.75, streaks)), 0.0, 1.0);
-  col = mix(col, vec3(0.78, 0.82, 0.84) * (0.55 + 0.45 * max(dot(vNormal, uSun), 0.0)) * mix(0.3, 1.0, uDay), foam);
+  col = mix(col, vec3(0.78, 0.82, 0.84) * (0.55 + 0.45 * max(dot(vNormal, uSun), 0.0)) * mix(vec3(0.3, 0.36, 0.48), vec3(1.0), uDay), foam);
 
   col = mix(col, uFogColor, 1.0 - exp(-uFogDensity * uFogDensity * d * d));
   gl_FragColor = vec4(col, 1.0);

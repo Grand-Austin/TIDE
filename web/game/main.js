@@ -42,7 +42,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(HORIZON, FOG_DENSITY);
 const sunDir = new THREE.Vector3();
 const wind = new THREE.Vector2();
-const fogNow = new THREE.Color();
+const TINT = new THREE.Color(), fogNow = new THREE.Color(), NIGHT_TINT = new THREE.Color(0.16, 0.2, 0.3), WHITE = new THREE.Color(1, 1, 1);
 let day = 1; // 0 at night, 1 in daylight: civil twilight in between
 
 const skyMaterial = new THREE.ShaderMaterial({
@@ -87,9 +87,9 @@ function updateSun(t) {
   day = THREE.MathUtils.smoothstep(pos.elevation, -6, 6);
   skyMaterial.uniforms.uDay.value = oceanUniforms.uDay.value = day;
   sun.intensity = 2.2 * day;
-  renderer.toneMappingExposure = THREE.MathUtils.lerp(3.2, 0.95, day); // the camera opens up at night
-  nightAmbient.intensity = 1.4 * (1 - day);
-  for (const f of floodlights) f.intensity = 9 * (1 - day);
+  renderer.toneMappingExposure = THREE.MathUtils.lerp(1.7, 0.95, day); // the camera opens up a little at night
+  nightAmbient.intensity = 2.2 * (1 - day);
+  for (const f of floodlights) f.intensity = 1.6 * (1 - day);
   cubeCamera.update(renderer, envScene);
   scene.environment?.dispose();
   scene.environment = pmrem.fromCubemap(cubeTarget.texture).texture;
@@ -154,7 +154,7 @@ scene.add(ship);
 
 // Night on board. Navigation lights sit at their usual places (masthead, sidelights on the bridge wings, stern);
 // deck floodlights and a faint ambient are a viewing aid, not something the data says.
-const nightAmbient = new THREE.HemisphereLight("#7d93b0", "#0b1622", 0);
+const nightAmbient = new THREE.HemisphereLight("#8fa6cc", "#1a2433", 0);
 scene.add(nightAmbient);
 for (const [color, x, y, z] of [["#fff6e0", 0, 18.8, -80.55], ["#fff6e0", 0, 28.2, 67.45], ["#ff3b30", -12.9, 22.2, 60.5],
   ["#34c759", 12.9, 22.2, 60.5], ["#fff6e0", 0, 7.0, 87.6]]) {
@@ -163,7 +163,7 @@ for (const [color, x, y, z] of [["#fff6e0", 0, 18.8, -80.55], ["#fff6e0", 0, 28.
   ship.add(lamp);
 }
 const floodlights = [[0, 23, 59, 0, 8, -20], [0, 18, -80, 0, 8, -30], [-12, 21, 60, -10, 8, 20], [12, 21, 60, 10, 8, 20]].map(([x, y, z, tx, ty, tz]) => {
-  const f = new THREE.SpotLight("#ffe9c4", 0, 190, 0.75, 0.7, 0);
+  const f = new THREE.SpotLight("#ffcf8a", 0, 140, 0.6, 0.8, 0);
   f.position.set(x, y, z);
   f.target.position.set(tx, ty, tz);
   ship.add(f, f.target);
@@ -330,7 +330,7 @@ renderer.setAnimationLoop((now) => {
   // shortcut: without scene cloud data (Menorca replay) the cover is a fixed artistic 0.55
   skyMaterial.uniforms.uCover.value = s.cloud === undefined ? 0.55 : 0.2 + (0.75 * s.cloud) / 100;
   skyMaterial.uniforms.uTime.value = simT;
-  fogNow.copy(HORIZON).multiplyScalar(THREE.MathUtils.lerp(0.16, 1, day));
+  fogNow.copy(HORIZON).multiply(TINT.lerpColors(NIGHT_TINT, WHITE, day));
   scene.fog.color.copy(fogNow);
   oceanUniforms.uFogColor.value = fogNow;
   rain.geometry.setDrawRange(0, 2 * Math.round(RAIN_MAX * THREE.MathUtils.clamp((s.precip ?? 0) / 2, 0, 1)));
