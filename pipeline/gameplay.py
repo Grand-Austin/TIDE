@@ -18,6 +18,7 @@ def build_gameplay(scenario):
     w, e, s, n = d["area_bbox"]
     start = utc(d["start"])
     budget = d["mission"]["budget_s"]
+    region_hs = d.get("gameplay_settings", {}).get("region_hs_m", 3.0)
     regions = []
     reports = []
     source = d["environment"]["waves"]
@@ -32,7 +33,7 @@ def build_gameplay(scenario):
             at = np.datetime64((start + timedelta(seconds=t)).replace(tzinfo=None))
             hs = subset.VHM0.interp(time=at).values
             points = []
-            for i, j in np.argwhere(np.isfinite(hs) & (hs >= 3.0)):
+            for i, j in np.argwhere(np.isfinite(hs) & (hs >= region_hs)):
                 points.extend(
                     [
                         [float(lons[j] + a * dx), float(lats[i] + b * dy)]
@@ -102,7 +103,7 @@ def build_gameplay(scenario):
                     )
     return {
         "version": 1,
-        "region_method": "Hs>=3m convex cell-footprint envelope; held on one-minute schedule",
+        "region_method": f"Hs>={region_hs:g}m convex cell-footprint envelope; held on one-minute schedule",
         "source_sha256": source["sha256"],
         "regions": regions,
         "reports": reports,

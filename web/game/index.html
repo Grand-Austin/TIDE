@@ -51,6 +51,24 @@
   #notes { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); color: rgba(232,238,243,.55); font-size: 11px;
            text-align: center; width: min(560px, calc(100vw - 560px)); }
   #loading { position: absolute; inset: 0; display: grid; place-items: center; background: #0b1218; font-size: 15px; }
+  #forecasts { right: 12px; top: 270px; width: 250px; max-height: calc(100vh - 470px); overflow: auto; font-size: 12px; display: none; }
+  #forecasts li { margin: 4px 0; color: var(--text); }
+  #forecasts ul { margin: 4px 0 0; padding-left: 16px; }
+  .modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5, 10, 15, .6); z-index: 10; }
+  .modal[hidden] { display: none; }
+  .card { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; background: #101a23;
+          border: 1px solid var(--panel-edge); border-radius: 12px; padding: 18px 20px; }
+  .card h2 { margin: 0 0 6px; font-size: 18px; }
+  .card fieldset { border: 1px solid var(--panel-edge); border-radius: 8px; margin: 10px 0; padding: 8px 10px; }
+  .card legend { color: var(--muted); padding: 0 4px; }
+  .card label { display: block; margin: 3px 0; cursor: pointer; }
+  .card input[type=number], .card textarea { background: #0b1218; color: var(--text); border: 1px solid var(--panel-edge);
+          border-radius: 6px; padding: 5px 7px; font: inherit; }
+  .card textarea { width: 100%; min-height: 54px; }
+  .card .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .card .ok { color: var(--ok); } .card .bad { color: var(--danger); }
+  .card .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .stars { font-size: 28px; color: var(--accent); letter-spacing: 4px; }
   @media (max-width: 900px) {
     #instruments, #cargo { bottom: 96px; width: calc(50vw - 18px); }
     #compass { width: 120px; } #compass canvas { width: 96px; height: 96px; }
@@ -106,6 +124,8 @@
   <button id="cam" title="C">Chase</button>
 </div>
 
+<div class="panel" id="forecasts"><div class="label">Released forecasts</div><ul id="forecast-list"></ul></div>
+<div class="modal" id="modal" hidden><div class="card"><h2 id="m-title"></h2><div id="m-body"></div><div class="actions" id="m-actions"></div></div></div>
 <div id="toast"></div>
 <div id="notes"></div>
 <div id="loading">Loading storm scene…</div>
@@ -115,6 +135,10 @@ import * as THREE from "three";
 
 const G = 9.81;
 const RATES = [1, 5, 20, 60];
+// Live play (?live): the page talks to game/live.py; samples stream in and the playhead follows them.
+const LIVE = new URLSearchParams(location.search).has("live");
+const LIVE_RATES = [1, 5, 20, 0]; // 0 = as fast as the simulation runs
+const live = { since: -1, view: null, order: null, orderTimer: null, rate: 5, paused: true, openCheckpoint: null, scoreShown: false };
 const $ = (id) => document.getElementById(id);
 const deg = (r) => r * 180 / Math.PI;
 const rad = (d) => d * Math.PI / 180;
@@ -600,7 +624,7 @@ function encounter(s) {
 const traceCtx = $("trace").getContext("2d");
 function drawTrace() {
   const cv = $("trace"), w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio;
-  const ctx = traceCtx, s = data.samples, t0 = s[0][0], t1 = s[s.length - 1][0];
+  const ctx = traceCtx, s = data.samples, t0 = s[0][0], t1 = LIVE ? data.budget_s : s[s.length - 1][0];
   ctx.clearRect(0, 0, w, h);
   const maxRoll = Math.max(10, ...s.map((r) => Math.abs(r[F.roll])));
   ctx.fillStyle = "rgba(79,195,247,.55)";
@@ -617,7 +641,8 @@ function drawTrace() {
     ctx.fillStyle = "rgba(255,107,91,.95)"; ctx.fillRect(x - devicePixelRatio, 0, 2 * devicePixelRatio, h * 0.4);
   }
   ctx.fillStyle = "rgba(232,238,243,.6)"; ctx.font = `${11 * devicePixelRatio}px system-ui`;
-  ctx.fillText(`|roll| up to ${maxRoll.toFixed(0)}° · orange: orders · red: cargo lost`, 6, 13 * devicePixelRatio);
+  ctx.fillText(LIVE ? `mission time · |roll| up to ${maxRoll.toFixed(0)}° · red: cargo lost`
+                    : `|roll| up to ${maxRoll.toFixed(0)}° · orange: orders · red: cargo lost`, 6, 13 * devicePixelRatio);
 }
 // the timeline is drawn once per scene or resize and cached; each frame only adds the playhead
 const traceCache = document.createElement("canvas");
@@ -628,7 +653,7 @@ function cacheTrace() {
   traceCache.getContext("2d").drawImage(cv, 0, 0);
 }
 function drawCursor() {
-  const cv = $("trace"), s = data.samples, t0 = s[0][0], t1 = s[s.length - 1][0];
+  const cv = $("trace"), s = data.samples, t0 = s[0][0], t1 = LIVE ? data.budget_s : s[s.length - 1][0];
   traceCtx.clearRect(0, 0, cv.width, cv.height);
   traceCtx.drawImage(traceCache, 0, 0);
   const x = (t - t0) / (t1 - t0) * cv.width;
@@ -645,9 +670,9 @@ function updateHud(s) {
   $("clock").textContent = `${now.toISOString().slice(0, 16).replace("T", " ")} UTC · ${light}, sun ${sun.elev.toFixed(0)}° · ` +
     `whitecaps ${(whitecapFraction(Math.hypot(s.wind_e, s.wind_n)) * 100).toFixed(0)}%` +
     (cloud === null ? "" : ` · cloud ${cloud.toFixed(0)}% · rain ${precip.toFixed(1)} mm/h`);
-  const order = [...data.orders].reverse().find((o) => o.t <= t) || data.orders[0];
+  const order = LIVE ? { heading_deg: live.order?.heading ?? s.heading } : [...data.orders].reverse().find((o) => o.t <= t) || data.orders[0];
   $("heading").textContent = `${s.heading.toFixed(0)}°`;
-  $("order").textContent = `order ${order.heading_deg.toFixed(0)}°`;
+  $("order").textContent = `order ${order.heading_deg.toFixed(0)}°` + (LIVE && live.order ? ` · ${live.order.speed.toFixed(1)} kn` : "");
   $("speed").textContent = `${(s.stw * 1.94384).toFixed(1)} kn`;
   $("sea").textContent = `${s.hs.toFixed(1)} m · ${s.tp.toFixed(0)} s`;
   $("sea-dir").textContent = `from ${s.wave_from.toFixed(0)}° ${compassName(s.wave_from)}`;
@@ -686,10 +711,12 @@ const tmp = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vecto
 let clock = performance.now(), visualTime = 0, camHeading = null, hudAt = 0;
 function frame(now) {
   const real = Math.min(0.1, (now - clock) / 1000); clock = now;
-  if (data) {
+  if (data && data.samples.length) {
     const end = data.samples[data.samples.length - 1][0];
-    if (playing) { t = Math.min(end, t + real * rate); if (t >= end) setPlaying(false); }
-    visualTime += real * (playing ? rate : 0);
+    const before = t;
+    if (LIVE) { const target = end - 1; if (target > t) t += Math.max(real, (target - t) * Math.min(1, real * 2)); t = Math.min(t, end); }
+    else if (playing) { t = Math.min(end, t + real * rate); if (t >= end) setPlaying(false); }
+    visualTime += LIVE ? t - before : real * (playing ? rate : 0);
     const s = sampleAt(t);
     setSea(s.hs, s.tp, s.wave_from);
     oceanUniforms.uTime.value = visualTime;
@@ -755,16 +782,21 @@ function frame(now) {
 
 // ---------- controls ----------
 function setPlaying(p) { playing = p; $("play").textContent = p ? "Pause" : "Play"; }
-$("play").onclick = () => { if (!playing && data && t >= data.samples[data.samples.length - 1][0]) t = data.samples[0][0], $("log").innerHTML = "", lastToast = -1; setPlaying(!playing); };
-RATES.forEach((r, i) => {
-  const b = document.createElement("button"); b.textContent = `${r}×`; b.title = String(i + 1);
+$("play").onclick = () => {
+  if (LIVE) return livePost("/api/pause", { paused: !live.paused }); if (!playing && data && t >= data.samples[data.samples.length - 1][0]) t = data.samples[0][0], $("log").innerHTML = "", lastToast = -1; setPlaying(!playing); };
+(LIVE ? LIVE_RATES : RATES).forEach((r, i) => {
+  const b = document.createElement("button"); b.textContent = r ? `${r}×` : "max"; b.title = String(i + 1);
   b.onclick = () => setRate(r); $("rates").append(b);
 });
-function setRate(r) { rate = r; [...$("rates").children].forEach((b) => b.classList.toggle("on", b.textContent === `${r}×`)); }
+function setRate(r) {
+  if (LIVE && data) livePost("/api/rate", { rate: r });
+  rate = r; [...$("rates").children].forEach((b) => b.classList.toggle("on", b.textContent === (r ? `${r}×` : "max")));
+}
 setRate(5);
 $("cam").onclick = () => { chase = !chase; $("cam").classList.toggle("on", chase); };
 $("cam").classList.add("on");
 $("trace").onclick = (e) => {
+  if (LIVE) return;
   const r = e.target.getBoundingClientRect(), s = data.samples;
   t = s[0][0] + (e.clientX - r.left) / r.width * (s[s.length - 1][0] - s[0][0]);
   $("log").innerHTML = ""; lastToast = t;
@@ -772,9 +804,21 @@ $("trace").onclick = (e) => {
 addEventListener("keydown", (e) => {
   if (e.target.tagName === "SELECT") return;
   if (e.code === "Space") { e.preventDefault(); $("play").click(); }
-  if (e.key >= "1" && e.key <= "4") setRate(RATES[+e.key - 1]);
+  if (!$("modal").hidden) return;
+  if (e.key >= "1" && e.key <= "4") setRate((LIVE ? LIVE_RATES : RATES)[+e.key - 1]);
   if (e.key === "c" || e.key === "C") $("cam").click();
-  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { t += e.key === "ArrowRight" ? 10 : -10; lastToast = t; }
+  if (LIVE && live.order && e.key.startsWith("Arrow")) {
+    e.preventDefault();
+    const step = e.shiftKey ? 1 : 5;
+    if (e.key === "ArrowRight") live.order.heading = wrap(live.order.heading + step);
+    if (e.key === "ArrowLeft") live.order.heading = wrap(live.order.heading - step);
+    if (e.key === "ArrowUp") live.order.speed = Math.min(18, live.order.speed + 0.5);
+    if (e.key === "ArrowDown") live.order.speed = Math.max(0, live.order.speed - 0.5);
+    clearTimeout(live.orderTimer);
+    live.orderTimer = setTimeout(() => livePost("/api/order", { heading_deg: live.order.heading, speed_knots: live.order.speed }), 350);
+    return;
+  }
+  if (!LIVE && (e.key === "ArrowRight" || e.key === "ArrowLeft")) { t += e.key === "ArrowRight" ? 10 : -10; lastToast = t; }
 });
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
@@ -783,10 +827,124 @@ function resize() {
 }
 addEventListener("resize", resize);
 
+// ---------- live client ----------
+async function livePost(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const out = await r.json();
+  if (out.error) toast(out.error);
+  return out;
+}
+const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "South-east", "0,-1": "South", "-1,-1": "South-west", "-1,0": "West", "-1,1": "North-west", "0,0": "Your area" };
+function renderForecasts(view) {
+  $("forecasts").style.display = "block";
+  const [sx, sy] = view.ship_sector, kn = 1.94384;
+  $("forecast-list").innerHTML = view.reports.map((r) => {
+    const where = DIRS[`${r.sector[0] - sx},${r.sector[1] - sy}`] || "Further away";
+    return `<li><b>${where}</b>: Hs ${r.hs_range_m[0]}–${r.hs_range_m[1]} m, wind ${(r.wind_range_mps[0] * kn).toFixed(0)}–${(r.wind_range_mps[1] * kn).toFixed(0)} kn, ` +
+      `waves from ${r.wave_from_deg}° (${compassName(r.wave_from_deg)}), ${r.wave_period_s} s, ${r.trend}` +
+      `<br><span style="color:var(--muted)">game forecast, valid to ${r.valid_to.slice(11, 16)} UTC</span></li>`;
+  }).join("") || "<li>None released yet.</li>";
+}
+function openModal(title, html, actions) {
+  $("m-title").textContent = title; $("m-body").innerHTML = html; $("m-actions").innerHTML = "";
+  for (const [label, fn] of actions) { const b = document.createElement("button"); b.textContent = label; b.onclick = fn; $("m-actions").append(b); }
+  $("modal").hidden = false;
+}
+function closeModal() { $("modal").hidden = true; }
+function checkpointForm(cp) {
+  const briefing = cp.trigger === "briefing" ? `<p>${data.objective}</p><p>${data.title}. ${data.start.slice(0, 16).replace("T", " ")} UTC, ` +
+    `${(data.budget_s / 3600).toFixed(0)} h. S175 container ship, ${data.cargo.total_teu} TEU loaded. Controls: ← → heading, ↑ ↓ speed, ` +
+    `Space pause, 1–4 rate. The storm area's boundary is not shown: read the sea and the forecasts.</p>` : "";
+  const qs = cp.questions.map((q) => `<fieldset><legend>${q.prompt}</legend>` +
+    q.options.map((o) => `<label><input type="radio" name="${q.id}" value="${o}"> ${o}</label>`).join("") + `</fieldset>`).join("");
+  const o = live.order;
+  return `${briefing}<p><b>${cp.message}</b></p>${qs}<fieldset><legend>Your orders</legend><div class="row">` +
+    `<label>Heading ° <input type="number" id="cp-heading" min="0" max="359" value="${o.heading.toFixed(0)}"></label>` +
+    `<label>Speed kn <input type="number" id="cp-speed" min="0" max="18" step="0.5" value="${o.speed.toFixed(1)}"></label></div>` +
+    `<label>Why? <textarea id="cp-reason" placeholder="What did you see, and why this order?"></textarea></label></fieldset>`;
+}
+function showCheckpoint(cp) {
+  live.openCheckpoint = cp.id;
+  openModal(cp.trigger === "briefing" ? "Briefing" : "Decision point", checkpointForm(cp), [["Submit and continue", async () => {
+    const answers = Object.fromEntries(cp.questions.map((q) => [q.id, document.querySelector(`input[name="${q.id}"]:checked`)?.value ?? null]));
+    const order = { heading_deg: wrap(+$("cp-heading").value || 0), speed_knots: Math.max(0, Math.min(18, +$("cp-speed").value || 0)) };
+    live.order = { heading: order.heading_deg, speed: order.speed_knots };
+    const results = await livePost("/api/answer", { id: cp.id, answers, reason: $("cp-reason").value, order });
+    if (results.error) return;
+    const lines = cp.questions.map((q) => { const r = results[q.id];
+      return `<p class="${r.correct ? "ok" : "bad"}">${r.correct ? "✓" : "✗"} ${q.prompt}<br>Your answer: ${r.given ?? "none"} · Expected: ${r.answer}</p>`; }).join("");
+    openModal("Checkpoint feedback", lines, [["Continue", closeModal]]);
+  }]]);
+}
+function showScore(score) {
+  live.scoreShown = true;
+  const p = score.parts, outcome = score.escaped ? "Escaped the storm" : `Did not escape (${score.outcome})`;
+  const review = score.checkpoints.map((cp) => `<li>${cp.trigger} at ${(cp.t / 60).toFixed(0)} min: ` +
+    Object.values(cp.results || {}).map((r) => `${r.correct ? "✓" : "✗"} ${r.given ?? "none"}`).join(", ") +
+    (cp.reason ? ` — “${cp.reason}”` : "") + "</li>").join("");
+  openModal("Voyage result", `<div class="stars">${"★".repeat(score.stars)}${"☆".repeat(3 - score.stars)}</div>` +
+    `<p><b>${outcome}</b> after ${(score.elapsed_s / 60).toFixed(0)} min · ${score.lost_teu} TEU lost (grade ${score.grade}) · ` +
+    `${score.answers_correct}/${score.answers_total} judgements right</p>` +
+    `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${score.total}/100</b></p><ul>${review}</ul>` +
+    `<p style="color:var(--muted)">Scores are game rules for training, not a professional assessment. Cargo loss comes from the game cargo model.</p>`,
+    [["Close", closeModal]]);
+}
+async function startLive(id) {
+  $("loading").style.display = "grid";
+  const b = await livePost("/api/start", { scenario: id });
+  data = { ...b, fields: b.fields, samples: [], events: [], orders: [], start_lon_lat: [b.initial.lon, b.initial.lat],
+           weather: { credit: "Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, Copernicus C3S" } };
+  F = Object.fromEntries(data.fields.map((n, i) => [n, i])); dt = 1;
+  [origin.lon, origin.lat] = data.start_lon_lat; origin.ky = 110540; origin.kx = 111320 * Math.cos(rad(origin.lat));
+  layoutCargo(data.cargo); units.forEach((u) => { u.lostAt = null; u.side = Math.random() < 0.5 ? -1 : 1; });
+  camHeading = null; live.since = -1; live.order = { heading: b.initial.heading_deg, speed: b.initial.speed_mps * 1.94384 };
+  live.openCheckpoint = null; live.scoreShown = false; $("log").innerHTML = ""; lastToast = -1;
+  $("storm-name").textContent = data.title;
+  $("mode").innerHTML = "<b>Live</b> · steer with ← → and ↑ ↓; the storm's edge is hidden.";
+  $("help").textContent = "Space: pause/resume · 1–4: rate · C: chase camera · drag/wheel: camera";
+  $("notes").innerHTML = "Live TIDE session: Copernicus Marine storm subsets, S175 motion and game cargo model; " +
+    "forecasts are game forecasts from the historical reconstruction; cloud and rain from ERA5 via Open-Meteo.";
+  await livePoll();
+  t = data.samples[0][0];
+  $("loading").style.display = "none";
+}
+async function livePoll() {
+  if (!data || !LIVE) return;
+  const st = await (await fetch(`/api/state?since=${live.since}`)).json();
+  if (st.samples.length) {
+    data.samples.push(...st.samples); live.since = st.samples[st.samples.length - 1][0];
+    if (data.samples.length === 1) data.samples.push([...data.samples[0]]);
+  }
+  for (const e of st.log) {
+    if (e.kind === "wave_quality") continue;
+    data.events.push(e);
+    if (e.kind === "cargo_lost") for (const id of e.units) { const u = units.find((x) => x.id === id); if (u && u.lostAt === null) u.lostAt = e.t; }
+  }
+  live.view = st.view; live.paused = st.paused;
+  $("play").textContent = st.paused ? "Resume" : "Pause";
+  const left = st.view.remaining_s;
+  $("mode").innerHTML = `<b>Live</b> · ${Math.floor(left / 3600)}h${String(Math.floor(left % 3600 / 60)).padStart(2, "0")} left · ` +
+    `${st.paused ? "paused" : `×${(+st.view.achieved_rate || 0).toFixed(1)} achieved`}`;
+  renderForecasts(st.view);
+  if (st.checkpoint && live.openCheckpoint !== st.checkpoint.id) showCheckpoint(st.checkpoint);
+  if (st.score && !live.scoreShown) showScore(st.score);
+  cacheTrace();
+}
+if (LIVE) setInterval(() => livePoll().catch(() => {}), 400);
+
 // ---------- start ----------
 (async () => {
   resize();
   try {
+    if (LIVE) {
+      const list = await (await fetch("/api/scenarios")).json(), picker = $("picker");
+      for (const s of list) { const o = document.createElement("option"); o.value = s.id; o.textContent = `${s.title} · ${s.start.slice(11, 16)} UTC`; picker.append(o); }
+      picker.value = list.find((s) => s.id === "biscay-20260123-06")?.id ?? list[0].id;
+      picker.onchange = () => startLive(picker.value);
+      await startLive(picker.value);
+      requestAnimationFrame(frame);
+      return;
+    }
     const index = await (await fetch("scenes/index.json")).json();
     const picker = $("picker");
     for (const s of index.storms) {
