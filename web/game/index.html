@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIDE 3D replay</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8d99a2; font-family: system-ui, sans-serif; }
+  canvas { display: block; }
+  .hud { position: fixed; left: 12px; top: 12px; max-width: calc(100% - 24px); padding: 10px 14px; border-radius: 6px;
+         background: rgba(11, 22, 34, 0.8); color: #d6e2ee; font: 13px/1.6 ui-monospace, monospace; }
+  .bar { position: fixed; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+         padding: 8px 12px; border-radius: 6px; background: rgba(11, 22, 34, 0.8); color: #d6e2ee; font-size: 13px; }
+  .bar button { min-width: 44px; height: 36px; border: 1px solid #2b4660; border-radius: 4px; background: #0e1b29; color: #d6e2ee; font: inherit; }
+  .bar button[aria-pressed="true"] { background: #2b4660; color: #fff; }
+  .bar input[type="range"] { flex: 1 1 240px; min-width: 0; }
+  .credit { flex-basis: 100%; color: #a9bccd; font-size: 11px; }
+  #fps { position: fixed; right: 12px; top: 12px; color: #0b1622; font: 12px ui-monospace, monospace; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="hud" aria-live="off">
+  <div id="clock">Loading…</div>
+  <div id="helm"></div>
+  <div id="motion"></div>
+  <div id="sea"></div>
+  <div id="cargo"></div>
+</div>
+<div id="fps"></div>
+<div class="bar">
+  <button id="play" type="button">Pause</button>
+  <span>Rate</span>
+  <button type="button" data-rate="1" aria-pressed="false">1×</button>
+  <button type="button" data-rate="5" aria-pressed="false">5×</button>
+  <button type="button" data-rate="20" aria-pressed="true">20×</button>
+  <button type="button" data-rate="60" aria-pressed="false">60×</button>
+  <label for="scrub" style="position:absolute;width:1px;height:1px;overflow:hidden">Replay time</label>
+  <input id="scrub" type="range" min="0" step="1" value="0">
+  <div class="credit">Replay of a recorded TIDE session; every number comes from the simulation and its Copernicus fields.
+    Generated using E.U. Copernicus Marine Service Information: MEDSEA_MULTIYEAR_WAV_006_012, MEDSEA_MULTIYEAR_PHY_006_004,
+    WIND_GLO_PHY_L4_NRT_012_004. Training prototype, not a navigation tool.</div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -13,6 +13,7 @@ _Last updated: 2026-10-29_
 | `main` | SeaSense route-choice prototype (PRs #4–#12) | Merged; kept as reference |
 | `experiment` | TIDE simulation toolkit, scenario pipeline, rules, Director, terminal UI; fresh-clone fix, CI, storm dynamics fix, cargo calibration | Active line of work |
 | `ci/fresh-clone` | Fast-forward merged into `experiment` on 2026-10-29 | Can be deleted |
+| `blender/3d-demo` | Blender S175 and container models, 3D replay page (`web/game`), replay exporter | In progress, local only |
 
 ## Decisions
 
@@ -20,6 +21,8 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-29 | 3D demo uses three.js 0.170 from a CDN importmap (no package.json) and its own Gerstner sea, not web-ocean | web-ocean is WebGPU-only, heavy (6–8 ms/frame on an RTX 5070 Ti) and can only read wave height back from the GPU; an analytic sea gives the water height anywhere, which floating containers and splashes need. Hs follows the data; Tp and direction stay at the first sample for now | Parke (on `blender/3d-demo`) |
+| 2026-10-29 | S175 model is low-poly at 1:1 scale, origin at the centre of gravity (2.55 m aft of midships, waterline), bow −Z in glTF; containers are separate ISO-size models placed by `web/game/cargo-layout.js` | Pose comes straight from the simulation; each deck unit can fall on its own `cargo_lost` event. Hull lines and 15.4 m depth are illustrative, not the real S175 offsets | Parke (on `blender/3d-demo`) |
 | 2026-10-29 | Cargo `threshold_g` 0.30 → 0.14 for new scenarios; the frozen Menorca scenario keeps 0.30 | At 0.30 no heading lost cargo even at Hs 8.2 m. At 0.14, only beam seas at the Ushant peak lose cargo (18 TEU in 20 min); every other heading, and every heading at Hs 6.1 m, loses none. Evidence in `docs/PROTOTYPE_IMPLEMENTATION.md` | Yan (merged without review; needs Xuan's review) |
 | 2026-10-29 | Surge, sway and yaw use Coriolis terms of horizontal motion only | In 8 m head seas, correlated heave and pitch pushed the ship from 3 to 10.3 m/s, past the model limit, so play stopped; the thruster could not brake it | Yan (merged without review; needs Xuan's review) |
 | 2026-10-29 | Merge the fresh-clone fix, CI and the storm fixes straight into `experiment`, without a PR | Time before the video; the user asked for it | Yan |
@@ -62,6 +65,10 @@ Newest first. Proposed decisions move here once the team agrees.
 - Online play, leaderboard and teacher view (a database only becomes useful then).
 
 ## Log
+
+- 2026-10-29 — Parke:
+  - Built the S175 and container models in Blender (`assets/blender/s175.blend`, exports in `web/game/assets/`).
+  - Added the 3D replay page and `pipeline.export_replay`; a full Menorca run (beam-sea leg at 100°) peaks at 2.6° roll and loses no cargo, so the video needs a storm scenario.
 
 - 2026-10-29 — Yan:
   - Reviewed `experiment`; found that the game fails on fresh clones (vessel checksum).
