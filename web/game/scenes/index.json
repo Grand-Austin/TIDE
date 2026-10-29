@@ -57,7 +57,7 @@
    "swell_from_deg": 255.0,
    "rise_24h_m": 4.5,
    "max_wind_kn": 35.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251105-00",
@@ -76,7 +76,7 @@
    "swell_from_deg": 294.0,
    "rise_24h_m": 1.5,
    "max_wind_kn": 42.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251105-21",
@@ -95,7 +95,7 @@
    "swell_from_deg": 325.0,
    "rise_24h_m": 3.3,
    "max_wind_kn": 40.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251127-21",
@@ -114,7 +114,7 @@
    "swell_from_deg": 290.0,
    "rise_24h_m": 6.8,
    "max_wind_kn": 35.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251202-09",
@@ -133,7 +133,7 @@
    "swell_from_deg": 293.0,
    "rise_24h_m": 2.6,
    "max_wind_kn": 30.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251206-00",
@@ -152,7 +152,7 @@
    "swell_from_deg": 310.0,
    "rise_24h_m": 4.2,
    "max_wind_kn": 43.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251209-12",
@@ -171,7 +171,7 @@
    "swell_from_deg": 150.0,
    "rise_24h_m": 2.2,
    "max_wind_kn": 50.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251212-06",
@@ -190,7 +190,7 @@
    "swell_from_deg": 273.0,
    "rise_24h_m": 1.7,
    "max_wind_kn": 25.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20251218-03",
@@ -228,7 +228,7 @@
    "swell_from_deg": 280.0,
    "rise_24h_m": 1.7,
    "max_wind_kn": 28.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260108-18",
@@ -266,7 +266,7 @@
    "swell_from_deg": 294.0,
    "rise_24h_m": 0.6,
    "max_wind_kn": 28.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260120-09",
@@ -285,7 +285,7 @@
    "swell_from_deg": 299.0,
    "rise_24h_m": 2.0,
    "max_wind_kn": 41.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260123-06",
@@ -323,7 +323,7 @@
    "swell_from_deg": 278.0,
    "rise_24h_m": 3.8,
    "max_wind_kn": 50.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260130-00",
@@ -342,7 +342,7 @@
    "swell_from_deg": 258.0,
    "rise_24h_m": 4.9,
    "max_wind_kn": 40.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260203-06",
@@ -361,7 +361,7 @@
    "swell_from_deg": 289.0,
    "rise_24h_m": 1.0,
    "max_wind_kn": 36.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260206-18",
@@ -380,7 +380,7 @@
    "swell_from_deg": 283.0,
    "rise_24h_m": 0.4,
    "max_wind_kn": 35.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260211-21",
@@ -399,7 +399,7 @@
    "swell_from_deg": 216.0,
    "rise_24h_m": 3.9,
    "max_wind_kn": 54.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260214-06",
@@ -418,7 +418,7 @@
    "swell_from_deg": 261.0,
    "rise_24h_m": 2.2,
    "max_wind_kn": 41.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260216-12",
@@ -437,7 +437,7 @@
    "swell_from_deg": 265.0,
    "rise_24h_m": 2.2,
    "max_wind_kn": 35.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260219-09",
@@ -456,7 +456,7 @@
    "swell_from_deg": 255.0,
    "rise_24h_m": 3.3,
    "max_wind_kn": 41.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260311-06",
@@ -475,7 +475,7 @@
    "swell_from_deg": 275.0,
    "rise_24h_m": 2.9,
    "max_wind_kn": 29.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260313-06",
@@ -494,7 +494,7 @@
    "swell_from_deg": 299.0,
    "rise_24h_m": 3.1,
    "max_wind_kn": 34.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260315-21",
@@ -513,7 +513,7 @@
    "swell_from_deg": 303.0,
    "rise_24h_m": 5.4,
    "max_wind_kn": 32.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260325-03",
@@ -532,7 +532,7 @@
    "swell_from_deg": 253.0,
    "rise_24h_m": 3.8,
    "max_wind_kn": 38.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260404-21",
@@ -551,7 +551,7 @@
    "swell_from_deg": 299.0,
    "rise_24h_m": 2.7,
    "max_wind_kn": 35.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260411-18",
@@ -570,7 +570,7 @@
    "swell_from_deg": 329.0,
    "rise_24h_m": 3.5,
    "max_wind_kn": 42.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20260606-06",
@@ -589,7 +589,7 @@
    "swell_from_deg": 206.0,
    "rise_24h_m": 3.6,
    "max_wind_kn": 42.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20261001-03",
@@ -608,7 +608,7 @@
    "swell_from_deg": 284.0,
    "rise_24h_m": 1.9,
    "max_wind_kn": 21.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20261021-06",
@@ -627,7 +627,7 @@
    "swell_from_deg": 297.0,
    "rise_24h_m": 2.7,
    "max_wind_kn": 39.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20261022-21",
@@ -665,7 +665,7 @@
    "swell_from_deg": 324.0,
    "rise_24h_m": 3.8,
    "max_wind_kn": 38.0,
-   "scene": false
+   "scene": true
   },
   {
    "id": "biscay-20261027-12",
@@ -684,7 +684,7 @@
    "swell_from_deg": 273.0,
    "rise_24h_m": 2.2,
    "max_wind_kn": 29.0,
-   "scene": false
+   "scene": true
   }
  ]
 }

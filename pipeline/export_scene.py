@@ -135,6 +135,10 @@ def add_weather(path: Path) -> Path:
                        "hourly": "cloud_cover,precipitation"})
     with urlopen(f"{WEATHER_URL}?{query}", timeout=60) as response:
         hourly = json.load(response)["hourly"]
+    if any(v is None for v in hourly["cloud_cover"] + hourly["precipitation"]):
+        # ERA5 is published about five days behind real time; leave the scene without weather
+        print(f"{path.name}: no ERA5 weather yet for {times[0]:%Y-%m-%d}")
+        return path
     hours = pd.to_datetime(hourly["time"]).astype("int64") / 1e9
     at = times.astype("int64") / 1e9
     # precipitation is the total of the hour ending at each stamp; cloud cover is instantaneous
