@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { spectrumWaves, waveUniforms, detailWaves, OCEAN_VERTEX, OCEAN_FRAGMENT } from "./ocean.js";
+import { spectrumWaves, waveUniforms, detailWaves, heightAt, OCEAN_VERTEX, OCEAN_FRAGMENT } from "./ocean.js";
+import { CargoFallView } from "./cargo-fall-view.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout } from "./cargo-layout.js";
 import { sampleAt, latest, toLocal, fromScene } from "./replay.js";
@@ -170,6 +171,7 @@ const floodlights = [[0, 23, 59, 0, 8, -20], [0, 18, -80, 0, 8, -30], [-12, 21, 
 });
 
 const slots = new Map(); // unit id -> [instanced mesh, index] for each part of its box
+const parts = { 40: [], 20: [] }; // box geometry and materials, shared with the falling boxes
 const units = deckLayout(hull.scene.getObjectByName("CargoOrigin").position.toArray());
 for (const size of [40, 20]) {
   const placed = units.filter((u) => u.size === size);
@@ -178,6 +180,7 @@ for (const size of [40, 20]) {
     const body = part.material.name === "ContainerBody";
     const material = body ? part.material.clone() : part.material;
     if (body) material.color.set("#ffffff"); // the instance colour carries the box colour
+    parts[size].push({ geometry: part.geometry, material, body });
     const mesh = new THREE.InstancedMesh(part.geometry, material, placed.length);
     mesh.castShadow = mesh.receiveShadow = true;
     const m = new THREE.Matrix4(), c = new THREE.Color();
@@ -205,6 +208,19 @@ function updateCargo(t) {
     }
   }
 }
+
+// ...and continue along their fall paths: slide off the low side, fall, splash, float, sink.
+const poseAt = (t) => {
+  const s = sampleAt(replay, t), [x, z] = toLocal(replay, s.lon, s.lat);
+  return { x, y: -s.heave, z, heading: s.heading, pitch: s.pitch, roll: s.roll };
+};
+let ampT = NaN, amp = 1; // Hs scale at the time last asked; boxes query the same t many times a frame
+const waterAt = (x, z, t) => {
+  if (t !== ampT) [ampT, amp] = [t, dev ? 1 : sampleAt(replay, t).hs / sea.hs];
+  return heightAt(waves, x, z, t, amp);
+};
+const fallView = new CargoFallView({ units, parts, lostAt, env: { poseAt, waterAt } });
+scene.add(fallView.object);
 
 // Rain streaks around the camera, as dense as the scene's ERA5 precipitation. None without precipitation data.
 const RAIN_MAX = 8000;
@@ -239,7 +255,7 @@ function placeShip(s) {
 }
 
 // --- playback controls
-const ui = Object.fromEntries(["play", "scrub", "clock", "sea", "helm", "motion", "cargo", "weather", "fps", "scene", "credit"].map((id) => [id, document.getElementById(id)]));
+const ui = Object.fromEntries(["play", "scrub", "clock", "sea", "helm", "motion", "cargo", "weather", "fps", "scene", "credit", "slowmo"].map((id) => [id, document.getElementById(id)]));
 let simT = 0, rate = 20, playing = true;
 ui.scrub.max = duration;
 ui.play.onclick = () => {
@@ -292,7 +308,8 @@ const prev = new THREE.Vector3();
 renderer.setAnimationLoop((now) => {
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
-  if (playing) simT = Math.min(simT + dt * rate, duration);
+  const slow = ui.slowmo.checked && fallView.falling(simT); // watch each fall at 2x at most
+  if (playing) simT = Math.min(simT + dt * (slow ? Math.min(rate, 2) : rate), duration);
   if (simT >= duration) playing = false;
   const s = sampleAt(replay, simT);
 
@@ -322,6 +339,7 @@ renderer.setAnimationLoop((now) => {
   rainUniforms.uTime.value = now / 1000;
   rainUniforms.uLight.value = THREE.MathUtils.lerp(0.4, 1, day);
   updateCargo(simT);
+  fallView.update(simT);
   updateSun(simT);
   sky.position.copy(camera.position);
   sun.target.position.copy(ship.position);

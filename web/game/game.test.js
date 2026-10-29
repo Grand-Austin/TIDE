@@ -3,6 +3,33 @@ import { spectrumWaves, displace, heightAt } from "./ocean.js";
 import { deckLayout } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
 import { sampleAt, latest, fromScene } from "./replay.js";
+import { cargoFall, shipToWorld } from "./cargo-fall.js";
+
+test("ship frame turns like the rendered ship", () => {
+  // heading 90 (east): the bow (-z in the model) points to +x and starboard (+x) to +z (south)
+  const east = { heading: 90, pitch: 0, roll: 0 };
+  shipToWorld(east, [0, 0, -1]).forEach((v, i) => expect(v).toBeCloseTo([1, 0, 0][i], 9));
+  shipToWorld(east, [1, 0, 0]).forEach((v, i) => expect(v).toBeCloseTo([0, 0, 1][i], 9));
+  // starboard-down roll lowers the starboard side
+  expect(shipToWorld({ heading: 0, pitch: 0, roll: 10 }, [10, 0, 0])[1]).toBeLessThan(0);
+});
+
+test("a lost box leaves the low side, splashes, floats, then sinks", () => {
+  const env = { poseAt: (t) => ({ x: 0, y: 0, z: -5 * t, heading: 0, pitch: 0, roll: 20 }), waterAt: () => 0 };
+  const f = cargoFall({ position: [3.9, 12.9, 10] }, 100, env);
+  expect(f.side).toBe(1);
+  expect(f.at(99).phase).toBe("deck");
+  expect(f.at(100).position[0]).toBeCloseTo(shipToWorld(env.poseAt(100), [3.9, 12.9, 10])[0], 6);
+  expect(f.at((100 + f.tEdge) / 2).phase).toBe("slide");
+  const air = f.at((f.tEdge + f.tImpact) / 2);
+  expect(air.phase).toBe("air");
+  expect(air.position[0]).toBeGreaterThan(12);
+  expect(f.impact[1] + 1.3).toBeLessThanOrEqual(0.01);
+  const floating = f.at(f.tImpact + 30);
+  expect(floating.phase).toBe("water");
+  expect(floating.position[1]).toBeCloseTo(0.7 - 2.591, 6);
+  expect(f.at(f.tImpact + 120 + 200).phase).toBe("gone");
+});
 
 test("replay interpolation passes through samples and turns the short way", () => {
   const cols = { lon: [3, 3.1, 3.2, 3.3], lat: [40, 40, 40, 40], sog: [3, 3, 3, 3], hs: [3, 4, 5, 6], tp: [8, 8, 8, 8],

@@ -27,6 +27,8 @@ stowage. CI does not run it yet.
 | `sky.js` | Sun position, overcast sky dome |
 | `replay.js` | Sampling a replay between its 1 s records |
 | `cargo-layout.js` | Deck stowage rule shared with the Blender preview |
+| `cargo-fall.js` | Path of a lost unit (slide, fall, float, sink) as a pure function of time; no three.js, reusable |
+| `cargo-fall-view.js` | three.js drawing of those paths and the splash spray |
 | `assets/` | `s175.glb` and `containers.glb`, exported from `assets/blender/s175.blend` |
 | `replays/` | Replays written by `pipeline.export_replay` |
 
