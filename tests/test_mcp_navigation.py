@@ -39,7 +39,8 @@ class _StopAfterRules:
 
 
 def short_socket():
-    return Path("/private/tmp") / f"tide-nav-{uuid.uuid4().hex[:12]}.sock"
+    # AF_UNIX paths must stay short. /tmp exists on Linux runners and on macOS; /private/tmp is macOS only.
+    return Path("/tmp") / f"tide-nav-{uuid.uuid4().hex[:12]}.sock"
 
 
 def payload(result):

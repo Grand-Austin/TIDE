@@ -24,7 +24,8 @@ MENORCA = ROOT / SCENARIO
 
 
 def short_socket():
-    return Path("/private/tmp") / f"tide-test-{uuid.uuid4().hex[:12]}.sock"
+    # AF_UNIX paths must stay short. /tmp exists on Linux runners and on macOS; /private/tmp is macOS only.
+    return Path("/tmp") / f"tide-test-{uuid.uuid4().hex[:12]}.sock"
 
 
 def live_service(tmp_path, vessel):
