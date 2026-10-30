@@ -8,7 +8,7 @@ import { cargoFall, shipToWorld } from "./cargo-fall.js";
 import { turnInfo, turnNote, turnRateText, shipLossNote, beaufort, seaState, bulletin } from "./live.js";
 import { forecastField } from "./weather-layer.js";
 import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, waveArrows } from "./minimap.js";
-import { OCEAN_TRACK, LE_HAVRE, HALIFAX, routeLengthNm, routeBounds, routeFeature } from "./ocean-route.js";
+import { OCEAN_TRACK, LE_HAVRE, HALIFAX, routeLengthNm, routeFeature } from "./ocean-route.js";
 import { nearbyPorts, rangeRing, portPopup } from "./port-guide.js";
 import { DEEPWATER_PORTS } from "./deepwater-ports.js";
 import { haversineNm } from "./geo.js";
@@ -353,22 +353,19 @@ test("sea crests keep the data's direction with a storm-swell spread", () => {
   }
 });
 
-test("the ocean track runs from Le Havre to Halifax on a great circle", () => {
+test("the ocean track follows the sea lane from Le Havre to Halifax, clear of Cornwall", () => {
   const [first, last] = [OCEAN_TRACK[0], OCEAN_TRACK.at(-1)];
   expect(first[0]).toBeCloseTo(LE_HAVRE.lon, 2);
   expect(first[1]).toBeCloseTo(LE_HAVRE.lat, 2);
   expect(last[0]).toBeCloseTo(HALIFAX.lon, 2);
   expect(last[1]).toBeCloseTo(HALIFAX.lat, 2);
   const nm = routeLengthNm();
-  expect(nm).toBeGreaterThan(2450); // about 2543 nm: the short way round, not the rhumb line
+  expect(nm).toBeGreaterThan(2550); // about 2592 nm along the lane, longer than the 2543 nm great circle
   expect(nm).toBeLessThan(2650);
-  const mid = OCEAN_TRACK[Math.floor(OCEAN_TRACK.length / 2)];
-  expect(mid[1]).toBeGreaterThan(51); // the great circle bulges north of 51°N in mid-Atlantic
-  const [w, s, e, n] = routeBounds();
-  expect(w).toBeCloseTo(HALIFAX.lon, 2);
-  expect(e).toBeCloseTo(LE_HAVRE.lon, 2);
-  expect(s).toBeLessThan(45);
-  expect(n).toBeGreaterThan(52);
+  // down the Channel and south of the Lizard (49.96°N) and the Scilly Isles, not over Cornwall
+  const channel = OCEAN_TRACK.filter(([lon]) => lon > -6.7 && lon < -4); // Plymouth to the Scilly Isles
+  expect(channel.length).toBeGreaterThan(3);
+  expect(Math.max(...channel.map(([, lat]) => lat))).toBeLessThan(49.95);
   // the track crosses the Biscay storm area, so the player can see it at the game's own zoom
   const inArea = OCEAN_TRACK.filter(([lon, lat]) => lon >= -7.35 && lon <= -3.73 && lat >= 47.733 && lat <= 51.35);
   expect(inArea.length).toBeGreaterThan(3);

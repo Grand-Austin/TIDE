@@ -37,7 +37,7 @@ position, deck stowage, the ocean track and the 200 nm port rule. CI does not ru
 | `fields/` | each storm's Copernicus Hs and wind grid from `pipeline.export_fields`, drawn on the passage map in replays (not in live play: it would show the hidden escape region) |
 | `weather-layer.js` | the passage map's Hs colour field and wind streamlines |
 | `geo.js` | spherical helpers: distances in nm, great-circle tracks, 200 nm rings, bounds |
-| `ocean-route.js` | the map's one ocean track, Le Havre to Halifax, and its end labels |
+| `ocean-route.js` | the map's one ocean track, the Le Havre–Halifax sea lane (Eurostat SeaRoute), and its end labels |
 | `port-guide.js` | which global container ports the map draws: the nearest six within 200 nm, plus the range ring |
 | `deepwater-ports.js` | the global port list behind that layer: name, country, longitude, latitude |
 | `classic.html` | Earlier single-file storm page; still hosts live play (`?live`) until it moves into `main.js` |
@@ -46,9 +46,10 @@ position, deck stowage, the ocean track and the 200 nm port rule. CI does not ru
 
 Two layers give the map a wider reference than the storm area.
 
-- **Ocean track.** A great-circle line from Le Havre (France) to Halifax (Canada), about 2543 nm, sampled every
-  40 nm. It crosses the Bay of Biscay about 50 nm north of the 2026-01-08 scenario start. Press **Ocean** to fit
-  the whole track; it enlarges the map first. This is a reference crossing for the North Atlantic, not a
+- **Ocean track.** The sea lane from Le Havre (France) to Halifax (Canada), about 2592 nm: down the English Channel
+  south of the Lizard and the Scilly Isles, then across the Atlantic. It is the Eurostat SeaRoute (MARNET) network,
+  computed once with the searoute package and stored in `ocean-route.js`; the game does not depend on searoute. It
+  passes about 1 nm north of the 2026-01-08 scenario start. This is a reference crossing for the North Atlantic, not a
   scenario's own route. A Portugal–Halifax crossing was the other candidate, but its great circle passes
   about 380 nm south of the Biscay operating area.
 - **Ports.** The ship's 200 nm range is the rule. **Ports** shows or hides the ring and the markers. The map draws

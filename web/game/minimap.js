@@ -12,7 +12,7 @@ import { relativeSea, GRADE_COLORS } from "./panel.js";
 import { addWeather, forecastField, HS_GRADIENT } from "./weather-layer.js";
 import { beaufort } from "./live.js";
 import { nearbyPorts, portFeature, rangeRing, portPopup, PORT_RANGE_NM } from "./port-guide.js";
-import { routeFeature, routeBounds } from "./ocean-route.js";
+import { routeFeature } from "./ocean-route.js";
 import { haversineNm } from "./geo.js";
 
 const LOSS_GROUP_S = 60; // cargo losses this close in time share one marker
@@ -237,13 +237,6 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.flyTo({ center: ship, zoom: live ? map.getZoom() : Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
     };
     locateButton.onclick = () => (follow ? setFollow(false) : locate());
-    // Ocean: fit the whole Le Havre–Halifax track, and enlarge the map so the line is not a thumbnail
-    document.getElementById("map-ocean").onclick = () => {
-      setFollow(false);
-      if (!figure.classList.contains("big")) expand.onclick();
-      const [w, s, e, n] = routeBounds();
-      map.fitBounds([[w, s], [e, n]], { padding: 24, duration: 900 });
-    };
     // Ports: the guidance layer switches off as a whole, ring and labels included
     const portsButton = document.getElementById("map-ports");
     const setPorts = (on) => {
