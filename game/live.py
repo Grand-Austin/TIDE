@@ -236,6 +236,17 @@ class Game:
                 "notes": "Forecast cards are generated from the historical reconstruction and labelled as game forecasts."}
 
 
+def validated(folder: Path) -> bool:
+    """Playable only with a passing validation report for exactly these scenario files (docs/STORM_SCENARIOS.md)."""
+    from game.scenario import digest
+    report = folder / "validation.json"
+    if not report.exists():
+        return False
+    v = json.loads(report.read_text())
+    return (v.get("passed") is True and v.get("definition_sha256") == digest(folder / "scenario.json")
+            and v.get("gameplay_sha256") == digest(folder / "gameplay.json"))
+
+
 GAME: Game | None = None
 
 
@@ -260,7 +271,7 @@ class Handler(SimpleHTTPRequestHandler):
             items = []
             for path in sorted(SCENARIOS.glob("*/scenario.json")):
                 d = json.loads(path.read_text())
-                if "storm" in d.get("collection", {}):
+                if "storm" in d.get("collection", {}) and validated(path.parent):
                     items.append({"id": d["id"], "title": d["title"], "start": d["start"]})
             return self._json(items)
         if url.path == "/api/state":
