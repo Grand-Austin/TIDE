@@ -44,9 +44,7 @@ def main():
     parser.add_argument(
         "--script", type=Path, help="Deterministic stage-3 runner; no model calls"
     )
-    parser.add_argument("--engine", choices=("director", "local"), default="local")
-    parser.add_argument("--models", type=Path, default=Path("models.json"))
-    parser.add_argument("--keys", type=Path, default=Path("config/api_keys.local.json"))
+    parser.add_argument("--engine", choices=("local",), default="local")
     args = parser.parse_args()
     if not args.script and not (sys.stdin.isatty() and sys.stdout.isatty()):
         parser.error(
@@ -65,7 +63,12 @@ def main():
     if args.resume and args.seed is None:
         args.seed = json.loads((directory / "state.json").read_text())["seed"]
     with scenario.environment() as environment:
-        sim = scenario.simulation(environment, args.seed)
+        from game.navigation import guard_environment
+
+        guarded = guard_environment(
+            environment, scenario.definition["area_bbox"]
+        )
+        sim = scenario.simulation(guarded, args.seed)
         session = Session(
             scenario, sim, gameplay, directory, seed=args.seed, restore=args.resume
         )
@@ -76,25 +79,7 @@ def main():
             return
         from game.engine import GameEngine
 
-        director = None
-        initialization_error = None
-        if args.engine == "director":
-            from game.director.agent import Director
-
-            try:
-                director = Director(
-                    model_config=args.models,
-                    keys_path=args.keys,
-                    checkpoint_path=directory / "director.sqlite",
-                )
-            except Exception as error:  # noqa: BLE001 - Contain provider and graph failures at the engine boundary.
-                initialization_error = type(error).__name__
-                print(
-                    f"Director unavailable ({initialization_error}); using local orchestration."
-                )
-        engine = GameEngine(
-            session, director, initialization_error=initialization_error
-        )
+        engine = GameEngine(session)
         from game.console import Controls
 
         controls = Controls(session, engine)

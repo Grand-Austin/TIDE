@@ -2,7 +2,9 @@
 
 The game uses the committed historical fields and prepared S175 vessel. Prepare the vessel using `uv run python -m pipeline.prepare_vessel` if `data/processed/s175` is absent. Install the locked environment with `uv sync`.
 
-## Credentials and models
+Director is temporarily disabled (2026-10-30; see [PLAN.md](../PLAN.md#7-agentic-systems)). Terminal and web play use local execution only. `--engine director`, `--models` and `--keys` are rejected. The Director source, configuration and tests are retained.
+
+## Retained Director credentials and models (disabled)
 
 Copy `config/api_keys.example.json` to `config/api_keys.local.json` and replace the placeholder for the provider you use. The local file is ignored by Git. Never put credentials in `models.json`, a scenario or a shared run log.
 
@@ -12,7 +14,7 @@ Copy `config/api_keys.example.json` to `config/api_keys.local.json` and replace 
 
 ```
 uv run python -m game
-uv run python -m game --engine director
+uv run python -m game --engine local
 uv run python -m game --session data/runs/my-session
 uv run python -m game --session data/runs/my-session --resume
 ```
@@ -45,7 +47,7 @@ Initial and restored sessions begin paused with the target editor open. Slash co
 
 Orders change targets, not instantaneous vessel states. Existing turning and acceleration limits apply. A screen resize never skips physics steps. The requested rate is a target and does not guarantee the achieved rate, because the achievable rate depends on the computer and current workload. The physics timestep remains fixed at every rate; `max` performs every step as quickly as possible.
 
-Cargo-grade increases pause the game locally. Ship loss ends the mission in failure and loses all remaining cargo. In Director mode, background reviews choose when to deliver issued reports and whether to request attention; pure local mode delivers on the fixed schedule without weather-triggered pauses. Leaving the whole authored changing hazard region in valid waters completes escape, provided the ship is not lost at that endpoint. Cargo loss is scored separately.
+Cargo-grade increases pause the game locally. Ship loss ends the mission in failure and loses all remaining cargo. The local terminal runtime delivers reports on the fixed schedule without weather-triggered pauses. Leaving the whole authored changing hazard region in valid waters completes escape, provided the ship is not lost at that endpoint. Cargo loss is scored separately.
 
 ## Scripted verification
 
@@ -61,7 +63,7 @@ A stage-3 script runs the same algorithms without an Agent. An action array cont
 uv run python -m game --script actions.json --session data/runs/scripted
 ```
 
-The runner writes `result.json`, `state.json` and `events.jsonl`. State includes numerical wave/controller continuity, stack capacities and unfinished overload intervals, ship exposure doses and the active roll draw, consumed events and operation receipts. Resuming requires the same frozen scenario, algorithm identity, configuration and seed. Saves from the archived cargo algorithm or before ship-damage integration are rejected. The Director also uses `director.sqlite` to checkpoint its workflow; it does not use graph state as the physical truth.
+The runner writes `result.json`, `state.json` and `events.jsonl`. State includes numerical wave/controller continuity, stack capacities and unfinished overload intervals, ship exposure doses and the active roll draw, consumed events and operation receipts. Resuming requires the same frozen scenario, algorithm identity, configuration and seed. Saves from the archived cargo algorithm or before ship-damage integration are rejected. The retained Director implementation uses `director.sqlite` for workflow checkpoints; current entrypoints do not create it.
 
 ## Cargo assumptions
 
@@ -85,15 +87,15 @@ simulate nonlinear hydrostatics, hull bending or flooding. See
 [SHIP_DAMAGE_STUDY.md](SHIP_DAMAGE_STUDY.md) for the accident evidence, equations,
 thresholds, coverage and verification.
 
-## Local engine and fallback
+## Local engine and retained fallback
 
-`--engine local` is the default; `--engine director` explicitly enables the experimental Director. `--engine local` runs the full interactive game through deterministic local orchestration, without initializing a model or reading API/model configuration. The manual controls, rules, physics and snapshots are identical.
+`--engine local` is the default and only accepted engine. It runs the full interactive game through deterministic local orchestration, without initializing a model or reading API/model configuration.
 
-In Director mode, initialization failures, exhausted model budgets and runtime model errors automatically fall back for the current step. If no movement occurred and the player has not cancelled or replaced the order, local orchestration can perform the still-authorized advance. If progression already committed, the fallback only presents its result and waits. It never advances the same segment twice or automatically resumes after a player pause/checkpoint. Each transition is logged as `director_fallback`; the terminal announces it. No alternative paid provider is selected automatically.
+The retained Director fallback handles exhausted model budgets and runtime model errors for the current step. If no movement occurred and the player has not cancelled or replaced the order, local orchestration can perform the still-authorized advance. If progression already committed, the fallback only presents its result and waits. It never advances the same segment twice or automatically resumes after a player pause/checkpoint. Each transition is logged as `director_fallback`; the terminal announces it. No alternative paid provider is selected automatically. This path is not enabled by current entrypoints.
 
-The current Director is deliberately a constrained workflow executor. These tasks can also be performed by the local engine. The prototype demonstrates both paths; it does not establish an advantage for LLM orchestration.
+The retained Director is deliberately a constrained workflow executor. These tasks can also be performed by the local engine. Earlier verification covered both paths; it did not establish an advantage for LLM orchestration.
 
-## Background Director attention
+## Retained background Director attention (disabled)
 
 `game/director/harness/ATTENTION.md` specifies the report-delivery policy and `manage_attention` schema. The Director sees already-issued, currently applicable report candidates, while the player sees only delivered reports. It can defer, publish while sailing continues, or publish supporting evidence and request a pause. Reports are immutable.
 

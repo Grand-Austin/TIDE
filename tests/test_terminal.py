@@ -280,6 +280,22 @@ def test_line_json_mode_is_removed(monkeypatch, capsys):
     assert "unrecognized arguments: --plain" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "arguments,message",
+    [
+        (["--engine", "director"], "invalid choice: 'director'"),
+        (["--models", "models.json"], "unrecognized arguments: --models"),
+        (["--keys", "keys.json"], "unrecognized arguments: --keys"),
+    ],
+)
+def test_director_options_are_disabled(monkeypatch, capsys, arguments, message):
+    monkeypatch.setattr(sys, "argv", ["game", *arguments])
+    with pytest.raises(SystemExit) as error:
+        main()
+    assert error.value.code == 2
+    assert message in capsys.readouterr().err
+
+
 def test_interactive_play_requires_a_terminal(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["game"])
     monkeypatch.setattr(sys.stdin, "isatty", lambda: False)

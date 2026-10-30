@@ -253,4 +253,9 @@ def test_existing_mode_names_remain_accepted_and_default_specs_are_bounded():
     assert any(spec["kind"] == "speed_pi_rudder" for spec in son)
     teaching = default_trial_specs("teaching")
     assert all(spec["kind"] == "heading" for spec in teaching)
+    physical = default_trial_specs(DEFAULT_MODEL)
+    assert {abs(spec["rudder_deg"]) for spec in physical
+            if spec["kind"] != "heading"} == {35.0}
+    assert {spec["speed_command_kn"] for spec in physical
+            if spec["kind"] == "speed_pi_rudder"} == {10.0, 12.0}
     assert DEFAULT_MODEL == "s175_maneuvering"

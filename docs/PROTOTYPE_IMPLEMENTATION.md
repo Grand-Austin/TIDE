@@ -88,7 +88,7 @@ Keep the existing numerical scenario schema and version its new independently pi
 
 ### Text interface and clock
 
-Provide `uv run python -m game` as the full-screen terminal entrypoint and a separate scripted runner for deterministic testing. Both use the same local algorithms and rules. The default engine is local; `--engine director` opts into experimental orchestration. The old line/JSON interface and `--plain` entrypoint are removed.
+Provide `uv run python -m game` as the full-screen terminal entrypoint and a separate scripted runner for deterministic testing. Both use the same local algorithms and rules. Local is the only enabled engine; Director entrypoints are temporarily disabled (2026-10-30; see [PLAN.md](../PLAN.md#7-agentic-systems)). The Director design below is retained for future work. The old line/JSON interface and `--plain` entrypoint are removed.
 
 Outside command input, `j/k` change the requested time rate and `p` pauses into a prefilled target heading/speed editor. `Tab` switches fields; `Enter` or `p` validates both targets and resumes. `/` opens a command field without stopping time. Commands include `heading <degrees>`, `speed <knots>`, `pause`, `resume`, `rate <multiplier>`, `status`, `reports`, `save`, `quit`, and `retry` after an Agent failure. Accept headings in `[0, 360)` and nonnegative speeds within the loaded vessel's supported command range. Convert knots to SI once at the interface. Show units explicitly.
 
@@ -143,6 +143,6 @@ Planning did not run a new full-window simulation, install LangGraph, call a mod
 
 ## Authorized additions during implementation
 
-- The default `--engine local` provides fully local interactive orchestration; Director is opt-in through `--engine director`. Director failures fall back for the current step, respecting committed progress and player cancellation.
+- The default `--engine local` provides fully local interactive orchestration and is the only enabled engine. `--engine director`, `--models` and `--keys` are rejected. Director source and fallback tests are retained, but the entrypoint does not instantiate a Director.
 - Background Director attention chooses delivery and pause timing from already-issued report candidates. Simulation continues during assessment. One review runs at a time; initial review/cooldown defaults are 300 simulation seconds and maximum decision age is 600 seconds.
 - Harness instructions and native schemas live in `game/director/harness/`; they are loaded at runtime. Local validation enforces permissions independently of prompt compliance.

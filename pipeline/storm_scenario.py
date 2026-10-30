@@ -9,6 +9,10 @@ the nearest edge to 15 km inside, which a ship at 5 m/s can leave within the two
 
     python -m pipeline.storm_scenario biscay-20260123-06            # scenarios/<id>/{scenario,gameplay}.json
     python -m pipeline.storm_scenario biscay-20260123-06 --check    # also run the scripted strategies
+    python -m pipeline.storm_scenario biscay-20261022-21 --start-at-peak --out data/runs/peak-demo/source
+
+Peak demonstrations keep the historical peak time instead of preferring daylight.
+Display weather uses real ERA5 cloud cover and precipitation.
 """
 
 from __future__ import annotations
@@ -84,7 +88,10 @@ def depth_inside(polygon, lon, lat, bbox=None, sea=None):
     return best
 
 
-def build(storm_id: str, start_km: float = START_KM) -> Path:
+def build(
+    storm_id: str, start_km: float = START_KM, *,
+    start_at_peak: bool = False, out_dir: Path | None = None,
+) -> Path:
     region_name = storm_id.split("-")[0]
     storm = next(s for s in json.loads((STORMS / f"{region_name}.json").read_text())["storms"] if s["id"] == storm_id)
     # start where and when pipeline.export_scene would: the peak cell, in the storm's best daylight window
@@ -94,7 +101,7 @@ def build(storm_id: str, start_km: float = START_KM) -> Path:
     folder = STORMS / region_name / storm_id
     waves = xr.open_dataset(folder / "waves.nc")
     hs_at = lambda t: float(waves.VHM0.interp(time=np.datetime64(t.replace(tzinfo=None)), longitude=lon, latitude=lat))
-    start = daylight_start(region_name, storm, lon, lat)
+    start = utc(storm["peak"]) if start_at_peak else daylight_start(region_name, storm, lon, lat)
     if start is None or not hs_at(start) >= 0.6 * storm["hs_m"]:
         # the storm is still building while the sun is up: play its peak at night instead
         start = utc(storm["peak"]) - timedelta(minutes=20)
@@ -120,7 +127,7 @@ def build(storm_id: str, start_km: float = START_KM) -> Path:
     inside_km, exit_point = found
     angle = np.deg2rad(waves.VMDR.sel(longitude=lon, latitude=lat, method="nearest").interp(time=at))
     scene_from = float(np.rad2deg(np.arctan2(np.sin(angle), np.cos(angle)))) % 360  # head seas to begin with
-    out = OUT / storm_id
+    out = Path(out_dir).resolve() if out_dir is not None else OUT / storm_id
     out.mkdir(parents=True, exist_ok=True)
     end = start + timedelta(seconds=BUDGET_S)
     environment = {
@@ -139,7 +146,8 @@ def build(storm_id: str, start_km: float = START_KM) -> Path:
         "reports": REFERENCE["reports"], "trials": {}, "area_bbox": bbox,
         "gameplay_settings": {"region_hs_m": threshold, "start_inside_km": round(inside_km, 1),
                               "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"},
-        "collection": {"source": str(folder.relative_to(ROOT)), "storm": storm},
+        "collection": {"source": str(folder.relative_to(ROOT)), "storm": storm,
+                       "start_selection": "storm_peak" if start_at_peak else "daylight_or_peak_lead"},
         "environment": environment,
     }
     path = out / "scenario.json"
@@ -162,7 +170,7 @@ def write_weather(path: Path, lat: float, lon: float, start: datetime, end: date
                        "start_date": f"{start:%Y-%m-%d}", "end_date": f"{end:%Y-%m-%d}", "hourly": "cloud_cover,precipitation"})
     with urlopen(f"{WEATHER_URL}?{query}", timeout=60) as response:
         hourly = json.load(response)["hourly"]
-    hours = pd.to_datetime(hourly["time"]).astype("int64") / 1e9
+    hours = pd.to_datetime(hourly["time"]).as_unit("ns").asi8 / 1e9
     rows = []
     for k in range(int((end - start).total_seconds() // 3600) + 1):
         at = (start + timedelta(hours=k)).timestamp()
@@ -245,11 +253,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("storms", nargs="+")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--start-at-peak", action="store_true", help="start at the storm peak instead of preferring daylight")
+    parser.add_argument("--out", type=Path, help="write one source scenario to this staging directory")
     parser.add_argument("--start-km", type=float, default=START_KM,
                         help="how far inside the region the start sits; lower it when no strategy escapes")
     args = parser.parse_args()
+    if args.out is not None and len(args.storms) != 1:
+        parser.error("--out requires exactly one storm")
+    if args.out is not None and args.check:
+        parser.error("--check writes a legacy published report; use the Builder to validate a staging scenario")
     for storm_id in args.storms:
-        path = build(storm_id, args.start_km)
+        path = build(storm_id, args.start_km, start_at_peak=args.start_at_peak,
+                     out_dir=args.out)
         if args.check:
             results = [check(path, strategy, ROOT / "data/runs" / f"check-{storm_id}") for strategy in ("exit", "avoid_beam")]
             for r in results:

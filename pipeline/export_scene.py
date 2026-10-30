@@ -179,8 +179,8 @@ def add_weather(path: Path) -> Path:
         # ERA5 is published about five days behind real time; leave the scene without weather
         print(f"{path.name}: no ERA5 weather yet for {times[0]:%Y-%m-%d}")
         return path
-    hours = pd.to_datetime(hourly["time"]).astype("int64") / 1e9
-    at = times.astype("int64") / 1e9
+    hours = pd.to_datetime(hourly["time"]).as_unit("ns").asi8 / 1e9
+    at = times.as_unit("ns").asi8 / 1e9
     # precipitation is the total of the hour ending at each stamp; cloud cover is instantaneous
     cloud = np.interp(at, hours, hourly["cloud_cover"])
     precip = np.array(hourly["precipitation"], dtype=float)[np.clip(np.searchsorted(hours, at), 0, len(hours) - 1)]
