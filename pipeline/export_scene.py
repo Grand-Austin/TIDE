@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode
@@ -61,6 +62,33 @@ def environment(region: str, start: datetime, lon: float, lat: float, storm_id: 
     return CopernicusEnvironment(**data)
 
 
+def sun_elevation(t: pd.Timestamp, lat: float, lon: float) -> float:
+    """Solar elevation in degrees (NOAA approximation), t in UTC."""
+    g = 2 * math.pi / 365 * (t.dayofyear - 1 + (t.hour + t.minute / 60 - 12) / 24)
+    decl = (0.006918 - 0.399912 * math.cos(g) + 0.070257 * math.sin(g) - 0.006758 * math.cos(2 * g)
+            + 0.000907 * math.sin(2 * g) - 0.002697 * math.cos(3 * g) + 0.00148 * math.sin(3 * g))
+    eqt = 229.18 * (0.000075 + 0.001868 * math.cos(g) - 0.032077 * math.sin(g) - 0.014615 * math.cos(2 * g) - 0.040849 * math.sin(2 * g))
+    ha = math.radians(((t.hour * 60 + t.minute) + eqt + 4 * lon) / 4 - 180)
+    la = math.radians(lat)
+    return math.degrees(math.asin(math.sin(la) * math.sin(decl) + math.cos(la) * math.cos(decl) * math.cos(ha)))
+
+
+def daylight_start(region: str, storm: dict, lon: float, lat: float) -> datetime | None:
+    """The 20-minute-step start within 12 h of the peak with the highest Hs at the start point while the sun
+    stays above 10° for the whole scene; None if the storm has no such daylight."""
+    peak = pd.Timestamp(storm["peak"].rstrip("Z"))
+    subset = STORMS / region / storm["id"] / "waves.nc"
+    waves = xr.open_dataset(subset if subset.exists() else sorted(directory(region).glob("waves_*.nc"))[0])
+    best = None
+    for start in pd.date_range(peak - pd.Timedelta(hours=12), peak + pd.Timedelta(hours=11), freq="20min"):
+        if min(sun_elevation(start + pd.Timedelta(seconds=s), lat, lon) for s in (0, DURATION_S)) < 10:
+            continue
+        hs = float(waves.VHM0.interp(time=np.datetime64(start), longitude=lon, latitude=lat))
+        if not np.isnan(hs) and (best is None or hs > best[1]):
+            best = (start, hs)
+    return None if best is None else best[0].to_pydatetime().replace(tzinfo=timezone.utc)
+
+
 def export(storm_id: str, start: datetime | None = None) -> Path:
     region = storm_id.split("-")[0]
     storm = next(s for s in json.loads((STORMS / f"{region}.json").read_text())["storms"] if s["id"] == storm_id)
@@ -68,7 +96,8 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
     lon = min(max(storm["lon"], west + MARGIN), east - MARGIN)
     lat = min(max(storm["lat"], south + MARGIN), north - MARGIN)
     if start is None:
-        start = datetime.fromisoformat(storm["peak"].replace("Z", "+00:00")) - pd.Timedelta(seconds=LEAD_S)
+        start = daylight_start(region, storm, lon, lat) or (
+            datetime.fromisoformat(storm["peak"].replace("Z", "+00:00")) - pd.Timedelta(seconds=LEAD_S))
     sim = Simulation(load_s175(ROOT / "data/processed/s175"), environment(region, start, lon, lat, storm_id), seed=1,
                      settings=Settings(**STORM_SETTINGS), wind_parameters=WindParameters(**REFERENCE["wind_parameters"]))
     wave_from = sim.observe(sim.initial_state(start, lon, lat, heading_deg=0, speed_mps=SPEED_MPS)).wave_from_deg

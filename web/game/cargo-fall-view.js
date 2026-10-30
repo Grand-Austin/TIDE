@@ -42,6 +42,11 @@ export class CargoFallView {
     this.object.add(this.splash);
   }
 
+  // Live play learns loss times as they happen: units built with lostAt Infinity get their time here.
+  setLost(id, t) {
+    for (const it of this.items) if (it.unit.id === id && it.lostAt !== t) [it.lostAt, it.fall] = [t, null];
+  }
+
   // True while a box is sliding or in the air, so a player can slow down to watch it.
   falling(t) {
     return this.items.some((it) => t >= it.lostAt && (!it.fall || t < it.fall.tImpact));

@@ -5,7 +5,7 @@ module adds pacing, judgement checkpoints and a score. Checkpoint answers are gr
 information the player could see at that moment (heading, waves, released forecasts), never against the
 hidden region.
 
-    uv run python -m game.live            # then open http://localhost:8000/game/classic.html?live
+    uv run python -m game.live            # then open http://localhost:8000/game/ (pick a "Play:" scenario)
 """
 
 from __future__ import annotations
@@ -297,7 +297,7 @@ def main():
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"TIDE live play: http://localhost:{args.port}/game/classic.html?live")
+    print(f"TIDE live play: http://localhost:{args.port}/game/ (pick a 'Play:' scenario)")
     server.serve_forever()
 
 

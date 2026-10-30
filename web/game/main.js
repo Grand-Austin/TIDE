@@ -8,20 +8,25 @@ import { createPanel } from "./panel.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout } from "./cargo-layout.js";
 import { sampleAt, toLocal, fromScene } from "./replay.js";
+import { startLive, liveOverlay, liveScenarios } from "./live.js";
 
 const q = new URLSearchParams(location.search);
 const loader = new GLTFLoader();
-// ?scene=<id> plays a storm scene from web/3d-scene; ?replay=<path> plays a recorded game session.
-const sceneId = q.get("scene") ?? (q.has("replay") ? null : "biscay-20261022-21");
+// ?scene=<id> plays a storm scene, ?replay=<path> a recorded game session, ?live=<scenario> a live game
+// against game/live.py (uv run python -m game.live).
+const liveId = q.get("live");
+const sceneId = liveId ? null : q.get("scene") ?? (q.has("replay") ? null : "biscay-20260123-06");
 const [data, hull, boxes] = await Promise.all([
-  fetch(sceneId ? `./scenes/${sceneId}.json` : q.get("replay")).then((r) => r.json()),
+  liveId ? null : fetch(sceneId ? `./scenes/${sceneId}.json` : q.get("replay")).then((r) => r.json()),
   loader.loadAsync("./assets/s175.glb"),
   loader.loadAsync("./assets/containers.glb"),
 ]);
-const replay = sceneId ? fromScene(data) : data;
+const lossQueue = []; // live: [unit id, t] reported by the session, applied in the frame loop
+const live = liveId ? await startLive(liveId, { onLoss: (id, t) => lossQueue.push([id, t]) }) : null;
+const replay = live ? live.replay : sceneId ? fromScene(data) : data;
 const start = sampleAt(replay, 0);
 const startMs = Date.parse(replay.start_utc);
-const duration = replay.t.at(-1);
+const duration = live ? live.brief.budget_s : replay.t.at(-1);
 
 // Dev only: ?hs=8&tp=12&from=270 freezes a sea the replay does not contain, ?hour=12 moves the sun to that UTC hour.
 // Never shown to players as data.
@@ -219,7 +224,8 @@ for (const size of [40, 20]) {
 }
 
 // Units leave the deck at their cargo_lost time; scrubbing back puts them back.
-const lostAt = new Map(replay.events.flatMap((e) => e.unit_ids.map((id) => [id, e.time_s])));
+const lostAt = live ? new Map(units.map((u) => [u.id, Infinity])) // live: every unit may go; times arrive later
+  : new Map(replay.events.flatMap((e) => e.unit_ids.map((id) => [id, e.time_s])));
 const onDeck = new Map(), HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0), placeAt = new THREE.Matrix4();
 function updateCargo(t) {
   for (const u of units) {
@@ -293,6 +299,7 @@ const ui = Object.fromEntries(["play", "scrub", "fps", "scene", "credit", "slowm
 let simT = 0, rate = 5, playing = true;
 ui.scrub.max = duration;
 ui.play.onclick = () => {
+  if (live) return live.pause(!live.state.paused);
   if (simT >= duration) simT = 0;
   playing = !playing;
 };
@@ -300,6 +307,7 @@ ui.scrub.oninput = () => (simT = +ui.scrub.value);
 for (const b of document.querySelectorAll("[data-rate]"))
   b.onclick = () => {
     rate = +b.dataset.rate;
+    if (live) live.rate(rate === 60 ? 0 : rate); // live: the fastest button runs the simulation flat out
     document.querySelectorAll("[data-rate]").forEach((x) => x.setAttribute("aria-pressed", x === b));
   };
 
@@ -311,8 +319,27 @@ ui["panel-toggle"].onclick = () => {
   ui["panel-toggle"].setAttribute("aria-expanded", String(open));
 };
 
-ui.scene.value = sceneId ?? "replay";
-ui.scene.onchange = () => (location.search = ui.scene.value === "replay" ? "?replay=./replays/menorca-20260909.json" : `?scene=${ui.scene.value}`);
+// every exported storm scene, the recorded Menorca game, and live scenarios when game/live.py serves the page
+const index = await fetch("./scenes/index.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+if (index) ui.scene.replaceChildren(...index.storms.filter((x) => x.scene).map((x) =>
+  new Option(`Storm ${x.peak.slice(0, 10)} · ${x.area} · Hs ${x.hs_m} m · ${x.max_wind_kn} kn`, x.id)),
+  new Option("Menorca 9 Sep 2026 (recorded game)", "replay"));
+for (const x of await liveScenarios()) ui.scene.add(new Option(`Play: ${x.title}`, `live:${x.id}`));
+ui.scene.value = live ? `live:${liveId}` : sceneId ?? "replay";
+ui.scene.onchange = () => (location.search = ui.scene.value === "replay" ? "?replay=./replays/menorca-20260909.json"
+  : ui.scene.value.startsWith("live:") ? `?live=${ui.scene.value.slice(5)}` : `?scene=${ui.scene.value}`);
+const overlay = live ? liveOverlay() : null;
+if (live) {
+  ui.scrub.disabled = true;
+  setInterval(() => live.poll().then(() => overlay.update(live)).catch(() => {}), 400);
+  addEventListener("keydown", (e) => {
+    if (overlay.open || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    const step = e.shiftKey ? 1 : 5;
+    const turn = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, 0.5], ArrowDown: [0, -0.5] }[e.key];
+    if (turn) { e.preventDefault(); live.steer(...turn); }
+    if (e.code === "Space") { e.preventDefault(); live.pause(!live.state.paused); }
+  });
+}
 ui.credit.textContent = [replay.note, ...(replay.credits ?? ["Recorded TIDE session. Generated using E.U. Copernicus Marine Service Information: " +
   "MEDSEA_MULTIYEAR_WAV_006_012, MEDSEA_MULTIYEAR_PHY_006_004, WIND_GLO_PHY_L4_NRT_012_004"]), "Training prototype, not a navigation tool."]
   .filter(Boolean).join(" · ");
@@ -339,8 +366,15 @@ renderer.setAnimationLoop((now) => {
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
   const slow = ui.slowmo.checked && (fallView.falling(simT) || now < slowUntil); // watch each fall at 2x at most
-  if (playing) simT = Math.min(simT + dt * (slow ? Math.min(rate, 2) : rate), duration);
-  if (simT >= duration) playing = false;
+  if (live) {
+    // live: follow the newest session record, one second behind so there is always a sample ahead
+    const target = replay.t.at(-1) - 1;
+    if (target > simT) simT = Math.min(replay.t.at(-1), simT + Math.max(dt, (target - simT) * Math.min(1, dt * 2)));
+    for (const [id, t] of lossQueue.splice(0)) { lostAt.set(id, t); fallView.setLost(id, t); }
+  } else {
+    if (playing) simT = Math.min(simT + dt * (slow ? Math.min(rate, 2) : rate), duration);
+    if (simT >= duration) playing = false;
+  }
   const s = sampleAt(replay, simT);
 
   prev.copy(ship.position);
@@ -392,7 +426,7 @@ renderer.setAnimationLoop((now) => {
   if (now - uiAt > 100) {
     uiAt = now;
     if (document.activeElement !== ui.scrub) ui.scrub.value = simT;
-    ui.play.textContent = playing ? "Pause" : "Play";
+    ui.play.textContent = live ? (live.state?.paused ? "Resume" : "Pause") : playing ? "Pause" : "Play";
     if (updatePanel(s, now)) slowUntil = now + 2500;
   }
   frames++;
