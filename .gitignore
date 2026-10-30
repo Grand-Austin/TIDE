@@ -244,3 +244,6 @@ data/runs/
 
 # Local Agent credentials and session state
 config/api_keys.local.json
+
+# Blender autosave backups
+*.blend1

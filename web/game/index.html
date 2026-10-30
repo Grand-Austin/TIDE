@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIDE 3D replay</title>
+<style>
+  :root { --panel: rgba(11, 22, 34, 0.84); --line: #1f3347; --text: #d6e2ee; --muted: #a9bccd; --accent: #5cc8e8; --order: #f2a93b; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8d99a2; font-family: system-ui, sans-serif; color: var(--text); }
+  canvas { display: block; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .mono { font-family: ui-monospace, monospace; }
+
+  .panel { position: fixed; top: 12px; right: 12px; bottom: 96px; width: 330px; box-sizing: border-box; overflow-y: auto;
+           padding: 14px 16px; border-radius: 8px; background: var(--panel); display: flex; flex-direction: column; gap: 14px; }
+  .panel section { display: flex; flex-direction: column; gap: 6px; }
+  .panel h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .big { font-size: 24px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; font-size: 12px; color: var(--muted); }
+  .grid3 b { display: block; color: var(--text); font: 500 16px ui-monospace, monospace; }
+  .track { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .track > div { height: 100%; transition: width 0.3s, background 0.3s; }
+  .badge { padding: 2px 10px; border-radius: 10px; color: #0b1622; font-size: 12px; font-weight: 600; }
+  .helm { display: flex; gap: 12px; align-items: center; }
+  .log { margin: 0; padding: 0; list-style: none; font: 12px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 180px; overflow-y: auto; }
+  .dev { padding: 4px 8px; border: 1px solid var(--order); border-radius: 4px; color: var(--order); font-size: 12px; }
+  .toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 8px;
+           border: 2px solid; background: var(--panel); font-size: 16px; font-weight: 600; }
+  #panel-toggle { display: none; }
+
+  .bar { position: fixed; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+         padding: 8px 12px; border-radius: 8px; background: var(--panel); font-size: 13px; }
+  .bar button, .bar select { min-width: 44px; height: 36px; border: 1px solid #2b4660; border-radius: 4px; background: #0e1b29; color: var(--text); font: inherit; }
+  .bar button[aria-pressed="true"] { background: #2b4660; color: #fff; }
+  .bar input[type="range"] { flex: 1 1 200px; min-width: 0; }
+  .credit { flex-basis: 100%; color: var(--muted); font-size: 11px; }
+  #fps { position: fixed; left: 12px; top: 12px; color: #0b1622; font: 12px ui-monospace, monospace; }
+
+  @media (max-width: 900px) {
+    .panel { top: auto; bottom: 150px; left: 12px; right: 12px; width: auto; max-height: 45vh; }
+    .panel[data-collapsed="true"] > section:not(:first-child) { display: none; }
+    #panel-toggle { display: inline-block; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="fps"></div>
+<pre id="errors" hidden style="position: fixed; left: 12px; top: 36px; max-width: calc(100% - 380px); max-height: 50vh; overflow: auto; margin: 0;
+  padding: 10px 12px; border-radius: 6px; background: #3a1418; color: #ffd7d7; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; z-index: 9"></pre>
+<script>
+  // Show load, script and shader errors on the page so a screenshot is enough to report them.
+  (function () {
+    const box = document.getElementById("errors"), show = (msg) => { box.hidden = false; box.textContent += msg + "\n\n"; };
+    addEventListener("error", (e) => show(`${e.message} (${(e.filename || "").split("/").pop()}:${e.lineno})`));
+    addEventListener("unhandledrejection", (e) => show(String(e.reason && e.reason.stack || e.reason)));
+    const error = console.error.bind(console);
+    console.error = (...a) => { error(...a); show(a.map(String).join(" ")); }; // three.js reports shader errors here
+  })();
+</script>
+<div id="p-toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<aside class="panel" id="panel" aria-label="Ship and cargo state" data-collapsed="true">
+  <section>
+    <div class="row"><span class="big mono" id="p-clock">--:--:-- UTC</span><span class="muted mono" id="p-elapsed"></span></div>
+    <div class="track"><div id="p-progress" style="background: var(--accent); width: 0"></div></div>
+    <div class="dev" id="p-dev" hidden>DEV OVERRIDE: the sea or sun shown is not scenario data</div>
+  </section>
+
+  <section>
+    <h2>Helm</h2>
+    <div class="helm">
+      <svg width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="Compass: actual heading, ordered heading and wave direction">
+        <circle cx="50" cy="50" r="46" fill="#0e1b29" stroke="#2b4660"></circle>
+        <text x="50" y="13" text-anchor="middle" font-size="9" fill="#a9bccd">N</text>
+        <g id="p-wave"><path d="M50 4 L46 14 L50 11 L54 14 Z" fill="#9db6cc"></path><line x1="50" y1="11" x2="50" y2="26" stroke="#9db6cc" stroke-width="2"></line></g>
+        <g id="p-target"><line x1="50" y1="50" x2="50" y2="10" stroke="#f2a93b" stroke-width="2" stroke-dasharray="4 3"></line></g>
+        <g id="p-needle"><path d="M50 12 L55 54 L50 50 L45 54 Z" fill="#5cc8e8"></path></g>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+        <span class="big mono" id="p-heading">---°</span>
+        <span class="mono" style="color: var(--order); font-size: 13px" id="p-order"></span>
+        <span class="muted" id="p-relsea"></span>
+      </div>
+    </div>
+    <div class="muted" id="p-speed"></div>
+  </section>
+
+  <section>
+    <h2>Sea at the ship</h2>
+    <div class="grid3"><span>Hs<b id="p-hs"></b></span><span>Peak period<b id="p-tp"></b></span><span>Wind<b id="p-wind" style="font-size: 13px"></b></span></div>
+    <div class="muted" id="p-weather"></div>
+  </section>
+
+  <section>
+    <h2>Motion</h2>
+    <div class="grid3"><span>Roll<b id="p-roll"></b></span><span>Pitch<b id="p-pitch"></b></span><span>Heave<b id="p-heave"></b></span></div>
+    <canvas id="p-spark" width="296" height="56" aria-label="Roll over the last two minutes" role="img"></canvas>
+  </section>
+
+  <section>
+    <div class="row"><h2>Cargo</h2><span class="badge" id="p-grade">Grade 0</span></div>
+    <div class="row"><span>All cargo, 1,200 TEU</span><span class="mono" id="p-total"></span></div>
+    <div class="track"><div id="p-total-bar"></div></div>
+    <div class="row"><span>Deck cargo, 480 TEU</span><span class="mono" id="p-deck"></span></div>
+    <div class="track"><div id="p-deck-bar"></div></div>
+    <div class="muted"><span id="p-lost"></span> · hold cargo cannot be lost, so the first bar stops at 60%</div>
+  </section>
+
+  <section>
+    <h2>Loss log</h2>
+    <ul class="log" id="p-log"></ul>
+  </section>
+</aside>
+
+<div class="bar">
+  <button id="panel-toggle" type="button" aria-controls="panel" aria-expanded="false">Details</button>
+  <label for="scene" class="sr">Scene</label>
+  <select id="scene">
+    <option value="biscay-20261022-21">Storm 22 Oct 2026, Ushant</option>
+    <option value="biscay-20260123-06">Storm 23 Jan 2026, Biscay</option>
+    <option value="biscay-20260108-18">Storm 8 Jan 2026, Ushant</option>
+    <option value="biscay-20251218-03">Storm 18 Dec 2025, Celtic Sea</option>
+    <option value="replay">Menorca 9 Sep 2026 (recorded game)</option>
+  </select>
+  <button id="play" type="button">Pause</button>
+  <span>Rate</span>
+  <button type="button" data-rate="1" aria-pressed="false">1×</button>
+  <button type="button" data-rate="5" aria-pressed="true">5×</button>
+  <button type="button" data-rate="20" aria-pressed="false">20×</button>
+  <button type="button" data-rate="60" aria-pressed="false">60×</button>
+  <label for="scrub" class="sr">Replay time</label>
+  <input id="scrub" type="range" min="0" step="1" value="0">
+  <label style="display: flex; align-items: center; gap: 6px; min-height: 36px"><input id="slowmo" type="checkbox" checked> Slow motion while boxes fall</label>
+  <div class="credit" id="credit"></div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -15,6 +15,7 @@ _Last updated: 2026-10-29_
 | `main` | SeaSense route-choice prototype (PRs #4–#12) | Merged; kept as reference |
 | `experiment` | TIDE simulation toolkit, scenario pipeline, rules, Director, terminal UI; fresh-clone fix, CI, storm dynamics fix, cargo calibration | Active line of work |
 | `ci/fresh-clone` | Fast-forward merged into `experiment` on 2026-10-29 | Can be deleted |
+| `blender/3d-demo` | Blender S175 and container models; 3D replay page (`web/game`) playing Yan's Biscay storm scenes and recorded sessions; falling-container animation | In progress, local only; a separate line from `web/3d-scene`, not merged |
 
 ## Decisions
 
@@ -26,6 +27,11 @@ Newest first. Proposed decisions move here once the team agrees.
 | 2026-10-29 | Remove the TIDE-only roll/pitch cutoff and its scenario configuration | The original MSS example has no 30-degree calibration or stopping threshold. The 16 m beam-seas rerun completes 20 minutes and reaches 35.89 degrees roll | Xuan explicitly requested removal |
 | 2026-10-29 | Restore full MSS coupling; use original S175 mean-surge drift data and a resolved fixed spectral grid | Matched-input Octave runs reproduce the first-order-only model's acceleration. The source-supported mean load removes the tested head-seas speed stops without changing physical limits or teaching thrust | Xuan requested repair; implementation and evidence in `docs/MOTION_VALIDATION.md` |
 | 2026-10-29 | Retain cross-machine vessel-source acceptance; do not expand algorithm-version migration in this prototype | Prepared-byte identity is unsuitable as the only cross-machine startup check; the current work targets motion behaviour | Xuan's review discussion |
+| 2026-10-29 | `blender/3d-demo` and `web/3d-scene` stay two lines: one tests the Blender models, the other the hand-built three.js scene. `blender/3d-demo` copies the four storm scenes from `web/3d-scene` unchanged and reads its scene format | Compare both looks before choosing; no merge conflicts in `web/game` | Parke |
+| 2026-10-29 | Deck stowage: units fill slots category by category and only where a box stands below; deck-318 and deck-320 drop one tier | The categories need 160, 161 and 159 half-slots of 162, so filling each tier on its own left deck-320 hanging over an empty slot | Parke (on `blender/3d-demo`) |
+| 2026-10-29 | Night scenes are graded blue with a soft cold ambient and dim warm deck lights; navigation lights at their usual places | All four storm scenes start at night (peak − 20 min); real sun position, but a black frame shows nothing. Ambient and deck lights are a viewing aid, not data | Parke (on `blender/3d-demo`) |
+| 2026-10-29 | 3D demo uses three.js 0.170 from a CDN importmap (no package.json) and its own Gerstner sea, not web-ocean | web-ocean is WebGPU-only, heavy (6–8 ms/frame on an RTX 5070 Ti) and can only read wave height back from the GPU; an analytic sea gives the water height anywhere, which floating containers and splashes need. Hs follows the data; Tp and direction stay at the first sample for now | Parke (on `blender/3d-demo`) |
+| 2026-10-29 | S175 model is low-poly at 1:1 scale, origin at the centre of gravity (2.55 m aft of midships, waterline), bow −Z in glTF; containers are separate ISO-size models placed by `web/game/cargo-layout.js` | Pose comes straight from the simulation; each deck unit can fall on its own `cargo_lost` event. Hull lines and 15.4 m depth are illustrative, not the real S175 offsets | Parke (on `blender/3d-demo`) |
 | 2026-10-29 | Cargo `threshold_g` 0.30 → 0.14 for new scenarios; the frozen Menorca scenario keeps 0.30 | At 0.30 no heading lost cargo even at Hs 8.2 m. At 0.14, only beam seas at the Ushant peak lose cargo (18 TEU in 20 min); every other heading, and every heading at Hs 6.1 m, loses none. Evidence in `docs/PROTOTYPE_IMPLEMENTATION.md` | Yan (merged without review; needs Xuan's review) |
 | 2026-10-29 | Superseded: horizontal-only Coriolis replacement | It reduced acceleration but broke the full no-work structure. Full coupling is restored by the motion repair above | Earlier Yan change; replaced after Xuan's review |
 | 2026-10-29 | Merge the fresh-clone fix, CI and the storm fixes straight into `experiment`, without a PR | Time before the video; the user asked for it | Yan |
@@ -39,6 +45,9 @@ Newest first. Proposed decisions move here once the team agrees.
 | 2026-10-25 | Never fabricate data or story numbers; label anything authored | Credibility with Copernicus and ocean-science judges | Team |
 
 ## Decisions needed
+
+- **Daylight storm scenes.** The four scenes start 20 min before each peak, which is night every time. Proposal: export daylight windows within each storm's ±24 h subset, on the repaired motion model. Needs Yan (`pipeline.export_scene`).
+- **Cargo loss in the 22 Oct scene.** Beam seas strip all 320 deck units (480 TEU) in about 15 minutes at `threshold_g` 0.14. Check with Xuan whether that calibration should hold after the motion repair.
 
 - **Region.** Proposal: Bay of Biscay and the Western Approaches (12°W–1°W, 42°N–52°N) instead of the Balearics.
   - The Balearic summer 2026 data peaks at Hs 4.25 m, which is the current scenario itself.
@@ -95,6 +104,13 @@ Newest first. Proposed decisions move here once the team agrees.
   - Removed the obsolete `--plain` instruction from the new contribution guide; the full-screen TUI remains the sole interactive mode.
   - Passed 168 tests. Compared old and new dynamics under controlled 8.2 m head seas; both completed 20 minutes, with recorded peak speed reduced from 8.184 to 3.911 m/s. The spectrum-resolution warning remains.
   - Recorded the then-open reproducibility questions; the subsequent review retained cross-machine startup support and excluded migration work. Full historical storm calibration remains unverified locally.
+- 2026-10-29 — Parke:
+  - Built the S175 and container models in Blender (`assets/blender/s175.blend`, exports in `web/game/assets/`).
+  - Added the 3D replay page and `pipeline.export_replay`; a full Menorca run (beam-sea leg at 100°) peaks at 2.6° roll and loses no cargo, so the video needs a storm scenario.
+  - 3D replay now plays the four Biscay storm scenes from `web/3d-scene` (scene picker); cloud cover and rain come from their ERA5 columns.
+  - Lost containers slide off the low side, fall, splash, float on the analytic sea and sink (`web/game/cargo-fall.js`, no three.js, reusable; optional slow motion).
+  - Fixed the deck stowage so no box hangs over a gap; Blender preview re-placed from the same rule.
+  - Found: all four storm scenes are at night and were exported before Xuan's motion repair (`b115b91`); the 22 Oct scene loses all 480 deck TEU in 15 min of beam seas. See "Decisions needed".
 
 - 2026-10-29 — Yan:
   - Reviewed `experiment`; found that the game fails on fresh clones (vessel checksum).
