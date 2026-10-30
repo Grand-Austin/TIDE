@@ -5,8 +5,9 @@ import { spectrumWaves, waveUniforms, detailMap, heightAt, N_WAVES, OCEAN_VERTEX
 import { BowSpray } from "./bow-spray.js";
 import { CargoFallView } from "./cargo-fall-view.js";
 import { createPanel } from "./panel.js";
+import { createMinimap } from "./minimap.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
-import { deckLayout } from "./cargo-layout.js";
+import { deckLayout, topDown } from "./cargo-layout.js";
 import { sampleAt, toLocal, fromScene } from "./replay.js";
 import { startLive, liveOverlay, liveScenarios, turnNote } from "./live.js";
 
@@ -228,8 +229,9 @@ for (const size of [40, 20]) {
 }
 
 // Units leave the deck at their cargo_lost time; scrubbing back puts them back.
+const drawnId = topDown(units);
 const lostAt = live ? new Map(units.map((u) => [u.id, Infinity])) // live: every unit may go; times arrive later
-  : new Map(replay.events.flatMap((e) => e.unit_ids.map((id) => [id, e.time_s])));
+  : new Map([...replay.events].sort((a, b) => a.time_s - b.time_s).flatMap((e) => e.unit_ids.map((id) => [drawnId(id), e.time_s])));
 const onDeck = new Map(), HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0), placeAt = new THREE.Matrix4();
 function updateCargo(t) {
   for (const u of units) {
@@ -337,6 +339,10 @@ for (const b of document.querySelectorAll("[data-rate]"))
   };
 
 const updatePanel = createPanel({ replay, startMs, duration, dev, sea });
+const updateMap = createMinimap(document.getElementById("map"), { replay, duration, live });
+const mapProgress = document.getElementById("map-progress"), dockTime = document.getElementById("dock-time");
+const mmss = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+ui.fps.hidden = !q.has("fps"); // ?fps shows the frame rate
 let slowUntil = 0; // after a cargo grade rise
 ui["panel-toggle"].onclick = () => {
   const open = ui.panel.dataset.collapsed === "true";
@@ -359,17 +365,15 @@ if (index) ui.scene.replaceChildren(
   ...(playable.length ? [group("Play a storm (you steer)", playable)] : []),
   group("Watch a storm replay (fixed demo orders)", replays),
   group("Recorded game", [new Option("Menorca 9 Sep 2026", "replay")]));
-// a replay while playable storms exist: say so, and offer to steer this storm (or the first playable one)
+// a replay while playable storms exist: offer to steer this storm (or the first playable one) from the title card
+const mode = document.getElementById("mode"), modeNote = document.getElementById("mode-note"), cta = document.getElementById("cta");
+if (live) [mode.textContent, mode.className, modeNote.textContent] = ["Live", "chip live", "you have the helm"];
+else if (!sceneId) modeNote.textContent = "recorded game";
 if (!live && playable.length) {
   const same = playable.find((o) => o.value === `live:${sceneId}`) ?? playable[0];
-  const link = Object.assign(document.createElement("a"), {
-    href: `?live=${same.value.slice(5)}`,
-    textContent: `This is a replay with fixed demo orders. ▶ Steer it yourself: ${same.text.replace("▶ Play: ", "")}`,
-  });
-  Object.assign(link.style, { position: "fixed", top: "12px", left: "50%", transform: "translateX(-50%)", zIndex: 8,
-    padding: "10px 16px", borderRadius: "8px", background: "#f2a93b", color: "#0b1622", fontWeight: 600, textDecoration: "none",
-    maxWidth: "calc(100% - 420px)" });
-  document.body.append(link);
+  cta.href = `?live=${same.value.slice(5)}`;
+  cta.textContent = `▶ Steer ${same.value === `live:${sceneId}` ? "this storm" : same.text.replace("▶ Play: ", "")} yourself`;
+  cta.hidden = false;
 }
 // opened through game/live.py without a choice: go straight to the first playable storm
 if (!location.search && playable.length) location.search = `?live=${playable[0].value.slice(5)}`;
@@ -383,7 +387,7 @@ if (live) {
   // Captured before the scene picker or a focused button sees the key, so arrows always steer the ship
   // (a focused <select> would otherwise switch scenes). Typing in a text field is left alone.
   const helmNote = Object.assign(document.createElement("div"), { className: "live-pill", hidden: true });
-  Object.assign(helmNote.style, { left: "50%", transform: "translateX(-50%)", top: "auto", bottom: "92px" });
+  Object.assign(helmNote.style, { position: "fixed", left: "50%", transform: "translateX(-50%)", top: "auto", bottom: "104px" });
   document.body.append(helmNote);
   let noteTimer = null;
   addEventListener("keydown", (e) => {
@@ -403,9 +407,11 @@ if (live) {
     noteTimer = setTimeout(() => (helmNote.hidden = true), 4000);
   }, true);
 }
-ui.credit.textContent = [replay.note, ...(replay.credits ?? ["Recorded TIDE session. Generated using E.U. Copernicus Marine Service Information: " +
+// the mission or replay note goes in the title card; the full credits open from the short sources line
+document.getElementById("objective").textContent = replay.note ?? "";
+ui.credit.replaceChildren(...[...(replay.credits ?? ["Recorded TIDE session. Generated using E.U. Copernicus Marine Service Information: " +
   "MEDSEA_MULTIYEAR_WAV_006_012, MEDSEA_MULTIYEAR_PHY_006_004, WIND_GLO_PHY_L4_NRT_012_004"]), "Training prototype, not a navigation tool."]
-  .filter(Boolean).join(" · ");
+  .map((text) => Object.assign(document.createElement("p"), { textContent: text })));
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight);
@@ -433,7 +439,11 @@ renderer.setAnimationLoop((now) => {
     // live: follow the newest session record, one second behind so there is always a sample ahead
     const target = replay.t.at(-1) - 1;
     if (target > simT) simT = Math.min(replay.t.at(-1), simT + Math.max(dt, (target - simT) * Math.min(1, dt * 2)));
-    for (const [id, t] of lossQueue.splice(0)) { lostAt.set(id, t); fallView.setLost(id, t); }
+    for (const [id, t] of lossQueue.splice(0)) {
+      const d = drawnId(id);
+      lostAt.set(d, t);
+      fallView.setLost(d, t);
+    }
   } else {
     if (playing) simT = Math.min(simT + dt * (slow ? Math.min(rate, 2) : rate), duration);
     if (simT >= duration) playing = false;
@@ -490,8 +500,12 @@ renderer.setAnimationLoop((now) => {
   if (now - uiAt > 100) {
     uiAt = now;
     if (document.activeElement !== ui.scrub) ui.scrub.value = simT;
-    ui.play.textContent = live ? (live.state?.paused ? "Resume" : "Pause") : playing ? "Pause" : "Play";
+    const paused = live ? live.state?.paused : !playing;
+    ui.play.textContent = paused ? "▶" : "❚❚";
+    ui.play.setAttribute("aria-label", paused ? (live ? "Resume" : "Play") : "Pause");
+    dockTime.textContent = `${mmss(simT)} / ${mmss(duration)}`;
     if (updatePanel(s, now)) slowUntil = now + 2500;
+    mapProgress.textContent = updateMap(simT, s);
   }
   frames++;
   if (now - lastFps > 1000) {

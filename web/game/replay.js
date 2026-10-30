@@ -43,7 +43,7 @@ export function fromScene(scene) {
     const i = scene.fields.indexOf(name);
     return i < 0 ? undefined : scene.samples.map((row) => row[i]);
   };
-  const t = col("t"), lost = col("lost_teu"), grade = col("grade");
+  const t = col("t"), lost = col("lost_teu"), grade = col("grade"), teu = new Map(scene.cargo.units.map((u) => [u.id, u.teu]));
   const cargo = [];
   t.forEach((at, i) => {
     if (i === 0 || lost[i] !== lost[i - 1] || grade[i] !== grade[i - 1])
@@ -58,6 +58,7 @@ export function fromScene(scene) {
     ...Object.fromEntries(["lon", "lat", "heading", "roll", "pitch", "heave", "hs", "tp", "wave_from", "wind_e", "wind_n", "cloud", "precip"].map((c) => [c, col(c)])),
     sog: col("stw"),
     orders: scene.orders.map((o) => ({ t: o.t, heading_deg: o.heading_deg, speed_knots: (o.speed_mps * 3600) / 1852 })),
-    events: scene.events.filter((e) => e.kind === "cargo_lost").map((e) => ({ time_s: e.t, kind: e.kind, detail: e.detail, unit_ids: e.units })),
+    events: scene.events.filter((e) => e.kind === "cargo_lost").map((e) => ({ time_s: e.t, kind: e.kind, detail: e.detail, unit_ids: e.units,
+      teu: e.units.reduce((sum, id) => sum + (teu.get(id) ?? 0), 0) })),
   };
 }

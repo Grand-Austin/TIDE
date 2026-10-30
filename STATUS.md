@@ -17,7 +17,8 @@ _Last updated: 2026-10-30_
 | `main` | SeaSense route-choice prototype (PRs #4–#12) | Merged; kept as reference |
 | `experiment` | TIDE simulation toolkit, scenario pipeline, rules, Director, terminal UI; fresh-clone fix, CI, storm dynamics fix, cargo calibration | Active line of work |
 | `ci/fresh-clone` | Fast-forward merged into `experiment` on 2026-10-29 | Can be deleted |
-| `blender/3d-demo` | Blender S175 and container models; 3D replay page (`web/game`) playing Yan's Biscay storm scenes and recorded sessions; falling-container animation | In progress, local only; a separate line from `web/3d-scene`, not merged |
+| `blender/3d-demo` | Blender S175 and container models; 3D replay page (`web/game`) playing Yan's Biscay storm scenes and recorded sessions; falling-container animation | Merged into `tide/storm-game` on 2026-10-30 |
+| `tide/storm-game` | `experiment` + `web/3d-scene` + `blender/3d-demo`: live storm game in the 3D page against `game/live.py` | Active line for the video |
 
 ## Decisions
 
@@ -25,6 +26,11 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-30 | The passage map guides with released information only: forecast areas coloured by forecast Hs, the scenario's operating area, the track, and the helm preview. It never shows the escape region or an exit direction | Rule 4, and finding the way out from the forecasts is the exercise; solver hints stay with Xuan's planned solver, at a judgement cost | Parke |
+| 2026-10-30 | Helm preview: `game.live` runs the scenario's own ship model ahead on a copy of the session (`/api/preview`, track only, no cargo, region or forecast evaluated), at a 1 s step instead of 0.1 s, until a minute after the ship settles on the order (8 min at most) | 3 s per preview was unusable at 60x. Against the 0.1 s step, 1 s keeps 8-minute tracks within 13 m and the end heading within 1° (three orders, Celtic Sea, before and after the yaw damping change) in about 0.4 s | Parke |
+| 2026-10-30 | `cargo_lost` events carry `teu` and `demand_g` (the load that failed the stacks); the map explains each loss with them and the released sea state. Stack capacities stay hidden | A debrief needs the why of each loss; capacities are vulnerability thresholds (rule 4) | Parke |
+| 2026-10-30 | Basemap: MapLibre 4.7.1 with OpenFreeMap tiles in `web/game`, as `web/prototype` and `web/map-spike` already use | Real coastline for the real storm positions; no new service. Without the CDN the map card hides and the scene still runs | Parke |
+| 2026-10-30 | Scenes exported with the older per-unit cargo model draw each stack's losses from the top box down (`topDown` in `web/game/cargo-layout.js`); times, counts and sizes stay the simulation's | 30 of 34 scenes left boxes floating over gaps (190 of 320 in the Finisterre scene) | Parke |
 | 2026-10-30 | Storm scenarios set `yaw_decay_time_s` = 30 s (yaw damping only) and a quicker autopilot (0.08 rad/s, 1 deg/s reference rate). Default settings leave Menorca and Xuan's tests unchanged | The prepared S175 yaw damping is a wave-frequency equivalent with a 2 s decay; under full rudder the ship turned about 7 deg/min in a storm and players read orders as ignored. With 30 s, a 90-degree storm turn at 10 kn takes about 2 min (35 deg in the first minute), close to a container ship's manoeuvring | Team (Yan) |
 | 2026-10-30 | Deck cargo stays at `game/cargo.py`'s 64 stacks of five tiers; the 3D deck (`web/game/cargo-layout.js`) stands each stack's five boxes on top of each other, so a failed stack leaves as one column. The Blender loaded preview still shows the earlier three-tier rule and is only a picture | Keeps the cargo model unchanged and the 3D losses true to it | Team (Yan, Xuan) |
 | 2026-10-30 | A storm scenario is published only if its validation report shows at least one strategy that escapes without losing the ship. Reports follow `docs/STORM_SCENARIOS.md` (`scenarios/<id>/validation.json`, with each strategy's orders) | A scenario no player can win teaches nothing; the reference strategy also feeds the debrief | Team |
@@ -66,13 +72,16 @@ Newest first. Proposed decisions move here once the team agrees.
 - **Steering above 5 m/s.** At 7 m/s a 90° turn overshoots by about 30°. With stern-quartering seas the ship then surfs past 10 m/s through the water, and the run stops at `model_limit`. Storm scenes use 5 m/s until this is handled.
 - **Frontend.** Direction from the user (29 Oct): 3D, after Uncharted Waters (follow camera over the sea) and Seafarer: The Ship Sim (container ship).
   - Built on `web/3d-scene`: three.js, one box per deck cargo unit, Copernicus sea state at the ship, replaying recorded runs.
-  - Not yet connected to `game/session.py` for live play. Unity and Blender are not used. A Blender glTF ship model can replace the procedural hull later.
+  - Connected to `game/live.py` for live play on `tide/storm-game` (2026-10-30), with Parke's Blender ship.
 - **Which storms become scenarios.** Candidates:
   - 2026-10-22, rapid growth;
   - 2026-01-08, 71 kn wind;
   - 2026-01-23, 114 h long;
   - 2025-12-18, swell-dominated, Tp 19 s.
 - **Menorca validation reports.** `scenarios/menorca-20260909/validation.json` and `game-validation.json` were produced before the dynamics fix. Rerun them, or mark the scenario as superseded if the region changes.
+- **Re-export the 30 older storm scenes.** They use `response_damage_v1`, so their replays lose single boxes and have no `demand_g`; the page hides the floating boxes but the losses differ from live play. About 7 min each with `pipeline.export_scene`. Needs Yan.
+- **Credits on the 3D page.** The bottom line names Copernicus Marine Service and ERA5; the product IDs open from "Sources". Confirm this meets rule 7.
+- **Helm preview and future sea.** The preview runs the ship through the next few minutes of the historical fields. Only the ship's own track is shown; confirm this is acceptable under rule 4.
 - **Motion fidelity.** Source-consistent arithmetic and synthetic survival do not establish experimental storm accuracy; comparison requires suitable vessel-response evidence.
 - **Forecast archive.** Extend `.github/workflows/forecast-archive.yml` to the chosen region. Copernicus does not keep past forecast runs, so every day not archived is lost. Coordinate with Xuan's workflow changes on `experiment`.
 
@@ -90,6 +99,14 @@ Newest first. Proposed decisions move here once the team agrees.
 - Online play, leaderboard and teacher view (a database only becomes useful then).
 
 ## Log
+
+- 2026-10-30 — Parke (3D page and passage map, on `tide/storm-game`):
+  - Deck losses no longer leave boxes floating; the stack loses its top box first.
+  - Redesigned the page: title card with mode and "steer this storm yourself", live cards in a left column, floating playback dock, sources behind a short credit line. Briefing and decision cards glow and their main button pulses until touched; unanswered questions are marked; the action row stays in view.
+  - Passage map (`web/game/minimap.js`): OpenFreeMap basemap, track sailed and ahead, ship marker, km sailed and progress. Opens on the whole area and flies in to the ship; ◎ follows the ship until the map is dragged; ⤢ enlarges it. Live play adds released forecast areas, the operating area and the helm preview with "steady on 130° in about 2 min".
+  - Cargo loss markers grouped per minute; a click shows boxes, TEU, encounter, Hs, Tp, wave and wind direction, heading, speed, peak roll and the stack-top load.
+  - Each clone must rerun `uv run python -m pipeline.prepare_vessel` after the motion repair, or live play stops with "Prepared vessel lacks mean wave-drift data".
+  - Tests: 272 Python pass. `bun test` in `web/game` passes except "all 320 deck units stand on a box or the hatch", which still checks the old three-tier layout (failing before these changes).
 
 - 2026-10-30 — Live stack cargo implementation:
   - Selected C50=0.5g, log dispersion 0.35 and one-second continuous overload. Used exact endpoint body angular terms and sorted-capacity prefix tracking without per-step NumPy arrays.

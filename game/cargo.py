@@ -105,8 +105,10 @@ class CargoModel:
         state["lost_teu"] += TIERS * sum(1 + stack % 2 for stack in stacks)
         before = state["grade"]
         state["grade"] = _grade(state["lost_teu"])
+        # demand_g: the load that failed these stacks, for the debrief; stack capacities stay hidden (rule 4)
         events = [{"time_s": sample.time_s, "kind": "cargo_lost",
-                   "detail": f"{len(lost)} units overboard", "unit_ids": lost, "stack_ids": stacks}]
+                   "detail": f"{len(lost)} units overboard", "unit_ids": lost, "stack_ids": stacks,
+                   "teu": TIERS * sum(1 + stack % 2 for stack in stacks), "demand_g": round(demand, 3)}]
         if state["grade"] > before:
             events.append({"time_s": sample.time_s, "kind": "cargo_grade_increased",
                            "detail": str(state["grade"])})

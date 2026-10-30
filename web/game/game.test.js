@@ -113,7 +113,8 @@ test("storm scene reads like a replay", () => {
   const row = (t, lost) => [t, -10.75, 48.5, 287, 1, 0, 0, 5, 12, 14, 287, 19, -14, lost, lost ? 1 : 0, 100, 0.3];
   const r = fromScene({
     start: "2026-10-22T20:40:00Z", plan_note: "demo", credit: "Generated using E.U. Copernicus Marine Service Information",
-    copernicus_products: { waves: "W" }, weather: { credit: "ERA5" }, cargo: { total_teu: 1200 },
+    copernicus_products: { waves: "W" }, weather: { credit: "ERA5" },
+    cargo: { total_teu: 1200, units: [{ id: "deck-180", teu: 1 }, { id: "deck-282", teu: 2 }] },
     fields, samples: [row(0.5, 0), row(1, 0), row(1.5, 3)],
     orders: [{ t: 0, heading_deg: 286.7, speed_mps: 5 }],
     events: [{ t: 1.2, kind: "cargo_lost", detail: "2 units overboard", units: ["deck-180", "deck-282"] }],
@@ -121,6 +122,7 @@ test("storm scene reads like a replay", () => {
   expect(r.sog).toEqual([5, 5, 5]);
   expect(r.cargo.map((c) => c.lost_teu)).toEqual([0, 3]);
   expect(r.events[0].unit_ids).toEqual(["deck-180", "deck-282"]);
+  expect(r.events[0].teu).toBe(3);
   expect(r.orders[0].speed_knots).toBeCloseTo(9.72, 2);
   expect(sampleAt(r, 0.75).cloud).toBe(100);
 });
@@ -134,4 +136,56 @@ test("detail map tiles without a seam", () => {
     for (let i = 0; i + 1 < size; i++) inner = Math.max(inner, Math.abs(at(i + 1, j, 0) - at(i, j, 0)));
   }
   expect(edge).toBeLessThanOrEqual(inner);
+});
+
+test("stacks lose boxes from the top down", () => {
+  const { topDown } = require("./cargo-layout.js");
+  const units = deckLayout([0, 0, 0]), drawn = topDown(units);
+  // stack 0 holds deck-001, -003, -005, -007, -009 (tiers 0-4); the first two losses there are its bottom boxes
+  expect([drawn("deck-001"), drawn("deck-003")]).toEqual(["deck-009", "deck-007"]);
+  expect(drawn("deck-002")).toBe("deck-010"); // stack 1, its own count
+  const on = new Set(units.map((u) => u.id));
+  for (const u of units) on.delete(drawn(u.id)); // every loss of a whole deck, in any order, lands on a real box once
+  expect(on.size).toBe(0);
+});
+
+test("passage map measures the track sailed", () => {
+  const { trackGeometry, sampleIndex } = require("./minimap.js");
+  const r = { t: [0, 1, 2], lon: [-11.5, -11.5, -11.5], lat: [51.5, 51.51, 51.52] };
+  const { run } = trackGeometry(r);
+  expect(run[2]).toBeCloseTo(2 * 1105.74, 0);
+  expect([sampleIndex(r.t, 0.5), sampleIndex(r.t, 2), sampleIndex(r.t, 9)]).toEqual([0, 2, 2]);
+});
+
+test("passage map draws released forecast areas and the helm preview note", () => {
+  const { forecastAreas, settleNote } = require("./minimap.js");
+  const f = forecastAreas([{ sector_bbox: [-12, -11, 51, 52], hs_range_m: [8, 8.5] }]).features[0];
+  expect(f.properties).toEqual({ hs: 8.5, label: "8–8.5 m" });
+  expect(f.geometry.coordinates[0][2]).toEqual([-11, 52]);
+  expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 100)).toBe("Steady on 130° in about 7 min"); // settled_s counts from from_s
+  expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 485)).toBe("On the ordered 130°");
+  expect(settleNote({ heading_deg: 130, settled_s: null, from_s: 0 }, 0)).toBe("Still turning to 130° after 8 min");
+});
+
+test("cargo losses group into map markers that say what the sea was doing", () => {
+  const { lossMarkers, lossPopup } = require("./minimap.js");
+  const n = 200, r = { t: [], lon: [], lat: [], heading: [], roll: [], pitch: [], heave: [], hs: [], tp: [], wave_from: [], wind_e: [], wind_n: [], sog: [],
+    cargo: [{ t: 0, grade: 0 }, { t: 100, grade: 2 }],
+    events: [{ time_s: 100, kind: "cargo_lost", unit_ids: ["a", "b", "c", "d", "e"], teu: 5, demand_g: 0.61 },
+             { time_s: 130, kind: "cargo_lost", unit_ids: ["f", "g", "h", "i", "j"], teu: 10, demand_g: 0.72 },
+             { time_s: 190, kind: "cargo_lost", unit_ids: ["k", "l", "m", "n", "o"], teu: 5, demand_g: 0.55 }] };
+  for (let i = 0; i < n; i++) {
+    r.t.push(i); r.lon.push(-11 + i * 1e-4); r.lat.push(51); r.heading.push(0); r.roll.push(i === 90 ? -17 : 3); r.pitch.push(0); r.heave.push(0);
+    r.hs.push(8.2); r.tp.push(16); r.wave_from.push(270); r.wind_e.push(18); r.wind_n.push(0); r.sog.push(5);
+  }
+  expect(lossMarkers(r, 150).features.length).toBe(1); // later losses appear only once they happen
+  const [first, second] = lossMarkers(r, 199).features.map((f) => f.properties);
+  expect([first.boxes, first.teu, first.demand, second.boxes]).toEqual([10, 15, 0.72, 5]);
+  expect(first.roll).toBe(-17); // largest roll in the half minute before the first loss
+  expect(first.sea).toBe("beam seas, port");
+  const html = lossPopup(first, Date.parse("2025-12-18T10:40:00Z"));
+  expect(html).toContain("10:41 UTC · 10 boxes, 15 TEU overboard");
+  expect(html).toContain("peak roll 17° to port");
+  expect(html).toContain("0.72 g");
+  expect(html).toContain("wind 35 kn from 270°");
 });

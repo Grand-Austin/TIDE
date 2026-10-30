@@ -14,6 +14,20 @@ export function stackUnitIndex(stack, tier) {
   return 10 * Math.floor(stack / 2) + (stack % 2) + 2 * tier;
 }
 
+// Boxes leave a stack from the top down, so none is drawn hanging over a gap. Scenes exported with the older
+// per-unit cargo model (response_damage_v1) lose single boxes mid-stack; this draws the n-th loss in a stack as its
+// top remaining box. Times, counts and box sizes (one size per stack) stay the simulation's.
+// Returns id -> drawn id; call it in loss-time order.
+export function topDown(units) {
+  const byId = new Map(units.map((u) => [u.id, u])), gone = new Map(); // stack -> boxes lost so far
+  return (id) => {
+    const u = byId.get(id), n = u ? gone.get(u.stack) ?? 0 : TIERS;
+    if (n >= TIERS) return id;
+    gone.set(u.stack, n + 1);
+    return `deck-${String(stackUnitIndex(u.stack, TIERS - 1 - n) + 1).padStart(3, "0")}`;
+  };
+}
+
 export function deckLayout(origin) {
   const units = [];
   for (let stack = 0; stack < STACKS; stack++) {

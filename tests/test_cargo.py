@@ -73,6 +73,8 @@ def test_failure_loses_five_boxes_jointly_and_maps_the_original_deck_indices():
     cargo_events = _cargo_events(events)
     assert len(cargo_events) == 1
     assert cargo_events[0]["stack_ids"] == [target]
+    assert cargo_events[0]["teu"] == 5 * (1 + target % 2)
+    assert cargo_events[0]["demand_g"] > 0
     assert len(cargo_events[0]["unit_ids"]) == 5
     assert len(set(cargo_events[0]["unit_ids"])) == 5
     assert state["failed_count"] == 1

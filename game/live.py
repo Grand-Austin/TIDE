@@ -11,6 +11,7 @@ hidden region.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import math
 import threading
@@ -23,6 +24,7 @@ from urllib.parse import parse_qs, urlparse
 from game.cargo import STACKS, stack_unit_ids
 from game.scenario import ROOT, load_scenario
 from game.session import Session
+from game.simulation.runtime import Command, Simulation
 
 WEB = ROOT / "web"
 SCENARIOS = ROOT / "scenarios"
@@ -30,6 +32,11 @@ SEGMENT_S = 1.0
 RATES = (1.0, 5.0, 20.0, 0.0)  # 0 = as fast as the simulation runs
 ROLL_CHECK_DEG = 10.0
 MAX_FORECAST_CHECKS = 2
+PREVIEW_S = 480.0  # longest helm preview
+PREVIEW_CHUNK_S = 60.0  # the preview stops a chunk after the ship settles on the ordered heading
+# Preview time step: against the scenario's 0.1 s step, 1 s keeps 8-minute tracks within 13 m and the end heading
+# within 1 degree (three orders, Celtic Sea storm), and computes 8 minutes in about 0.4 s instead of 3 s.
+PREVIEW_DT_S = 1.0
 FIELDS = ["t", "lon", "lat", "heading", "roll", "pitch", "heave", "stw", "hs", "tp", "wave_from",
           "wind_e", "wind_n", "current_e", "current_n", "lost_teu", "grade", "cloud", "precip"]
 ENCOUNTERS = ["Head seas", "Bow-quartering seas", "Beam seas", "Stern-quartering seas", "Following seas"]
@@ -76,6 +83,10 @@ class Game:
         self.seen_reports = set()
         self.score = None
         self.stopped = False
+        self.preview_busy = threading.Lock()
+        sim = self.session.sim
+        self.preview_sim = Simulation(sim.vessel, sim.environment, seed=d["seed"], wind_parameters=sim.wind_parameters,
+                                      settings=dataclasses.replace(sim.settings, dt_s=PREVIEW_DT_S, wave_period_s=PREVIEW_DT_S))
         self._append_sample()
         self._open_checkpoint("briefing", "Before you sail: read the sea and the forecasts.")
         threading.Thread(target=self._loop, daemon=True).start()
@@ -92,7 +103,8 @@ class Game:
                 view = s.advance_segment(SEGMENT_S)
                 self._append_sample()
                 self.log.extend({"t": e.get("time_s"), "kind": e["kind"], "detail": e.get("detail"),
-                                 "units": e.get("unit_ids", [])} for e in view["events"])
+                                 "units": e.get("unit_ids", []), "teu": e.get("teu"), "demand_g": e.get("demand_g")}
+                                for e in view["events"])
                 self._triggers(view)
             if self.rate > 0:
                 wait = SEGMENT_S / self.rate - (time.time() - began)
@@ -187,6 +199,32 @@ class Game:
             elif not self.pending and not self.session.outcome:
                 self.session.authorize_resume()
 
+    def preview(self, heading_deg: float, speed_knots: float, horizon_s: float = PREVIEW_S) -> dict:
+        """Where this order takes the ship: the session's own ship model, at a coarser time step, run ahead on a
+        copy of its state until a minute after the ship settles on the order. Track only: no cargo, escape region or
+        forecast is evaluated, so nothing hidden leaks into it."""
+        if not self.preview_busy.acquire(blocking=False):
+            return {"busy": True}  # one preview at a time; the page asks again
+        try:
+            with self.lock:
+                state, start = self.session.state, self.session.last_sample["time_s"]
+            command = Command(float(heading_deg) % 360, float(speed_knots) * 1852 / 3600)
+            path, settled, stop = [], None, "duration_reached"
+            while len(path) * PREVIEW_DT_S < horizon_s and stop == "duration_reached":
+                result = self.preview_sim.advance(state, command, min(PREVIEW_CHUNK_S, horizon_s - len(path) * PREVIEW_DT_S))
+                state, stop = result.state, result.stopping_reason
+                path += result.trajectory
+                if settled is None:
+                    settled = next((p.time_s - start for p in path
+                                    if abs((p.heading_deg - command.heading_deg + 540) % 360 - 180) < 3), None)
+                elif path[-1].time_s - start >= settled + PREVIEW_CHUNK_S:
+                    break
+            return {"from_s": start, "heading_deg": command.heading_deg, "speed_knots": float(speed_knots),
+                    "track": [[round(p.lon, 5), round(p.lat, 5), round(p.time_s, 1)] for p in path[9::10]],
+                    "settled_s": settled, "stop": stop}
+        finally:
+            self.preview_busy.release()
+
     # ---------- score ----------
     def _finish(self):
         if self.score is not None:
@@ -228,7 +266,7 @@ class Game:
         d = self.scenario.definition
         storm = d["collection"]["storm"]
         return {"id": d["id"], "title": d["title"], "start": d["start"], "budget_s": d["mission"]["budget_s"],
-                "initial": d["initial"], "storm": {k: storm[k] for k in ("peak", "area", "hs_m", "max_wind_kn")},
+                "initial": d["initial"], "area_bbox": d["area_bbox"], "storm": {k: storm[k] for k in ("peak", "area", "hs_m", "max_wind_kn")},
                 "fields": FIELDS, "cargo": {"deck_units": 320, "total_teu": 1200,
                 "units": [{"id": unit, "teu": 1 + stack % 2, "stack": stack, "tier": tier}
                           for stack in range(STACKS) for tier, unit in enumerate(stack_unit_ids(stack))]},
@@ -303,6 +341,8 @@ class Handler(SimpleHTTPRequestHandler):
                 GAME.rate = float(body["rate"]) if float(body["rate"]) in RATES else GAME.rate
             elif self.path == "/api/answer":
                 return self._json(GAME.answer(body))
+            elif self.path == "/api/preview":
+                return self._json(GAME.preview(body["heading_deg"], body["speed_knots"]))
             else:
                 return self._json({"error": "unknown"}, 404)
             return self._json({"ok": True})

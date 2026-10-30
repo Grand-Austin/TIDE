@@ -5,6 +5,7 @@
 
 const COLUMNS = ["lon", "lat", "heading", "roll", "pitch", "heave", "hs", "tp", "wave_from", "wind_e", "wind_n", "cloud", "precip"];
 const KN = 1.94384;
+const PREVIEW_EVERY_S = 20; // game seconds between helm preview refreshes while the ship sails
 const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "South-east", "0,-1": "South",
   "-1,-1": "South-west", "-1,0": "West", "-1,1": "North-west", "0,0": "Your area" };
 const ENDINGS = {
@@ -80,13 +81,14 @@ export async function startLive(id, { onLoss }) {
     }
     for (const e of st.log) {
       if (e.kind !== "cargo_lost") continue;
-      replay.events.push({ time_s: e.t, kind: e.kind, detail: e.detail, unit_ids: e.units });
+      replay.events.push({ time_s: e.t, kind: e.kind, detail: e.detail, unit_ids: e.units, teu: e.teu, demand_g: e.demand_g });
       for (const u of e.units) onLoss(u, e.t);
     }
     const v = st.view, last = replay.orders.at(-1);
     if (Math.abs(v.target_heading_deg - last.heading_deg) > 0.01 || Math.abs(v.target_speed_knots - last.speed_knots) > 0.01)
       replay.orders.push({ t: v.elapsed_s, heading_deg: v.target_heading_deg, speed_knots: v.target_speed_knots });
     live.state = st;
+    if (!st.paused && !st.checkpoint && live.since - (live.preview?.from_s ?? -Infinity) >= PREVIEW_EVERY_S) live.askPreview();
     return st;
   };
   // Arrow keys change the pending order; it is sent after a short pause in typing.
@@ -94,7 +96,22 @@ export async function startLive(id, { onLoss }) {
     live.helm.heading = ((live.helm.heading + dHeading) % 360 + 360) % 360;
     live.helm.speed = Math.max(0, Math.min(18, live.helm.speed + dSpeed));
     clearTimeout(timer);
+    live.askPreview();
     timer = setTimeout(() => post("/api/order", { heading_deg: live.helm.heading, speed_knots: live.helm.speed }), 350);
+  };
+  // Helm preview: game.live runs the ship model ahead on a copy of the session (track only) for a proposed order.
+  // One request at a time; the latest wish waits its turn. Refreshed every PREVIEW_EVERY_S of game time.
+  live.preview = null;
+  let inflight = false, queued = null;
+  live.askPreview = async (heading = live.helm.heading, speed = live.helm.speed) => {
+    if (inflight) return void (queued = [heading, speed]);
+    inflight = true;
+    const p = await post("/api/preview", { heading_deg: heading, speed_knots: speed }).catch(() => null);
+    inflight = false;
+    if (p && !p.busy && !p.error) live.preview = p;
+    const next = queued;
+    queued = null;
+    if (next) live.askPreview(...next);
   };
   live.pause = (paused) => post("/api/pause", { paused });
   live.rate = (r) => post("/api/rate", { rate: r });
@@ -103,18 +120,18 @@ export async function startLive(id, { onLoss }) {
 }
 
 // ---------- overlay: forecasts, decision card, result ----------
-// Styled like the side panel and the bottom bar (index.html): dark translucent cards, small caps headings,
+// Styled like the side panel and the playback dock (index.html): dark translucent cards, small caps headings,
 // 4 px buttons that fill when chosen. The scene stays visible; a decision can be put aside to look around first.
 const CSS = `
-  .live-card { position: fixed; left: 12px; top: 12px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 120px);
-    overflow-y: auto; box-sizing: border-box; padding: 14px 16px; border-radius: 8px; background: var(--panel);
+  .live-card { min-height: 0; overflow-y: auto; box-sizing: border-box; padding: 14px 16px; border: 1px solid var(--edge);
+    border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(14px);
     display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--text); z-index: 7; }
   .live-card[hidden], .live-pill[hidden] { display: none; }
   .live-card h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
   .live-card p { margin: 0; line-height: 1.45; }
   .live-card .q { display: flex; flex-direction: column; gap: 6px; }
   .live-card .choices { display: flex; flex-wrap: wrap; gap: 6px; }
-  .live-card button, .live-pill { height: 32px; padding: 0 10px; border: 1px solid #2b4660; border-radius: 4px;
+  .live-card button, .live-pill { height: 34px; padding: 0 14px; border: 1px solid #2b4660; border-radius: 10px;
     background: #0e1b29; color: var(--text); font: inherit; cursor: pointer; }
   .live-card .choices button[aria-pressed="true"], .live-card button.primary { background: #2b4660; color: #fff; }
   .live-card .actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -126,21 +143,37 @@ const CSS = `
   .live-card .ok { color: #6fd3a0; } .live-card .bad { color: var(--order); }
   .live-card ul { margin: 0; padding-left: 16px; } .live-card li { margin: 3px 0; }
   .live-stars { font-size: 24px; color: var(--order); letter-spacing: 4px; }
-  .live-pill { position: fixed; left: 12px; top: 12px; z-index: 7; color: var(--order); border-color: var(--order); background: var(--panel); }
-  .live-status { color: var(--muted); font-size: 12px; }`;
+  .live-pill { align-self: flex-start; z-index: 7; border-radius: 999px; color: var(--order); border-color: var(--order); background: var(--panel); }
+  .live-status { color: var(--muted); font-size: 12px; }
+  /* a briefing or decision waiting for the player: the card glows until they touch it, the next step pulses */
+  .live-card.attention:not(.touched) { animation: live-glow 1.6s ease-in-out infinite; border-color: var(--order); }
+  .live-card .actions { position: sticky; bottom: -14px; margin: 0 -16px -14px; padding: 10px 16px 14px;
+    background: linear-gradient(transparent, rgba(11, 22, 34, 0.96) 30%); }
+  .live-card button.primary { flex: 1; height: 40px; border: 0; background: var(--order); color: #0b1622; font-weight: 700; }
+  .live-card button.primary:hover { filter: brightness(1.08); }
+  .live-card.attention button.primary, .live-pill:not([hidden]) { animation: live-pulse 1.6s ease-out infinite; }
+  .live-card .q.todo > span::before { content: "● "; color: var(--order); }
+  .live-hint { color: var(--order); font-size: 12px; }
+  @keyframes live-glow { 50% { box-shadow: 0 0 0 1px var(--order), 0 0 26px 4px rgba(242, 169, 59, 0.45); } }
+  @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(242, 169, 59, 0.7); } 100% { box-shadow: 0 0 0 12px rgba(242, 169, 59, 0); } }
+  @media (prefers-reduced-motion: reduce) { .live-card.attention:not(.touched), .live-card.attention button.primary, .live-pill { animation: none; } }`;
 
 export function liveOverlay() {
   document.head.append(Object.assign(document.createElement("style"), { textContent: CSS }));
   const card = Object.assign(document.createElement("aside"), { className: "live-card" });
   const pill = Object.assign(document.createElement("button"), { className: "live-pill", type: "button", hidden: true });
-  document.body.append(card, pill);
+  (document.getElementById("left") ?? document.body).append(card, pill); // under the title card (index.html)
+  card.addEventListener("pointerdown", () => card.classList.add("touched"));
   let shownCheckpoint = null, shownScore = false, view = "status", pending = null;
 
   const el = (html) => Object.assign(document.createElement("template"), { innerHTML: html.trim() }).content;
   const button = (label, fn, primary) => Object.assign(document.createElement("button"), { type: "button", textContent: label, onclick: fn,
     className: primary ? "primary" : "" });
-  const render = (title, html, actions) => {
+  // attention: a briefing or decision waits for the player; the card glows until they first touch it
+  const render = (title, html, actions, attention) => {
     card.replaceChildren(el(`<h2>${title}</h2>${html}`));
+    card.classList.toggle("attention", !!attention);
+    card.classList.remove("touched");
     if (actions?.length) {
       const row = Object.assign(document.createElement("div"), { className: "actions" });
       row.append(...actions);
@@ -171,24 +204,34 @@ export function liveOverlay() {
         q.options.map((o) => `<button type="button" aria-pressed="false" data-v="${o}">${o}</button>`).join("") + "</div></div>").join("") +
       `<h2>Your orders</h2><div class="fields"><label>Heading °<input type="number" id="cp-h" min="0" max="359" value="${live.helm.heading.toFixed(0)}"></label>` +
       `<label>Speed kn<input type="number" id="cp-s" min="0" max="18" step="0.5" value="${live.helm.speed.toFixed(1)}"></label></div>` +
-      `<label>Why this order?<textarea id="cp-r" placeholder="What did you see?"></textarea></label>`,
+      `<label>Why this order?<textarea id="cp-r" placeholder="What did you see?"></textarea></label>` +
+      `<p class="live-hint">● Pick an answer for each question, set your orders, then press ${cp.trigger === "briefing" ? "Set sail" : "Carry on"}.</p>`,
       [button("Look around first", () => lookFirst("⏸ Paused for your decision · Answer")),
        button(cp.trigger === "briefing" ? "Set sail" : "Carry on", async () => {
          const order = { heading_deg: ((+card.querySelector("#cp-h").value % 360) + 360) % 360,
                          speed_knots: Math.max(0, Math.min(18, +card.querySelector("#cp-s").value || 0)) };
          Object.assign(live.helm, { heading: order.heading_deg, speed: order.speed_knots });
+         live.askPreview(order.heading_deg, order.speed_knots);
          const res = await post("/api/answer", { id: cp.id, answers, reason: card.querySelector("#cp-r").value, order });
          if (res.error) return;
          render("Feedback", cp.questions.map((q) => {
            const r = res[q.id];
            return `<p class="${r.correct ? "ok" : "bad"}">${r.correct ? "✓" : "✗"} ${q.prompt}<br>You: ${r.given ?? "no answer"} · Expected: ${r.answer}</p>`;
-         }).join(""), [button("Continue", () => { view = "status"; pending = null; }, true)]);
-       }, true)]);
-    for (const box of card.querySelectorAll("[data-q]"))
+         }).join(""), [button("Continue", () => { view = "status"; pending = null; }, true)], true);
+       }, true)], true);
+    // the passage map shows where the order being typed takes the ship
+    const typed = () => live.askPreview(+card.querySelector("#cp-h").value % 360, +card.querySelector("#cp-s").value || 0);
+    let typing = null;
+    for (const id of ["#cp-h", "#cp-s"]) card.querySelector(id).oninput = () => { clearTimeout(typing); typing = setTimeout(typed, 150); };
+    typed();
+    for (const box of card.querySelectorAll("[data-q]")) {
+      box.classList.add("todo");
       box.querySelectorAll("button").forEach((b) => (b.onclick = () => {
+        box.classList.remove("todo");
         box.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
         answers[box.dataset.q] = b.dataset.v;
       }));
+    }
   };
 
   const briefing = (live, cp) => {
@@ -196,8 +239,10 @@ export function liveOverlay() {
     render("Briefing", `<p><b>${b.title}</b></p><p>${b.objective}</p>` +
       `<p>${b.start.slice(0, 16).replace("T", " ")} UTC · ${(b.budget_s / 3600).toFixed(0)} h · S175 container ship, 1,200 TEU. ` +
       `The storm area's edge is not shown: read the sea, the Details panel and the forecasts.</p>` +
+      `<p>The <b>Passage</b> map shows the released forecast areas, coloured by forecast wave height, and in dashed orange ` +
+      `where your order takes the ship over the next few minutes: the ship turns slowly.</p>` +
       `<p class="live-status">← → heading (Shift: 1°) · ↑ ↓ speed · Space pause · drag to look around</p>`,
-      [button("Look around first", () => lookFirst("⏸ Paused · ▶ Ready to sail")), button("I'm ready", () => questions(live, cp), true)]);
+      [button("Look around first", () => lookFirst("⏸ Paused · ▶ Ready to sail")), button("I'm ready →", () => questions(live, cp), true)], true);
   };
 
   pill.onclick = () => pending && questions(pending.live, pending.cp);
