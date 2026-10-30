@@ -23,6 +23,7 @@ const [data, hull, boxes] = await Promise.all([
   loader.loadAsync("./assets/s175.glb"),
   loader.loadAsync("./assets/containers.glb"),
 ]);
+const LIVE_BUFFER_S = 1.2; // wall seconds of session records kept ahead of the live scene
 const lossQueue = []; // live: [unit id, t] reported by the session, applied in the frame loop
 const live = liveId ? await startLive(liveId, { onLoss: (id, t) => lossQueue.push([id, t]) }) : null;
 const replay = live ? live.replay : sceneId ? fromScene(data) : data;
@@ -462,9 +463,12 @@ renderer.setAnimationLoop((now) => {
   lastFrame = now;
   const slow = ui.slowmo.checked && (fallView.falling(simT) || now < slowUntil); // watch each fall at 2x at most
   if (live) {
-    // live: follow the newest session record, one second behind so there is always a sample ahead
-    const target = replay.t.at(-1) - 1;
-    if (target > simT) simT = Math.min(replay.t.at(-1), simT + Math.max(dt, (target - simT) * Math.min(1, dt * 2)));
+    // live: play at the session's own pace, about LIVE_BUFFER_S of wall time behind its newest record, so the
+    // 400 ms polls and a slower server moment (a helm preview) never run the scene dry; the gap steers the pace
+    const rate = live.state?.paused ? 0 : Math.max(+live.state?.view.achieved_rate || 0, 0.5);
+    const lag = replay.t.at(-1) - simT, want = 1 + rate * LIVE_BUFFER_S;
+    const pace = lag < 0.3 ? 0 : rate * THREE.MathUtils.clamp(lag / want, 0.6, 1.6);
+    simT = Math.min(replay.t.at(-1), simT + dt * Math.max(pace, lag > want * 2 ? lag : 0)); // far behind: catch up
     for (const [id, t] of lossQueue.splice(0)) {
       const d = drawnId(id);
       lostAt.set(d, t);

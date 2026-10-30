@@ -151,8 +151,10 @@ export async function startLive(id, { onLoss }) {
     live.helm.heading = ((live.helm.heading + dHeading) % 360 + 360) % 360;
     live.helm.speed = Math.max(0, Math.min(18, live.helm.speed + dSpeed));
     clearTimeout(timer);
-    live.askPreview();
-    timer = setTimeout(() => post("/api/order", { heading_deg: live.helm.heading, speed_knots: live.helm.speed }), 350);
+    timer = setTimeout(() => { // once the keys rest: one order and one preview, not a model run per key press
+      post("/api/order", { heading_deg: live.helm.heading, speed_knots: live.helm.speed });
+      live.askPreview();
+    }, 350);
   };
   // Helm preview: game.live runs the ship model ahead on a copy of the session (track only) for a proposed order.
   // One request at a time; the latest wish waits its turn. Refreshed every PREVIEW_EVERY_S of game time.
