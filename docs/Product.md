@@ -107,7 +107,9 @@ The minimum useful model needs stateful movement, plausible control response, cu
 
 A six-degree-of-freedom model can represent surge, sway, heave, roll, pitch, and yaw. The inspected MSS example uses first-order wave excitation and a restoring matrix. 
 
-Retain the full MSS Coriolis coupling. The current implementation adds mean longitudinal wave drift from the same S175 source tables as an external load and uses a fixed logarithmic spectral grid. Do not impose project-defined roll, pitch or vessel-speed cutoffs. The source speed axis describes hydrodynamic table coverage, not a motion or command limit. Keep abnormal motion as simulation output; later ship-damage and cargo-damage rules will define its game consequences. Source-consistent numerical comparison does not establish experimental strong-sea accuracy; environmental coverage, finite-state checks and Euler singularity checks still apply.
+Total ship loss ends the mission in failure and loses all remaining cargo. The live rule combines per-excursion roll probabilities with cumulative severe roll, structural-overload and high-speed following-sea instability exposure. Its parameters are authored game assumptions; see [SHIP_DAMAGE_STUDY.md](SHIP_DAMAGE_STUDY.md).
+
+Retain the full MSS Coriolis coupling. The current implementation adds mean longitudinal wave drift from the same S175 source tables as an external load and uses a fixed logarithmic spectral grid. Do not impose project-defined roll, pitch or vessel-speed cutoffs. The source speed axis describes hydrodynamic table coverage, not a motion or command limit. Keep abnormal motion as simulation output; separate cargo and ship-loss rules define its game consequences. Source-consistent numerical comparison does not establish experimental strong-sea accuracy; environmental coverage, finite-state checks and Euler singularity checks still apply.
 
 Nevertheless, the simulation of ships within the scene remains relatively coarse-grained.
 
@@ -129,7 +131,7 @@ The consequence chain is:
 
 Cargo loss provides visible feedback and a mission objective. It does not represent a validated prediction of real container failures. Actual failures depend on stowage, securing, loading, structural response, and other information outside the initial model.
 
-Each cargo unit has a persistent identity and an overboard state. A fixed seed assigns initial vulnerability thresholds; response-driven damage accumulates until a unit's threshold is crossed. One severe motion episode can therefore cause several units to fall overboard. The full-load template distinguishes protected hold cargo from exposed deck cargo, with simple stowage categories rather than detailed lashing mechanics. Lost units cannot be lost again or recover.
+Each cargo unit has a persistent identity. Deck boxes form five-box stacks with seeded fixed capacities. One continuous second of overload causes a stack's boxes to be lost together; an under-capacity step resets the unfinished interval. The selected median capacity is 0.5g, with log dispersion 0.35. The full-load template distinguishes protected hold cargo from exposed deck stacks without detailed lashing mechanics. Lost units cannot be lost again or recover.
 
 The initial template has 800 mixed 20/40-foot units, totalling 1,200 TEU: 320 units on deck and 480 in holds. This is an authored game loading, not a verified S175 cargo manifest. Mild responses may produce zero loss; the algorithm must not force losses merely to make each voyage eventful.
 

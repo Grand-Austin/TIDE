@@ -28,7 +28,7 @@ Use exact tool results for coordinates, time, ship state, cargo counts and outco
 
 Ask the player to keep or change their heading/speed only after the tool stops for a decision. The same order may be retained. Never resume from a weather checkpoint, cargo checkpoint or manual pause on your own.
 
-If tools report a terminal outcome, call `finish_mission` and preserve that outcome. A technical validity stop is not a sinking or a cargo failure. A timeout is distinct from escape. Cargo grade is scored separately.
+If tools report a terminal outcome, call `finish_mission` and preserve that outcome. `ship_lost` means mission failure and total cargo loss. A technical validity stop is not a sinking or a cargo failure. A timeout is distinct from escape. Cargo grade is scored separately.
 
 ## Tool discipline
 

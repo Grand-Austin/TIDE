@@ -45,7 +45,7 @@ Initial and restored sessions begin paused with the target editor open. Slash co
 
 Orders change targets, not instantaneous vessel states. Existing turning and acceleration limits apply. A screen resize never skips physics steps. The requested rate is a target and does not guarantee the achieved rate, because the achievable rate depends on the computer and current workload. The physics timestep remains fixed at every rate; `max` performs every step as quickly as possible.
 
-Cargo-grade increases pause the game locally. In Director mode, background reviews choose when to deliver issued reports and whether to request attention; pure local mode delivers on the fixed schedule without weather-triggered pauses. Leaving the whole authored changing hazard region in valid waters completes escape. Cargo loss is scored separately.
+Cargo-grade increases pause the game locally. Ship loss ends the mission in failure and loses all remaining cargo. In Director mode, background reviews choose when to deliver issued reports and whether to request attention; pure local mode delivers on the fixed schedule without weather-triggered pauses. Leaving the whole authored changing hazard region in valid waters completes escape, provided the ship is not lost at that endpoint. Cargo loss is scored separately.
 
 ## Scripted verification
 
@@ -61,11 +61,29 @@ A stage-3 script runs the same algorithms without an Agent. An action array cont
 uv run python -m game --script actions.json --session data/runs/scripted
 ```
 
-The runner writes `result.json`, `state.json` and `events.jsonl`. State includes numerical wave/controller continuity, per-unit cargo state, consumed events and operation receipts. Resuming requires the same frozen scenario, algorithms, configuration and seed. The Director also uses `director.sqlite` to checkpoint its workflow; it does not use graph state as the physical truth.
+The runner writes `result.json`, `state.json` and `events.jsonl`. State includes numerical wave/controller continuity, stack capacities and unfinished overload intervals, ship exposure doses and the active roll draw, consumed events and operation receipts. Resuming requires the same frozen scenario, algorithm identity, configuration and seed. Saves from the archived cargo algorithm or before ship-damage integration are rejected. The Director also uses `director.sqlite` to checkpoint its workflow; it does not use graph state as the physical truth.
 
 ## Cargo assumptions
 
-The full-load template represents 800 mixed-size containers and 1,200 TEU; 320 units are on deck and 480 in holds. It is a game template, not an S175 cargo manifest. Response-driven damage and initial seeded vulnerabilities determine irreversible overboard losses. Mild motion may cause none. Lost TEU as a fraction of initial total determines the cargo grade. Losses do not modify the fixed vessel loading condition. See the implementation plan for the initial game coefficients and grade boundaries.
+The full-load template represents 800 mixed-size containers and 1,200 TEU. Its 320 deck boxes form 64 five-box stacks; 480 hold boxes remain protected. Each stack receives one fixed seeded capacity, with median 0.5g and log dispersion 0.35. One continuous second at or above its capacity loses the whole stack. Demand uses CG acceleration, gravity and the accepted endpoint's body angular terms at an effective height of 11.25 m. Mild motion may cause no loss. Lost TEU divided by initial total determines the unchanged cargo grade and mandatory pause. Loss does not change vessel loading or hydrodynamics. See [CARGO_DAMAGE_STUDY.md](CARGO_DAMAGE_STUDY.md) for comparisons and limits.
+
+## Ship-loss assumptions
+
+The ship-loss module checks each accepted physics endpoint. It combines a seeded
+critical angle for each severe roll excursion, accumulated roll above 20 degrees with a 30 s normalized budget,
+accumulated pitch/hull-point/CG acceleration overload, and fast following-sea
+instability exposure based on actual water velocity, waves and roll/yaw response. Its authored short-roll
+table assigns 30% at 50 degrees, 65% at 55 degrees, and 100% at 65 degrees. These
+are gameplay probabilities, not observed casualty rates. Each excursion gets
+one draw until roll returns to 20 degrees or less. Exposure doses do not reset
+on pause, quiet water or restore.
+
+`ship_lost` takes priority over escape, timeout and cargo checkpoints. It loses
+all 800 containers / 1,200 TEU, including hold cargo, and rejects further resume
+or orders. Numerical validity stops remain technical stops. The model does not
+simulate nonlinear hydrostatics, hull bending or flooding. See
+[SHIP_DAMAGE_STUDY.md](SHIP_DAMAGE_STUDY.md) for the accident evidence, equations,
+thresholds, coverage and verification.
 
 ## Local engine and fallback
 

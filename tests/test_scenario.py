@@ -38,6 +38,8 @@ def test_build_reproducible_and_complete(tmp_path):
     build(SOURCE, tmp_path)
     assert before == {p.name: p.read_bytes() for p in tmp_path.iterdir()}
     manifest = json.loads((tmp_path / "data-manifest.json").read_text())
+    from game.cargo import CargoModel
+    assert manifest["gameplay"]["cargo"] == CargoModel().config
     assert len(manifest["hourly"]) == 4
     assert manifest["hourly"][0]["initial"]["hs"] > 3
     assert manifest["hourly"][-1]["target"]["hs"] < 2.5

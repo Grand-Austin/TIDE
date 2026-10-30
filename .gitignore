@@ -5,7 +5,10 @@ CLAUDE.md
 .agents/
 .codex/
 
-archive/
+archive/*
+!archive/game/
+!archive/pipeline/
+!archive/tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

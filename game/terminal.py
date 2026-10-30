@@ -284,7 +284,8 @@ class Screen:
             self.put(row, 1, line)
         reason = view["stopping_reason"]
         if view["outcome"]:
-            mission = "Outcome: " + view["outcome"]
+            mission = ("Outcome: FAILED (ship lost)" if view["outcome"] == "ship_lost"
+                       else "Outcome: " + view["outcome"])
         elif reason not in ("initial", "duration_reached", "manual_pause"):
             mission = "Checkpoint: " + reason
         else:

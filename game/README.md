@@ -7,7 +7,9 @@ for runnable examples, coordinate conventions, numerical checks and model limits
 | Package | Responsibility |
 | --- | --- |
 | `simulation/` | Sample prepared environmental fields, advance vessel motion and response, accumulate exposure, and return events. |
-| `rules/` | Evaluate escape progress, time limits, and game cargo loss from calculated results. |
+| `cargo.py` | Apply seeded stack capacities and consecutive overload to accepted motion samples; emit irreversible loss and grade events. |
+| `ship.py` | Detect total loss from short roll excursions and accumulated extreme motion; Session enforces mission failure and total cargo loss. |
+| `rules/` | Evaluate escape progress, time limits and scheduled report releases. |
 | `director/` | Load scenarios, accept actions, invoke tools, inspect results, and request further input. Local execution functions maintain state and enforce immediate stops. |
 | `copilot/` | Translate text or voice transcripts into heading and speed actions, with clarification when needed. |
 

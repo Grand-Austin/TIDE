@@ -123,6 +123,17 @@ class Sample:
     wind_moment_z_nm: float
     sst_c: float | None
     wave_mean_surge_n: float = 0.0
+    # Body-frame terms for damage loads, not Euler-angle derivatives.
+    angular_acceleration_x_rad_s2: float = 0.0
+    angular_velocity_y_rad_s: float = 0.0
+    angular_velocity_z_rad_s: float = 0.0
+    # Inertial CG acceleration in body axes; gravity is excluded.
+    longitudinal_acceleration_mps2: float = 0.0
+    vertical_acceleration_mps2: float = 0.0
+    angular_velocity_x_rad_s: float = 0.0
+    angular_acceleration_y_rad_s2: float = 0.0
+    velocity_north_through_water_mps: float = 0.0
+    velocity_east_through_water_mps: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -233,7 +244,8 @@ class Simulation:
         return np.array([np.clip(thrust, -cfg.max_thrust_n, cfg.max_thrust_n), 0, 0, 0, 0,
                          np.clip(yaw, -yaw_limit, yaw_limit)], dtype=float)
 
-    def _sample(self, state: State, sea: SeaState, acceleration: float) -> Sample:
+    def _sample(self, state: State, sea: SeaState, acceleration: float,
+                response_derivative=None) -> Sample:
         x = state.x
         ground = rotation(x[9:12]) @ x[:3]
         sog = float(np.linalg.norm(ground[:2]))
@@ -245,7 +257,16 @@ class Simulation:
                       sea.wave_from_deg, sea.current_east_mps, sea.current_north_mps,
                       sea.wind_east_mps, sea.wind_north_mps, float(state.wind_force[0]),
                       float(state.wind_force[1]), float(state.wind_force[5]), sea.sst_c,
-                      state.wave_mean_surge_n)
+                      state.wave_mean_surge_n,
+                      float(response_derivative[3]) if response_derivative is not None else 0.0,
+                      float(x[4]), float(x[5]),
+                      float(response_derivative[0] + x[4]*x[2] - x[5]*x[1])
+                      if response_derivative is not None else 0.0,
+                      float(response_derivative[2] + x[3]*x[1] - x[4]*x[0])
+                      if response_derivative is not None else 0.0,
+                      float(x[3]),
+                      float(response_derivative[4]) if response_derivative is not None else 0.0,
+                      float(water[0]), float(water[1]))
 
     def advance(self, state: State, command: Command, duration_s: float, *,
                 should_pause: Callable[[], bool] | None = None,
@@ -344,7 +365,7 @@ class Simulation:
                 if flag not in out.wave_flags:
                     events.append(Event(out.tick * h, "wave_quality", flag))
             out = candidate
-            last_sample = self._sample(out, endpoint_sea, accel1)
+            last_sample = self._sample(out, endpoint_sea, accel1, end_derivative)
             if out.tick % record_ticks == 0:
                 trajectory.append(last_sample)
             if on_step is not None:

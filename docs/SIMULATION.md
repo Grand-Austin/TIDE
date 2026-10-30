@@ -137,11 +137,14 @@ valid state. No step teleports the vessel out of invalid water.
   continue above 30 degrees; nonfinite states and Euler pitch singularities
   still stop numerical progression. The source speed-table endpoint does not
   cap motion or target speed. Commands must be finite and nonnegative. Abnormal
-  motion remains available to later ship-damage and cargo-damage rules.
+  motion feeds the separate cargo and total-ship-loss game rules. The motion
+  model itself still has no damage-based cutoff. See [SHIP_DAMAGE_STUDY.md](SHIP_DAMAGE_STUDY.md).
 
 ## Response and exposure
 
-Outputs include roll, pitch, heave and CG lateral dynamic acceleration. Exposure
+Outputs include roll, pitch, heave and CG lateral dynamic acceleration. Accepted
+samples also expose body-frame `p_dot`, `q` and `r` for cargo-point loads, using
+the existing endpoint derivative without another force evaluation. Exposure
 contains elapsed seconds, integrals of squared roll/pitch/acceleration, and time
 above declared teaching thresholds. The latter default to 10° roll and 0.1 g
 lateral acceleration; these are not cited S175 operating limits.
@@ -150,8 +153,8 @@ Exposure integrates elapsed physical time on every numerical step. Checkpoint
 count and model-call count do not affect it. Threshold entry/exit events are
 reported without determining mission outcomes. Event exit uses a 10% hysteresis
 band to avoid repeated threshold chatter; duration integrals always use the actual
-threshold. Cargo loss belongs to future
-game rules.
+threshold. The separate cargo rule consumes accepted steps and computes stack
+losses; the motion integrator does not score cargo.
 
 ## Verification and remaining limits
 

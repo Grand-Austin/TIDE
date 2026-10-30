@@ -1,24 +1,52 @@
-# Game prototype verification — 29 October 2026
+# Game prototype verification — 30 October 2026
 
 PLAN stages 3 and 4 are implemented. The terminal supports Director and pure local modes. This report distinguishes deterministic mission verification from live model observations.
 
 ## Automated checks
 
-The current tree passes 196 tests, including cargo/region, session, Director, TUI and motion regressions. The motion repair restores full MSS coupling, adds source-supported mean longitudinal wave drift and resolves long-period quadrature underresolution. Real Octave comparisons, 17 initial and 27 high-speed synthetic pressure tests and remaining physical limits are documented in [MOTION_VALIDATION.md](MOTION_VALIDATION.md).
+The current tree passes 270 active tests, including cargo/region, session, Director, TUI and motion regressions. Archived cargo tests run separately from the active suite. The motion repair restores full MSS coupling, adds source-supported mean longitudinal wave drift and resolves long-period quadrature underresolution. Real Octave comparisons, 17 initial and 27 high-speed synthetic pressure tests and remaining physical limits are documented in [MOTION_VALIDATION.md](MOTION_VALIDATION.md).
 
 The full-screen local interface was exercised in a real PTY using the historical scenario: initial paused editor, target heading/speed entry, live UTC/position/motion updates, `p` pause, `j/k` rate changes, save and quit. Saved-session restoration was checked at 80x24. The screen uses only player-visible observations and released forecast reports. The line/JSON interactive entrypoint has been removed; `--script` remains the automated verification path. This UI check did not rerun a full mission or call the live Director.
 
 The asynchronous tests deliberately block model assessment while advancing physics, reject late decisions after player control changes, and verify delivery-without-pause, explicit pause, idempotency and fixed-delivery fallback. These are fixture tests of the harness contracts, not proof of semantic judgment quality.
 
+## Ship-loss checks
+
+The total-loss module passes targeted roll/structural exposure, seeded excursion,
+terminal priority, complete cargo and save/restore tests. After the roll/following-sea improvements, 3 of 44 existing motion
+tapes trigger following-sea instability; 41 do not trigger loss. An actual S175 Session with an initial 70-degree
+roll ends on its first 0.05 s step, loses all cargo and restores its terminal
+state exactly. A normal 10 s Session remains operational. See
+[SHIP_DAMAGE_STUDY.md](SHIP_DAMAGE_STUDY.md); numeric results stay under
+`data/runs/ship-damage/` and `data/runs/ship-damage-improved/`. No full mission matrix was rerun.
+
+## Current stack cargo checks
+
+The selected C50=0.5g stack rule passes 220 active tests and 35 separately
+executed archived reference tests. The default CLI completed 120 seconds with
+the updated scenario/checksum. A live 20-minute synthetic Hs 8.2 m beam-sea
+Session lost 65 boxes / 95 TEU, stopped on grade increases and restored its
+saved cargo state exactly.
+
+The supplemental full historical matrix was stopped after 9/12 completed
+trials. This is partial evidence, not a completed matrix approval. Results are
+under `data/runs/stack-cargo-missions-current/partial-validation.json`; the live
+storm record is `data/runs/cargo-live-storm/verification.json`.
+
+The separate historical-matrix runner was removed. It duplicated session
+advancement and pause handling while hardcoding unrelated strategy/seed counts.
+Targeted tests and the existing `python -m game --script` CI smoke check provide
+the maintained verification paths.
+
 ## Frozen historical scenario: deterministic baseline
 
 These full-mission results predate the dynamics change in `4880170`. They remain historical evidence, not validation of the revised equations. A new full-mission run is required before using them to assess the current model.
 
-After the subsequent motion repair, one current direct-strategy mission with seed 1 escaped at 9,139.25 seconds with zero cargo loss. Its run is `data/runs/motion-repair/menorca/direct-1/`. The full strategy/seed matrix below has not been rerun with the repaired forcing.
+After the subsequent motion repair, one current direct-strategy mission with seed 1 escaped at 9,139.25 seconds with zero cargo loss. Its run is `data/runs/motion-repair/menorca/direct-1/`. The table below remains the earlier baseline; current stack-cargo verification is reported separately.
 
 The package contains 181 one-minute convex region envelopes and 24 explicitly labelled game forecast records. Existing environmental checksums and S175 numerical settings remain unchanged. New gameplay data has its own version and checksum; numerical scenario schema remains version 1.
 
-`scenarios/menorca-20260909/game-validation.json` records all 12 completed full-window game trials from before the final attention-policy update, with the current scenario-definition checksum. The frozen environmental and region/cargo algorithms are unchanged; final delivery/attention behaviour is covered by targeted regression tests. Seeds 1, 2 and 3 each have a successful escape.
+`scenarios/menorca-20260909/game-validation.json` records all 12 completed full-window game trials from before the final attention-policy update, with the scenario-definition checksum used for that historical run. Its cargo rule has since been replaced; final delivery/attention behaviour is covered by targeted regression tests. Seeds 1, 2 and 3 each have a successful escape.
 
 | Strategy | Three-seed outcome | Elapsed simulation seconds |
 | --- | --- | --- |
