@@ -355,13 +355,28 @@ const overlay = live ? liveOverlay() : null;
 if (live) {
   ui.scrub.disabled = true;
   setInterval(() => live.poll().then(() => overlay.update(live)).catch(() => {}), 400);
+  // Captured before the scene picker or a focused button sees the key, so arrows always steer the ship
+  // (a focused <select> would otherwise switch scenes). Typing in a text field is left alone.
+  const helmNote = Object.assign(document.createElement("div"), { className: "live-pill", hidden: true });
+  Object.assign(helmNote.style, { left: "50%", transform: "translateX(-50%)", top: "auto", bottom: "92px" });
+  document.body.append(helmNote);
+  let noteTimer = null;
   addEventListener("keydown", (e) => {
-    if (overlay.open || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (overlay.open || e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     const step = e.shiftKey ? 1 : 5;
     const turn = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, 0.5], ArrowDown: [0, -0.5] }[e.key];
-    if (turn) { e.preventDefault(); live.steer(...turn); }
-    if (e.code === "Space") { e.preventDefault(); live.pause(!live.state.paused); }
-  });
+    if (!turn && e.code !== "Space") return;
+    e.preventDefault();
+    e.stopPropagation();
+    document.activeElement?.blur();
+    if (e.code === "Space") return live.pause(!live.state.paused);
+    live.steer(...turn);
+    helmNote.textContent = `Order: heading ${live.helm.heading.toFixed(0)}° · ${live.helm.speed.toFixed(1)} kn` +
+      (live.state.paused ? " · paused" : "");
+    helmNote.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => (helmNote.hidden = true), 1800);
+  }, true);
 }
 ui.credit.textContent = [replay.note, ...(replay.credits ?? ["Recorded TIDE session. Generated using E.U. Copernicus Marine Service Information: " +
   "MEDSEA_MULTIYEAR_WAV_006_012, MEDSEA_MULTIYEAR_PHY_006_004, WIND_GLO_PHY_L4_NRT_012_004"]), "Training prototype, not a navigation tool."]

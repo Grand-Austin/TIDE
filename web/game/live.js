@@ -83,93 +83,136 @@ export async function startLive(id, { onLoss }) {
   return live;
 }
 
-// ---------- overlay: forecasts, checkpoint dialog, result ----------
+// ---------- overlay: forecasts, decision card, result ----------
+// Styled like the side panel and the bottom bar (index.html): dark translucent cards, small caps headings,
+// 4 px buttons that fill when chosen. The scene stays visible; a decision can be put aside to look around first.
 const CSS = `
-  .live-forecasts { position: fixed; left: 12px; top: 12px; width: 300px; max-height: 45vh; overflow: auto; padding: 10px 12px;
-    border-radius: 8px; background: var(--panel); font-size: 12px; }
-  .live-forecasts h2, .live-card h2 { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
-  .live-forecasts ul { margin: 0; padding-left: 16px; } .live-forecasts li { margin: 4px 0; }
-  .live-status { margin-bottom: 6px; font-size: 13px; color: var(--text); }
-  .live-modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5, 10, 15, .6); z-index: 20; }
-  .live-modal[hidden] { display: none; }
-  .live-card { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; padding: 18px 20px;
-    border-radius: 12px; background: #0e1b29; border: 1px solid #2b4660; color: var(--text); font-size: 14px; }
-  .live-card h2 { font-size: 13px; color: var(--accent); }
-  .live-card fieldset { border: 1px solid #2b4660; border-radius: 8px; margin: 10px 0; padding: 8px 10px; }
-  .live-card legend { color: var(--muted); padding: 0 4px; } .live-card label { display: block; margin: 3px 0; cursor: pointer; }
-  .live-card input[type=number], .live-card textarea { background: #08131d; color: var(--text); border: 1px solid #2b4660;
-    border-radius: 6px; padding: 5px 7px; font: inherit; } .live-card textarea { width: 100%; box-sizing: border-box; min-height: 54px; }
-  .live-card .row2 { display: flex; gap: 12px; flex-wrap: wrap; } .live-card .ok { color: #6fd3a0; } .live-card .bad { color: #ff7a6b; }
-  .live-card .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-  .live-stars { font-size: 28px; color: var(--order); letter-spacing: 4px; }`;
+  .live-card { position: fixed; left: 12px; top: 12px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 120px);
+    overflow-y: auto; box-sizing: border-box; padding: 14px 16px; border-radius: 8px; background: var(--panel);
+    display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--text); z-index: 7; }
+  .live-card[hidden], .live-pill[hidden] { display: none; }
+  .live-card h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  .live-card p { margin: 0; line-height: 1.45; }
+  .live-card .q { display: flex; flex-direction: column; gap: 6px; }
+  .live-card .choices { display: flex; flex-wrap: wrap; gap: 6px; }
+  .live-card button, .live-pill { height: 32px; padding: 0 10px; border: 1px solid #2b4660; border-radius: 4px;
+    background: #0e1b29; color: var(--text); font: inherit; cursor: pointer; }
+  .live-card .choices button[aria-pressed="true"], .live-card button.primary { background: #2b4660; color: #fff; }
+  .live-card .actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .live-card .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .live-card label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+  .live-card input, .live-card textarea { box-sizing: border-box; width: 100%; border: 1px solid #2b4660; border-radius: 4px;
+    background: #0e1b29; color: var(--text); font: 13px ui-monospace, monospace; padding: 6px 8px; }
+  .live-card textarea { min-height: 52px; font-family: inherit; resize: vertical; }
+  .live-card .ok { color: #6fd3a0; } .live-card .bad { color: var(--order); }
+  .live-card ul { margin: 0; padding-left: 16px; } .live-card li { margin: 3px 0; }
+  .live-stars { font-size: 24px; color: var(--order); letter-spacing: 4px; }
+  .live-pill { position: fixed; left: 12px; top: 12px; z-index: 7; color: var(--order); border-color: var(--order); background: var(--panel); }
+  .live-status { color: var(--muted); font-size: 12px; }`;
 
 export function liveOverlay() {
   document.head.append(Object.assign(document.createElement("style"), { textContent: CSS }));
-  const box = Object.assign(document.createElement("aside"), { className: "live-forecasts" });
-  box.innerHTML = `<div class="live-status" id="live-status"></div><h2>Released forecasts</h2><ul id="live-forecasts"></ul>`;
-  const modal = Object.assign(document.createElement("div"), { className: "live-modal", hidden: true });
-  modal.innerHTML = `<div class="live-card"><h2 id="live-title"></h2><div id="live-body"></div><div class="actions" id="live-actions"></div></div>`;
-  document.body.append(box, modal);
-  const $ = (id) => document.getElementById(id);
-  const open = (title, html, actions) => {
-    $("live-title").textContent = title;
-    $("live-body").innerHTML = html;
-    $("live-actions").replaceChildren(...actions.map(([label, fn]) => Object.assign(document.createElement("button"), { textContent: label, onclick: fn })));
-    modal.hidden = false;
+  const card = Object.assign(document.createElement("aside"), { className: "live-card" });
+  const pill = Object.assign(document.createElement("button"), { className: "live-pill", type: "button", hidden: true });
+  document.body.append(card, pill);
+  let shownCheckpoint = null, shownScore = false, view = "status", pending = null;
+
+  const el = (html) => Object.assign(document.createElement("template"), { innerHTML: html.trim() }).content;
+  const button = (label, fn, primary) => Object.assign(document.createElement("button"), { type: "button", textContent: label, onclick: fn,
+    className: primary ? "primary" : "" });
+  const render = (title, html, actions) => {
+    card.replaceChildren(el(`<h2>${title}</h2>${html}`));
+    if (actions?.length) {
+      const row = Object.assign(document.createElement("div"), { className: "actions" });
+      row.append(...actions);
+      card.append(row);
+    }
+    card.hidden = false;
+    pill.hidden = true;
   };
-  const close = () => (modal.hidden = true);
-  let shownCheckpoint = null, shownScore = false;
+  // put a decision aside: the session stays paused while the player looks around
+  const lookFirst = (label) => {
+    card.hidden = true;
+    pill.textContent = label;
+    pill.hidden = false;
+  };
+
+  const forecasts = (live) => {
+    const v = live.state.view, [sx, sy] = v.ship_sector;
+    return v.reports.map((r) =>
+      `<li><b>${DIRS[`${r.sector[0] - sx},${r.sector[1] - sy}`] ?? "Further away"}</b>: Hs ${r.hs_range_m[0]}–${r.hs_range_m[1]} m, ` +
+      `wind ${(r.wind_range_mps[0] * KN).toFixed(0)}–${(r.wind_range_mps[1] * KN).toFixed(0)} kn, waves from ${compass(r.wave_from_deg)}, ` +
+      `${r.wave_period_s} s, ${r.trend}</li>`).join("") || "<li>None released yet.</li>";
+  };
+
+  const questions = (live, cp, intro) => {
+    const answers = {};
+    render(cp.trigger === "briefing" ? "Before you sail" : "Decision point", `${intro ?? ""}<p><b>${cp.message}</b></p>` +
+      cp.questions.map((q) => `<div class="q" data-q="${q.id}"><span>${q.prompt}</span><div class="choices">` +
+        q.options.map((o) => `<button type="button" aria-pressed="false" data-v="${o}">${o}</button>`).join("") + "</div></div>").join("") +
+      `<h2>Your orders</h2><div class="fields"><label>Heading °<input type="number" id="cp-h" min="0" max="359" value="${live.helm.heading.toFixed(0)}"></label>` +
+      `<label>Speed kn<input type="number" id="cp-s" min="0" max="18" step="0.5" value="${live.helm.speed.toFixed(1)}"></label></div>` +
+      `<label>Why this order?<textarea id="cp-r" placeholder="What did you see?"></textarea></label>`,
+      [button("Look around first", () => lookFirst("⏸ Paused for your decision · Answer")),
+       button(cp.trigger === "briefing" ? "Set sail" : "Carry on", async () => {
+         const order = { heading_deg: ((+card.querySelector("#cp-h").value % 360) + 360) % 360,
+                         speed_knots: Math.max(0, Math.min(18, +card.querySelector("#cp-s").value || 0)) };
+         Object.assign(live.helm, { heading: order.heading_deg, speed: order.speed_knots });
+         const res = await post("/api/answer", { id: cp.id, answers, reason: card.querySelector("#cp-r").value, order });
+         if (res.error) return;
+         render("Feedback", cp.questions.map((q) => {
+           const r = res[q.id];
+           return `<p class="${r.correct ? "ok" : "bad"}">${r.correct ? "✓" : "✗"} ${q.prompt}<br>You: ${r.given ?? "no answer"} · Expected: ${r.answer}</p>`;
+         }).join(""), [button("Continue", () => { view = "status"; pending = null; }, true)]);
+       }, true)]);
+    for (const box of card.querySelectorAll("[data-q]"))
+      box.querySelectorAll("button").forEach((b) => (b.onclick = () => {
+        box.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        answers[box.dataset.q] = b.dataset.v;
+      }));
+  };
+
+  const briefing = (live, cp) => {
+    const b = live.brief;
+    render("Briefing", `<p><b>${b.title}</b></p><p>${b.objective}</p>` +
+      `<p>${b.start.slice(0, 16).replace("T", " ")} UTC · ${(b.budget_s / 3600).toFixed(0)} h · S175 container ship, 1,200 TEU. ` +
+      `The storm area's edge is not shown: read the sea, the Details panel and the forecasts.</p>` +
+      `<p class="live-status">← → heading (Shift: 1°) · ↑ ↓ speed · Space pause · drag to look around</p>`,
+      [button("Look around first", () => lookFirst("⏸ Paused · ▶ Ready to sail")), button("I'm ready", () => questions(live, cp), true)]);
+  };
+
+  pill.onclick = () => pending && questions(pending.live, pending.cp);
 
   return {
-    get open() { return !modal.hidden; },
+    get open() { return !card.hidden && view === "decision"; },
     update(live) {
-      const st = live.state, v = st.view, left = v.remaining_s;
-      $("live-status").innerHTML = `<b>Live</b> · ${Math.floor(left / 3600)}h${String(Math.floor((left % 3600) / 60)).padStart(2, "0")} left · ` +
-        (st.paused ? "paused" : `×${(+v.achieved_rate || 0).toFixed(1)}`) + " · ← → heading, ↑ ↓ speed, Space pause";
-      const [sx, sy] = v.ship_sector;
-      $("live-forecasts").innerHTML = v.reports.map((r) =>
-        `<li><b>${DIRS[`${r.sector[0] - sx},${r.sector[1] - sy}`] ?? "Further away"}</b>: Hs ${r.hs_range_m[0]}–${r.hs_range_m[1]} m, ` +
-        `wind ${(r.wind_range_mps[0] * KN).toFixed(0)}–${(r.wind_range_mps[1] * KN).toFixed(0)} kn, waves from ${compass(r.wave_from_deg)}, ` +
-        `${r.wave_period_s} s, ${r.trend}<br><span style="color:var(--muted)">game forecast, valid to ${r.valid_to.slice(11, 16)} UTC</span></li>`)
-        .join("") || "<li>None released yet.</li>";
-      if (st.checkpoint && shownCheckpoint !== st.checkpoint.id) this.checkpoint(live, st.checkpoint);
-      if (st.score && !shownScore) this.score(st.score);
-    },
-    checkpoint(live, cp) {
-      shownCheckpoint = cp.id;
-      const b = live.brief, o = live.helm;
-      const intro = cp.trigger === "briefing" ? `<p>${b.objective}</p><p>${b.title}: ${b.start.slice(0, 16).replace("T", " ")} UTC, ` +
-        `${(b.budget_s / 3600).toFixed(0)} h. S175 container ship with 1,200 TEU. The storm area's edge is not shown: read the sea and the forecasts.</p>` : "";
-      const qs = cp.questions.map((q) => `<fieldset><legend>${q.prompt}</legend>` +
-        q.options.map((x) => `<label><input type="radio" name="${q.id}" value="${x}"> ${x}</label>`).join("") + "</fieldset>").join("");
-      open(cp.trigger === "briefing" ? "Briefing" : "Decision point", `${intro}<p><b>${cp.message}</b></p>${qs}` +
-        `<fieldset><legend>Your orders</legend><div class="row2"><label>Heading ° <input type="number" id="cp-h" min="0" max="359" value="${o.heading.toFixed(0)}"></label>` +
-        `<label>Speed kn <input type="number" id="cp-s" min="0" max="18" step="0.5" value="${o.speed.toFixed(1)}"></label></div>` +
-        `<label>Why? <textarea id="cp-r" placeholder="What did you see, and why this order?"></textarea></label></fieldset>`,
-        [["Submit and continue", async () => {
-          const answers = Object.fromEntries(cp.questions.map((q) => [q.id, document.querySelector(`input[name="${q.id}"]:checked`)?.value ?? null]));
-          const order = { heading_deg: ((+$("cp-h").value % 360) + 360) % 360, speed_knots: Math.max(0, Math.min(18, +$("cp-s").value || 0)) };
-          Object.assign(live.helm, { heading: order.heading_deg, speed: order.speed_knots });
-          const res = await post("/api/answer", { id: cp.id, answers, reason: $("cp-r").value, order });
-          if (res.error) return;
-          open("Feedback", cp.questions.map((q) => {
-            const r = res[q.id];
-            return `<p class="${r.correct ? "ok" : "bad"}">${r.correct ? "✓" : "✗"} ${q.prompt}<br>Your answer: ${r.given ?? "none"} · Expected: ${r.answer}</p>`;
-          }).join(""), [["Continue", close]]);
-        }]]);
+      const st = live.state, v = st.view;
+      if (st.score && !shownScore) return this.score(st.score);
+      if (st.checkpoint && shownCheckpoint !== st.checkpoint.id) {
+        shownCheckpoint = st.checkpoint.id;
+        view = "decision";
+        pending = { live, cp: st.checkpoint };
+        return st.checkpoint.trigger === "briefing" ? briefing(live, st.checkpoint) : questions(live, st.checkpoint);
+      }
+      if (view !== "status") return;
+      const left = v.remaining_s;
+      render("Mission", `<p class="live-status">${Math.floor(left / 3600)} h ${String(Math.floor((left % 3600) / 60)).padStart(2, "0")} min left · ` +
+        `${st.paused ? "paused" : `running ×${(+v.achieved_rate || 0).toFixed(1)}`}</p><h2>Released forecasts</h2><ul>${forecasts(live)}</ul>` +
+        `<p class="live-status">Game forecasts generated from the historical reconstruction.</p>`);
     },
     score(s) {
       shownScore = true;
+      view = "score";
       const p = s.parts;
       const review = s.checkpoints.map((cp) => `<li>${cp.trigger} at ${(cp.t / 60).toFixed(0)} min: ` +
-        Object.values(cp.results ?? {}).map((r) => `${r.correct ? "✓" : "✗"} ${r.given ?? "none"}`).join(", ") +
+        Object.values(cp.results ?? {}).map((r) => `${r.correct ? "✓" : "✗"} ${r.given ?? "no answer"}`).join(", ") +
         (cp.reason ? ` — “${cp.reason}”` : "") + "</li>").join("");
-      open("Voyage result", `<div class="live-stars">${"★".repeat(s.stars)}${"☆".repeat(3 - s.stars)}</div>` +
+      render("Voyage result", `<div class="live-stars">${"★".repeat(s.stars)}${"☆".repeat(3 - s.stars)}</div>` +
         `<p><b>${s.ship_lost ? "Ship lost: the mission failed and all cargo went down with her"
-          : s.escaped ? "Escaped the storm" : `Did not escape (${s.outcome})`}</b> after ${(s.elapsed_s / 60).toFixed(0)} min · ` +
-        `${s.lost_teu} TEU lost (grade ${s.grade}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
+          : s.escaped ? "Escaped the storm" : `Did not escape (${s.outcome})`}</b></p>` +
+        `<p>${(s.elapsed_s / 60).toFixed(0)} min · ${s.lost_teu} TEU lost (grade ${s.grade}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
         `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${s.total}/100</b></p><ul>${review}</ul>` +
-        `<p style="color:var(--muted)">Game scoring for training, not a professional assessment.</p>`, [["Close", close]]);
+        `<p class="live-status">Game scoring for training, not a professional assessment.</p>`);
     },
   };
 }
