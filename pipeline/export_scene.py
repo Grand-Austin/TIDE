@@ -21,7 +21,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from game.cargo import CargoModel
+from game.cargo import STACKS, TIERS, CargoModel, stack_unit_ids
+from game.ship import ShipDamageModel
 from game.scenario import ROOT
 from game.simulation.environment import CopernicusEnvironment
 from game.simulation.runtime import Command, Settings, Simulation
@@ -104,11 +105,15 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
     state = sim.initial_state(start, lon, lat, heading_deg=wave_from, speed_mps=SPEED_MPS)
     cargo_model = CargoModel(seed=1)
     cargo = cargo_model.initial_state()
+    ship_model = ShipDamageModel(sim.vessel, seed=1)  # the same total-loss rules as a game session
+    ship = ship_model.initial_state()
     samples, events, orders = [], [], []
     record_ticks = round(RECORD_S / sim.settings.dt_s)
 
     def step(sample, dt):
-        for event in cargo_model.advance(cargo, sample, dt):
+        ship_events = ship_model.advance(ship, sample, dt)
+        new = ship_events + (cargo_model.lose_all(cargo, sample.time_s) if ship_events else cargo_model.advance(cargo, sample, dt))
+        for event in new:
             events.append({"t": round(sample.time_s, 2), "kind": event["kind"], "detail": event["detail"],
                            "units": event.get("unit_ids", [])})
         if round(sample.time_s / sim.settings.dt_s) % record_ticks == 0:
@@ -118,7 +123,7 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
                 sample.heave_m, sample.speed_through_water_mps, sample.hs_m, sample.tp_s, sample.wave_from_deg,
                 sample.wind_east_mps, sample.wind_north_mps, sample.current_east_mps, sample.current_north_mps,
                 cargo["lost_teu"], cargo["grade"]))])
-        return None
+        return "ship_lost" if ship_events else None
 
     stop = "duration_reached"
     for i, (at, relative) in enumerate(PLAN):
@@ -135,7 +140,8 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
         "version": 1, "id": storm_id, "storm": storm, "start": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "start_lon_lat": [lon, lat], "vessel": {"name": "S175", "length_m": 175.0, "breadth_m": 25.4, "draft_m": 9.5},
         "cargo": {"algorithm": cargo_model.algorithm_id, "config": cargo_model.config, "deck_units": 320, "total_teu": 1200,
-                  "units": [{"id": u["id"], "teu": u["teu"], "tier": u["category"]} for u in cargo["units"][:320]],
+                  "units": [{"id": unit, "teu": 1 + stack % 2, "stack": stack, "tier": tier}
+                            for stack in range(STACKS) for tier, unit in enumerate(stack_unit_ids(stack))],
                   "lost_units": lost, "lost_teu": cargo["lost_teu"], "grade": cargo["grade"]},
         "orders": orders, "plan_note": "Demonstration orders relative to the initial wave direction; not a player's game.",
         "stop": stop,

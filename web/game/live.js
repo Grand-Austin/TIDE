@@ -165,7 +165,8 @@ export function liveOverlay() {
         Object.values(cp.results ?? {}).map((r) => `${r.correct ? "✓" : "✗"} ${r.given ?? "none"}`).join(", ") +
         (cp.reason ? ` — “${cp.reason}”` : "") + "</li>").join("");
       open("Voyage result", `<div class="live-stars">${"★".repeat(s.stars)}${"☆".repeat(3 - s.stars)}</div>` +
-        `<p><b>${s.escaped ? "Escaped the storm" : `Did not escape (${s.outcome})`}</b> after ${(s.elapsed_s / 60).toFixed(0)} min · ` +
+        `<p><b>${s.ship_lost ? "Ship lost: the mission failed and all cargo went down with her"
+          : s.escaped ? "Escaped the storm" : `Did not escape (${s.outcome})`}</b> after ${(s.elapsed_s / 60).toFixed(0)} min · ` +
         `${s.lost_teu} TEU lost (grade ${s.grade}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
         `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${s.total}/100</b></p><ul>${review}</ul>` +
         `<p style="color:var(--muted)">Game scoring for training, not a professional assessment.</p>`, [["Close", close]]);

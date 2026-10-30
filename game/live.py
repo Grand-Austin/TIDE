@@ -20,6 +20,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from game.cargo import STACKS, stack_unit_ids
 from game.scenario import ROOT, load_scenario
 from game.session import Session
 
@@ -204,6 +205,7 @@ class Game:
         }
         stars = int(escaped) + int(escaped and lost <= 0.01) + int(escaped and lost <= 0.01 and judgement >= 0.7)
         self.score = {"outcome": s.outcome or s.reason, "escaped": escaped, "elapsed_s": v["elapsed_s"],
+                      "ship_lost": s.outcome == "ship_lost", "ship": v.get("ship"),
                       "lost_teu": v["cargo"]["lost_teu"], "grade": v["cargo"]["grade"], "answers_correct": correct,
                       "answers_total": len(graded), "parts": parts, "total": round(sum(parts.values()), 1),
                       "stars": stars, "checkpoints": self.checkpoints}
@@ -228,7 +230,8 @@ class Game:
         return {"id": d["id"], "title": d["title"], "start": d["start"], "budget_s": d["mission"]["budget_s"],
                 "initial": d["initial"], "storm": {k: storm[k] for k in ("peak", "area", "hs_m", "max_wind_kn")},
                 "fields": FIELDS, "cargo": {"deck_units": 320, "total_teu": 1200,
-                "units": [{"id": u["id"], "teu": u["teu"], "tier": u["category"]} for u in self.session.cargo["units"][:320]]},
+                "units": [{"id": unit, "teu": 1 + stack % 2, "stack": stack, "tier": tier}
+                          for stack in range(STACKS) for tier, unit in enumerate(stack_unit_ids(stack))]},
                 "objective": "Leave the storm's adverse-weather area before time runs out, and lose as little cargo as you can.",
                 "notes": "Forecast cards are generated from the historical reconstruction and labelled as game forecasts."}
 
