@@ -42,10 +42,12 @@ const FADE_S = 20, DIR_STEP = 15, TP_STEP = 1.5;
 
 const HORIZON = new THREE.Color("#8d99a2"), FOG_DENSITY = 0.00042;
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// ?lite: for slower machines; no shadows, 1x pixels, a coarser sea grid and less crest spray. Looks only.
+const lite = q.has("lite");
+renderer.setPixelRatio(lite ? 1 : Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !lite;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.prepend(renderer.domElement);
 
@@ -160,11 +162,11 @@ const oceanUniforms = {
   uRipple: { value: 0.03 },
   uDay: { value: 1 },
 };
-const ocean = new THREE.Mesh(oceanGrid(), new THREE.ShaderMaterial({ vertexShader: OCEAN_VERTEX, fragmentShader: OCEAN_FRAGMENT, uniforms: oceanUniforms }));
+const ocean = new THREE.Mesh(oceanGrid(lite ? 240 : 480), new THREE.ShaderMaterial({ vertexShader: OCEAN_VERTEX, fragmentShader: OCEAN_FRAGMENT, uniforms: oceanUniforms }));
 ocean.frustumCulled = false; // vertices move in the shader
 
 // Spray off breaking crests within 350 m of the ship, worked out on the GPU from the same wave sum.
-const SPRAY = 6000, spraySeeds = new Float32Array(SPRAY * 3).map(() => Math.random());
+const SPRAY = lite ? 2000 : 6000, spraySeeds = new Float32Array(SPRAY * 3).map(() => Math.random());
 const sprayGeometry = new THREE.BufferGeometry();
 sprayGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(SPRAY * 3), 3));
 sprayGeometry.setAttribute("seed", new THREE.BufferAttribute(spraySeeds, 3));
@@ -378,8 +380,9 @@ if (!live && playable.length) {
 // opened through game/live.py without a choice: go straight to the first playable storm
 if (!location.search && playable.length) location.search = `?live=${playable[0].value.slice(5)}`;
 ui.scene.value = live ? `live:${liveId}` : sceneId ?? "replay";
-ui.scene.onchange = () => (location.search = ui.scene.value === "replay" ? "?replay=./replays/menorca-20260909.json"
-  : ui.scene.value.startsWith("live:") ? `?live=${ui.scene.value.slice(5)}` : `?scene=${ui.scene.value}`);
+const keep = ["lite", "fps"].filter((k) => q.has(k)).map((k) => `&${k}`).join(""); // view flags survive a scene change
+ui.scene.onchange = () => (location.search = (ui.scene.value === "replay" ? "?replay=./replays/menorca-20260909.json"
+  : ui.scene.value.startsWith("live:") ? `?live=${ui.scene.value.slice(5)}` : `?scene=${ui.scene.value}`) + keep);
 const overlay = live ? liveOverlay() : null;
 if (live) {
   ui.scrub.disabled = true;
