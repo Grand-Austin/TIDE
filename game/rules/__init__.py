@@ -1,1 +1,1 @@
-"""Local mission objectives, time limits, and game cargo-loss calculations."""
+"""Local mission objectives, time limits and scheduled information releases."""

@@ -40,7 +40,7 @@ Implementation and limitations: [SIMULATION.md](docs/SIMULATION.md).
 - [x] Run synthetic head/quarter/beam/following-sea limit tests, multiple speeds and seeds, exact force replay, and detailed validity-stop diagnostics. Retain environmental coverage checks and genuine numerical checks.
 - [x] Remove TIDE's uncalibrated attitude cutoff from runtime and scenario settings. Verify motion above 30 degrees and replay the formerly blocked 16 m beam-seas interval against original MSS.
 - [x] Remove the TIDE-only instantaneous speed and command-speed ceilings; extend synthetic trials to 12, 14 and 16 knots. Keep out-of-table speed lookup as a nonblocking quality flag.
-- [ ] Recalibrate cargo and rerun the complete multi-strategy historical mission matrix after these motion changes; earlier reports remain historical baselines.
+- [x] Reassess cargo after the motion changes with matched-response tests, pause/save/restore checks and a controlled live storm run; retain earlier mission reports as historical evidence.
 
 ## 2. Scenario and Data Build
 
@@ -63,6 +63,15 @@ Confirmed product decisions are recorded in [Product.md](docs/Product.md), secti
 - [x] Assign seeded vulnerability thresholds once, accumulate damage from calculated responses over simulation time, and record each unit's irreversible overboard transition.
 - [x] Calibrate cargo grades and response-to-damage parameters; retain fixed vessel mass, centre of gravity and hydrodynamic coefficients after loss.
 - [x] Verify identical consequences across advance segmentation, pause/resume and time-rate changes, with no repeated losses or damage during pauses.
+
+### 3.1.1 Cargo and ship damage after motion repair
+
+- [x] Research six real container-loss occurrences, separate box counts from TEU, and normalize by actual loaded units where available.
+- [x] Compare 0.14g and 0.30g cargo against a location-load / distributed-capacity candidate in 33 synthetic S175 runs and 24 prescribed-roll cases; repeat four motion cases at half the integration step.
+- [x] Compare a 64-stack / five-box candidate across C50=0.4–0.6g, continuous-overload gates and fixed cargo seeds. Verify streaming/batch agreement and measure streaming time and batch memory cost.
+- [x] Record algorithm comparisons, accident context and model limits in [CARGO_DAMAGE_STUDY.md](docs/CARGO_DAMAGE_STUDY.md). Keep the current gameplay algorithm pending integration validation.
+- [x] Implement the selected C50=0.5g position-load stack rule, compact JSON state and grade events; verify pause, segmentation and save/restore. Update scenario defaults and archive earlier cargo code.
+- [x] Implement total ship loss from a per-excursion roll table and cumulative roll/structural/following-sea exposure. End the mission and lose all remaining cargo. Document accident evidence and authored limits in `docs/SHIP_DAMAGE_STUDY.md`.
 
 ### 3.2 Escape region and released information
 

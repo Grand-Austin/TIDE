@@ -18,6 +18,7 @@ import numpy as np
 
 from game.cargo import CargoModel
 from game.rules.mission import MissionRules
+from game.ship import ShipDamageModel
 from game.scenario import utc
 from game.simulation.environment import EnvironmentError
 from game.simulation.runtime import Command, ControlState, Exposure, State
@@ -103,6 +104,7 @@ class Session:
         self.cargo_model = cargo_model or CargoModel(
             gameplay.get("cargo"), seed=self.seed
         )
+        self.ship_model = ShipDamageModel(self.sim.vessel, seed=self.seed)
         self.rules = rules or MissionRules(
             gameplay,
             scenario.definition["mission"]["budget_s"],
@@ -118,6 +120,11 @@ class Session:
                     "gameplay": gameplay,
                     "motion": self.sim.algorithm_id,
                     "cargo": self.cargo_model.algorithm_id,
+                    "ship": {"algorithm": self.ship_model.algorithm_id,
+                             "limits": self.ship_model.limits,
+                             "roll_capsize_table": self.ship_model.roll_capsize_table,
+                             "geometry": [self.ship_model.g, self.ship_model.half_length,
+                                          self.ship_model.half_breadth]},
                 },
                 sort_keys=True,
             ).encode()
@@ -125,6 +132,7 @@ class Session:
         self.session_id = uuid.uuid4().hex
         self.state = scenario.initial_state(simulation)
         self.cargo = self.cargo_model.initial_state()
+        self.ship = self.ship_model.initial_state()
         self.consumed = set()
         self.order = Command(
             scenario.definition["initial"]["heading_deg"],
@@ -182,6 +190,7 @@ class Session:
                     "revision": self.revision,
                     "state": motion_dict(self.state),
                     "cargo": self.cargo,
+                    "ship": self.ship,
                     "consumed": sorted(self.consumed),
                     "order": asdict(self.order),
                     "rate": self.rate,
@@ -215,6 +224,7 @@ class Session:
         with self.log_path.open("r+b") as stream:
             stream.truncate(d["log_size"])
         self.state, self.cargo = motion_state(d["state"]), d["cargo"]
+        self.ship = d["ship"]
         self.consumed, self.order = set(d["consumed"]), Command(**d["order"])
         for key in (
             "session_id",
@@ -297,6 +307,7 @@ class Session:
                 "target_speed_knots": self.order.speed_mps * 3600 / 1852,
                 "vessel": dict(self.last_sample),
                 "cargo": self.cargo_model.summary(self.cargo),
+                "ship": self.ship_model.summary(self.ship),
                 "reports": [
                     r
                     for r in self.rules.visible_reports(
@@ -426,16 +437,22 @@ class Session:
             if self.outcome or self.pause_signal.is_set():
                 return self.visible()
             cargo, consumed = deepcopy(self.cargo), set(self.consumed)
+            ship = dict(self.ship)
             events = []
 
             def step(sample, dt):
-                before = self.cargo_model.summary(cargo)["grade"]
-                events.extend(self.cargo_model.advance(cargo, sample, dt))
+                ship_events = self.ship_model.advance(ship, sample, dt)
+                if ship_events:
+                    events.extend(ship_events)
+                    events.extend(self.cargo_model.lose_all(cargo, sample.time_s))
+                    return "ship_lost"
+                cargo_events = self.cargo_model.advance(cargo, sample, dt)
+                events.extend(cargo_events)
                 reason, new = self.rules.evaluate(sample, consumed)
                 events.extend(new)
                 if reason and reason != "weather_report":
                     return reason
-                if self.cargo_model.summary(cargo)["grade"] > before:
+                if any(event["kind"] == "cargo_grade_increased" for event in cargo_events):
                     return "cargo_grade_increased"
                 return None
 
@@ -447,6 +464,7 @@ class Session:
                 on_step=step,
             )
             self.state, self.cargo, self.consumed = result.state, cargo, consumed
+            self.ship = ship
             if result.trajectory:
                 self.last_sample = asdict(result.trajectory[-1])
             self.reason = result.stopping_reason
@@ -471,6 +489,7 @@ class Session:
                     "mission_complete",
                     "timeout",
                     "budget_reached",
+                    "ship_lost",
                 ):
                     self.outcome = self.reason
             self.record(
@@ -481,6 +500,7 @@ class Session:
                     "stopping_reason": self.reason,
                     "vessel": self.last_sample,
                     "cargo": self.cargo_model.summary(cargo),
+                    "ship": self.ship_model.summary(ship),
                 },
             )
             self.save()

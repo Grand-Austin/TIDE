@@ -1,11 +1,13 @@
 # Status
 
-_Last updated: 2026-10-29_
+_Last updated: 2026-10-30_
 
 **Stage:** PLAN stages 1–4 done on `experiment` (command-line game). Stage 5 partly done; stage 6 (frontend, Copilot) not started.
 **Next:** agree the region and the frontend approach (see "Decisions needed"), then a playable storm scenario and the web frontend.
 
 **Motion repair:** full MSS coupling is restored. Source-supported mean longitudinal wave drift and a logarithmic spectrum grid address the reproduced head-seas speed stop and resolution warning. All 196 tests pass; live GNU Octave comparisons, 17 initial and 27 high-speed synthetic pressure tests are recorded in [MOTION_VALIDATION.md](docs/MOTION_VALIDATION.md). Local uncommitted TUI work remains preserved. The temporary experiment review has been removed after its scope was resolved.
+**Cargo:** The selected C50=0.5g stack rule now runs in live sessions. Endpoint body angular terms, sorted-capacity interval tracking and compact JSON state replace the old category dose. Old implementations/tests retain their structure under `archive/`. The suite passes 220 active tests; the CLI and a 20-minute severe-sea Session passed. The optional historical matrix was stopped after 9/12 completed trials; completed results remain under `data/runs/stack-cargo-missions-current/partial-validation.json`. Numerical results remain under ignored `data/runs/`; [CARGO_DAMAGE_STUDY.md](docs/CARGO_DAMAGE_STUDY.md) keeps the comparison tables.
+**Ship loss:** Implemented per-excursion roll probability and cumulative roll/structural exposure. Ship loss terminates the mission and loses all remaining cargo. The active suite passes 270 tests. The revised roll rule starts at 20 degrees with a 30 s normalized budget; a new fast following-sea dose detects 3 of 44 existing motion tapes, while 41 do not trigger loss; an actual S175 first-step total loss and restored terminal state passed. See [SHIP_DAMAGE_STUDY.md](docs/SHIP_DAMAGE_STUDY.md); results stay in `data/runs/ship-damage/`.
 **Deadlines (CET; Finland is +1 h):** event opened Thu 29 Oct 16:00 · video due Sat 31 Oct 08:30.
 
 ## Branches
@@ -51,15 +53,14 @@ Newest first. Proposed decisions move here once the team agrees.
   - 2026-01-08, 71 kn wind;
   - 2026-01-23, 114 h long;
   - 2025-12-18, swell-dominated, Tp 19 s.
-- **Cargo calibration on full missions.** 0.14 g comes from 20-minute trials in one storm. Confirm it on a complete three-hour storm mission with `pipeline.validate_game` before the video.
 - **Menorca validation reports.** `scenarios/menorca-20260909/validation.json` and `game-validation.json` were produced before the dynamics fix. Rerun them, or mark the scenario as superseded if the region changes.
-- **Motion and cargo balance.** Reassess complete historical missions with the added mean-surge load. Source-consistent arithmetic and synthetic survival do not establish experimental storm accuracy.
+- **Motion fidelity.** Source-consistent arithmetic and synthetic survival do not establish experimental storm accuracy; comparison requires suitable vessel-response evidence.
 - **Forecast archive.** Extend `.github/workflows/forecast-archive.yml` to the chosen region. Copernicus does not keep past forecast runs, so every day not archived is lost. Coordinate with Xuan's workflow changes on `experiment`.
 
 ## Owner actions
 
 - [x] Review the vessel compatibility fix and the Coriolis replacement; retain source compatibility and restore the original coupling.
-- [ ] Confirm cargo calibration on complete missions after the motion repair.
+- [x] Verify the selected cargo rule against reference responses, live storm inputs and pause/save/restore checks.
 - [ ] Repository admin: after the first CI run, decide whether `main` and `experiment` require CI to pass.
 - [ ] Each teammate who runs scenarios: a free Copernicus Marine account and `copernicusmarine login`.
 
@@ -70,6 +71,21 @@ Newest first. Proposed decisions move here once the team agrees.
 - Online play, leaderboard and teacher view (a database only becomes useful then).
 
 ## Log
+
+- 2026-10-30 — Live stack cargo implementation:
+  - Selected C50=0.5g, log dispersion 0.35 and one-second continuous overload. Used exact endpoint body angular terms and sorted-capacity prefix tracking without per-step NumPy arrays.
+  - Preserved grade events and stable unit IDs, and verified JSON save/restore during unfinished overload. Updated frozen gameplay, its checksum and the scenario builder defaults; old cargo snapshots are rejected by algorithm identity.
+  - Archived previous cargo implementations and tests by original directory structure. The runtime module has no version suffixes or archived-code dependency.
+
+- 2026-10-30 — Stack cargo candidate:
+  - Added five-box joint failure with fixed stack capacities, consecutive-overload counters and protected hold cargo. Scanned C50=0.4/0.5/0.6g and retained the independent candidate at matched 0.5g for comparison.
+  - Replayed the existing motion traces without changing dynamics. Checked streaming/batch equivalence, four half-step cases and local runtime/allocation costs.
+  - Kept the study in English with accident background and numerical comparisons. Kept generated numerical evidence under ignored `data/runs/`, with comparison tables in the study.
+
+- 2026-10-30 — Cargo model sensitivity study:
+  - Added an offline experiment and numerical evidence for 0.14g, 0.30g, local cargo-point acceleration, dispersed securing capacity and peak/cumulative ablations.
+  - Separated the 2016 APL England 37-box occurrence from the 2020 50-box occurrence; used final investigation counts and actual loaded-box denominators.
+  - Defined later cargo and ship-damage integration boundaries. Kept current scenarios, runtime equations and session state unchanged.
 
 - 2026-10-29 — Fix deferred-resume pause editing:
   - Reset the screen pause-transition flag when a pending resume starts. An immediate second pause now reopens the heading/speed editor.

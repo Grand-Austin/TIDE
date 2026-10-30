@@ -5520,12 +5520,9 @@
     }
   ],
   "cargo": {
-    "threshold_g": 0.3,
-    "damage_time_s": 60.0,
-    "multipliers": [
-      1.0,
-      1.15,
-      1.3
-    ]
+    "median_g": 0.5,
+    "sigma": 0.35,
+    "exposure_s": 1.0,
+    "strength": 1.0
   }
 }

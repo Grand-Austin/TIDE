@@ -10,6 +10,7 @@ This package collects environmental data and builds inputs for the current conti
 | `prepare_vessel.py` | Fetch and verify the pinned S175 source and call the runtime converter. |
 | `validate_toolkit.py` | Assess current simulation responses to environmental and control changes. |
 | `scenario.py` | Analyze a specified historical window, build a scenario package, and validate trial strategies with the runtime simulation. |
+| `cargo_study.py`, `cargo_stacks.py` | Compare the live stack cargo rule with archived algorithms on recorded motion, including runtime benchmarks and batch checks. |
 
 See [DATA_PIPELINE.md](../docs/DATA_PIPELINE.md) for commands, existing-component reuse, data provenance and verification limits. Builder Agent support remains deferred.
 

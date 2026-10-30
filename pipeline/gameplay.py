@@ -9,6 +9,7 @@ import numpy as np
 import xarray as xr
 from scipy.spatial import ConvexHull
 
+from game.cargo import CargoModel
 from game.scenario import digest, load_scenario, utc
 from pipeline.scenario import write_json
 
@@ -106,11 +107,7 @@ def build_gameplay(scenario):
         "source_sha256": source["sha256"],
         "regions": regions,
         "reports": reports,
-        "cargo": {
-            "threshold_g": 0.14,
-            "damage_time_s": 60.0,
-            "multipliers": [1.0, 1.15, 1.3],
-        },
+        "cargo": CargoModel().config,
     }
 
 

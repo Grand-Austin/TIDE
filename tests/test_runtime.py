@@ -76,6 +76,61 @@ def test_current_advects_without_double_counting(vessel):
     sample = result.trajectory[-1]
     assert sample.speed_through_water_mps == pytest.approx(0, abs=1e-9)
     assert sample.speed_over_ground_mps == pytest.approx(0.5)
+    assert sample.velocity_north_through_water_mps == pytest.approx(0, abs=1e-9)
+    assert sample.velocity_east_through_water_mps == pytest.approx(0, abs=1e-9)
+
+
+def test_endpoint_sample_reports_body_frame_angular_rates(vessel, monkeypatch):
+    import game.simulation.runtime as runtime
+    original_derivative = runtime.derivative
+    derivatives = []
+
+    def recording_derivative(*args):
+        value = original_derivative(*args)
+        derivatives.append(value)
+        return value
+
+    monkeypatch.setattr(runtime, "derivative", recording_derivative)
+    sim = Simulation(vessel, ConstantEnvironment())
+    state = sim.initial_state(START, 3.5, 40, speed_mps=1)
+    state.x[3:6] = [0.03, 0.04, -0.02]
+    state.x[9:11] = [0.1, -0.05]
+    result = sim.advance(state, Command(0, 1), 0.2)
+    sample = result.trajectory[-1]
+    endpoint_derivative = derivatives[-1]
+
+    assert sample.angular_acceleration_x_rad_s2 == pytest.approx(float(endpoint_derivative[3]))
+    assert sample.angular_velocity_y_rad_s == pytest.approx(float(result.state.x[4]))
+    assert sample.angular_velocity_z_rad_s == pytest.approx(float(result.state.x[5]))
+    assert sample.angular_velocity_x_rad_s == pytest.approx(float(result.state.x[3]))
+    assert sample.angular_acceleration_y_rad_s2 == pytest.approx(float(endpoint_derivative[4]))
+    acceleration = endpoint_derivative[:3] + np.cross(result.state.x[3:6], result.state.x[:3])
+    assert sample.longitudinal_acceleration_mps2 == pytest.approx(float(acceleration[0]))
+    assert sample.vertical_acceleration_mps2 == pytest.approx(float(acceleration[2]))
+    water = sim._water_velocity(result.state.x, sim.environment.sea)
+    assert sample.velocity_north_through_water_mps == pytest.approx(float(water[0]))
+    assert sample.velocity_east_through_water_mps == pytest.approx(float(water[1]))
+
+
+def test_split_advancement_preserves_endpoint_angular_fields(vessel):
+    sim = Simulation(vessel, ConstantEnvironment(SeaState(1.0, 8, 40)), seed=23)
+    state = sim.initial_state(START, 3.5, 40, heading_deg=359, speed_mps=1)
+    command = Command(15, 2)
+    full = sim.advance(state, command, 2)
+    first = sim.advance(state, command, 1)
+    split = sim.advance(first.state, command, 1)
+
+    full_by_time = {sample.time_s: sample for sample in full.trajectory}
+    split_by_time = {sample.time_s: sample for sample in first.trajectory + split.trajectory}
+    assert set(split_by_time) == set(full_by_time)
+    for time_s in full_by_time:
+        for field_name in ("angular_acceleration_x_rad_s2", "angular_velocity_y_rad_s", "angular_velocity_z_rad_s",
+                           "angular_velocity_x_rad_s", "angular_acceleration_y_rad_s2",
+                           "longitudinal_acceleration_mps2", "vertical_acceleration_mps2",
+                           "velocity_north_through_water_mps", "velocity_east_through_water_mps"):
+            assert split_by_time[time_s].__getattribute__(field_name) == pytest.approx(
+                full_by_time[time_s].__getattribute__(field_name)
+            )
 
 
 def test_split_advancement_preserves_wave_control_and_exposure(vessel):

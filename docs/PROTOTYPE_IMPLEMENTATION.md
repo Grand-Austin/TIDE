@@ -12,6 +12,20 @@ Use the existing three-hour historical window and fixed S175 design-waterline mo
 
 ### Cargo
 
+The current rule uses 64 five-box deck stacks, median capacity 0.5g, log
+dispersion 0.35 and one continuous second of overload. Endpoint body angular
+terms supply the 11.25 m effective-height load. Sorted capacities and interval
+start ticks avoid per-step scans of every stack and NumPy temporary arrays.
+Stack state is plain JSON; existing grade boundaries and mandatory pauses remain.
+The builder and frozen Menorca gameplay now use these settings. Old cargo saves
+are rejected by algorithm identity. Comparisons and limits are in
+[CARGO_DAMAGE_STUDY.md](CARGO_DAMAGE_STUDY.md).
+
+#### Archived initial cargo design and calibration
+
+The following settings and results describe the former algorithm in
+`archive/game/cargo.py`. They do not configure current gameplay.
+
 - Start with 800 units: 400 twenty-foot and 400 forty-foot containers, totalling 1,200 TEU. Deck cargo has 160 of each size; hold cargo has 240 of each size. Hold cargo is protected from overboard loss in this model.
 - Give each unit a stable ID, TEU size, location category, accumulated damage, seeded vulnerability threshold and irreversible overboard state. Use simple lower/middle/upper deck exposure categories; do not model individual lashings, stack collapse or cargo-to-cargo contact.
 - Drive damage from calculated roll, pitch and lateral acceleration. The initial game demand is the magnitude of the effective transverse acceleration, including gravity projected into body axes, divided by gravity. Apply deck-category multipliers of 1.0, 1.15 and 1.3. These are game coefficients, not measured securing strengths.
@@ -66,7 +80,7 @@ Keep responsibilities within existing `game/simulation`, `game/rules` and `game/
 
 Add an optional accepted-step callback to motion advancement so mission rules can stop at the appropriate integration tick. Preserve existing simulation-only callers. The callback operates on the local candidate game state; a failed step cannot commit cargo or event changes without the matching vessel state.
 
-Maintain a single authoritative game state. Include wave phases/rates, held forces, fixed-clock tick, actuator controller integrals, exposure, per-unit cargo state and consumed event IDs in snapshots. Use explicit JSON/array serialization with no pickle. Write the state revision and its operation receipts in the same atomic snapshot. Snapshot metadata links to the last complete log record so recovery can discard an incomplete tail without replaying a state mutation.
+Maintain a single authoritative game state. Include wave phases/rates, held forces, fixed-clock tick, actuator controller integrals, exposure, stack capacities, unfinished overload intervals and consumed event IDs in snapshots. Use explicit JSON/array serialization with no pickle. Write the state revision and its operation receipts in the same atomic snapshot. Snapshot metadata links to the last complete log record so recovery can discard an incomplete tail without replaying a state mutation.
 
 Keep the existing numerical scenario schema and version its new independently pinned gameplay artifact; update the sole scenario, loader, builder and affected fixtures together. Pin the cargo template, region schedule and report schedule in its manifest. Retain previous validation only as a labelled historical numerical baseline; produce a new report for the new definition.
 

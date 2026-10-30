@@ -17,7 +17,7 @@ The CLI selects and integrity-checks the scenario, loads/restores the authoritat
 - `duration_reached` is an internal numerical segment boundary. The advance tool continues internally; do not ask the player after every segment.
 - `cargo_grade_increased` requires a player decision. Forecast issue events create available report candidates; ATTENTION.md controls their delivery and discretionary pauses. `director_attention` records an accepted evidence-backed pause.
 - `paused` means the player's manual pause. Do not resume automatically.
-- `escaped` and `timeout` are terminal outcomes supplied by the rules. Call `finish_mission`.
+- `escaped`, `timeout` and `ship_lost` are terminal outcomes supplied locally. `ship_lost` means mission failure and loss of all remaining cargo. Call `finish_mission`.
 - `domain_boundary`, `time_boundary`, `missing_environment`, `model_limit` and `numerical_failure` are technical or applicability stops. Present the recorded reason without inventing an accident.
 
 ## Recovery
