@@ -1,7 +1,8 @@
 // Copernicus sea state on the passage map, the way Copernicus MyOcean draws it: significant wave height as a colour
 // field and 10 m wind as drifting streamlines, both following scene time. Data: web/game/fields/<storm>.json from
 // pipeline/export_fields.py (the storm's wave grid every 3 h, wind interpolated onto it). Replays only: in live play
-// the full field would show the hidden escape region, so the map keeps to released forecasts there.
+// the full field would show the hidden escape region, so forecastField() draws only the released forecast sectors
+// there, in the same colours, with the streamlines along the forecast wave direction.
 
 const HS_MAX = 10; // m at the top of the colour scale
 // magma, as on MyOcean's wave height layer: dark calm sea to pale yellow at HS_MAX
@@ -23,6 +24,35 @@ export async function loadField(stormId) {
   } catch {
     return null;
   }
+}
+
+const FORECAST_STEP = 0.05; // degrees between grid points of a forecast field
+const FORECAST_FLOW_MPS = 10; // streak speed for the forecast wave direction (a direction only, not a wind speed)
+
+// Released forecast reports as a field: Hs is the mid-range of each sector, blended between sector centres by
+// inverse distance squared, and null outside every sector. Static in time.
+export function forecastField(reports) {
+  if (!reports.length) return null;
+  const [w, e, s, n] = [0, 1, 2, 3].map((q) => (q % 2 ? Math.max : Math.min)(...reports.map((r) => r.sector_bbox[q])));
+  const lon = [], lat = [];
+  for (let x = w; x <= e + 1e-9; x += FORECAST_STEP) lon.push(x);
+  for (let y = s; y <= n + 1e-9; y += FORECAST_STEP) lat.push(y);
+  const centres = reports.map((r) => [(r.sector_bbox[0] + r.sector_bbox[1]) / 2, (r.sector_bbox[2] + r.sector_bbox[3]) / 2]);
+  const hs = [], we = [], wn = [];
+  for (const y of lat) for (const x of lon) {
+    if (!reports.some(({ sector_bbox: [a, b, c, d] }) => x >= a && x <= b && y >= c && y <= d)) {
+      hs.push(null); we.push(null); wn.push(null);
+      continue;
+    }
+    let sw = 0, sh = 0, se = 0, sn = 0;
+    reports.forEach((r, q) => {
+      const f = 1 / ((x - centres[q][0]) ** 2 + (y - centres[q][1]) ** 2 + 1e-4), to = ((r.wave_from_deg + 180) * Math.PI) / 180;
+      [sw, sh, se, sn] = [sw + f, sh + f * (r.hs_range_m[0] + r.hs_range_m[1]) / 2, se + f * Math.sin(to), sn + f * Math.cos(to)];
+    });
+    const m = Math.hypot(se, sn) || 1;
+    hs.push(Math.round((10 * sh) / sw)); we.push(Math.round((10 * FORECAST_FLOW_MPS * se) / m)); wn.push(Math.round((10 * FORECAST_FLOW_MPS * sn) / m));
+  }
+  return { lon, lat, ms: [0, 1], hs: [hs, hs], wind_e: [we, we], wind_n: [wn, wn] };
 }
 
 function magma(x) {
@@ -106,8 +136,9 @@ export function addWeather(map, field, beforeId) {
   resize();
   map.on("resize", resize);
   map.on("move", () => tctx.clearRect(0, 0, trails.width, trails.height));
-  let last = performance.now();
+  let last = performance.now(), stopped = false;
   const frame = (now) => {
+    if (stopped) return;
     const dt = Math.min(50, now - last), ratio = trails.width / trails.clientWidth || 1;
     last = now;
     tctx.globalCompositeOperation = "destination-out";
@@ -138,7 +169,7 @@ export function addWeather(map, field, beforeId) {
   requestAnimationFrame(frame);
 
   // Scene time in ms since the epoch; the colour field follows in REDRAW_STEP steps between the 3-hourly fields.
-  return (ms) => {
+  const set = (ms) => {
     const T = field.ms, j = Math.max(0, Math.min(T.length - 1.001, (() => {
       let a = 0;
       while (a < T.length - 2 && T[a + 1] <= ms) a++;
@@ -147,4 +178,12 @@ export function addWeather(map, field, beforeId) {
     k = Math.max(0, j);
     if (drawnK < 0 || Math.abs(k - drawnK) >= REDRAW_STEP) paint();
   };
+  set.remove = () => {
+    stopped = true;
+    trails.remove();
+    map.off("resize", resize);
+    map.removeLayer("weather");
+    map.removeSource("weather");
+  };
+  return set;
 }

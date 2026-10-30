@@ -73,7 +73,7 @@
   .expand[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(92, 200, 232, 0.12); }
   .map.big { z-index: 8; width: min(440px, 38vw); } .map.big #map { height: min(300px, 42vh); }
   /* small until clicked: no legend, a short map; a click on the map enlarges it (minimap.js) */
-  .map:not(.big) { width: 220px; } .map:not(.big) #map { height: 120px; cursor: zoom-in; } .map:not(.big) .legend { display: none; }
+  .map:not(.big) { width: 220px; } .map:not(.big) #map { height: 120px; cursor: zoom-in; } .map:not(.big) .legend { display: none; } .map:not(.big) .maplibregl-ctrl-attrib { display: none; }
   /* while a briefing or decision is open the left column takes the height and the map steps aside */
   body.deciding .map { display: none; } body.deciding .left { max-height: calc(100vh - 110px); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--muted); padding: 0 2px; }
@@ -107,6 +107,8 @@
   .seg { display: flex; padding: 2px; border-radius: 999px; background: rgba(3, 9, 16, 0.45); flex: none; }
   .seg button { height: 30px; min-width: 40px; padding: 0 8px; font-size: 12px; }
   .seg button[aria-pressed="true"] { background: #2b4660; color: #fff; }
+  .views { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; }
+  .views button { border: 0; background: transparent; color: var(--text); border-radius: 999px; cursor: pointer; }
   .toggle { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; cursor: pointer;
             white-space: nowrap; color: var(--muted); font-size: 12px; flex: none; }
   .toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
@@ -125,7 +127,7 @@
   .sources .credit p { margin: 0 0 6px; } .sources .credit p:last-child { margin: 0; color: var(--order); }
   #fps { position: fixed; right: calc(var(--side) + 8px); top: 12px; color: #0b1622; font: 11px ui-monospace, monospace; }
 
-  @media (max-width: 1180px) { .map { display: none; } .dock-wrap { left: 12px; } }
+  @media (max-width: 1180px) { .map { display: none; } .dock-wrap { left: 12px; } .views { top: auto; bottom: 150px; } }
   @media (max-width: 900px) {
     :root { --credit-h: 44px; }
     .left { right: 12px; width: auto; max-height: 45vh; }
@@ -155,7 +157,7 @@
     addEventListener("error", (e) => show(`${e.message} (${(e.filename || "").split("/").pop()}:${e.lineno})`));
     addEventListener("unhandledrejection", (e) => show(String(e.reason && e.reason.stack || e.reason)));
     const error = console.error.bind(console);
-    console.error = (...a) => { error(...a); show(a.map(String).join(" ")); }; // three.js reports shader errors here
+    console.error = (...a) => { error(...a); if (!/AbortError/.test(String(a[0]))) show(a.map(String).join(" ")); }; // three.js reports shader errors here; MapLibre logs aborted tile requests
   })();
 </script>
 <div id="p-toast" class="toast" role="status" aria-live="polite" hidden></div>
@@ -235,9 +237,12 @@
     <button type="button" class="expand" id="map-expand" aria-pressed="false" aria-label="Enlarge the map" title="Enlarge the map">⤢</button></div>
   <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas and the predicted track"></div>
   <div class="legend" id="map-legend"><span><i class="sw sailed"></i>sailed</span><span class="live-only"><i class="sw ahead"></i>your order</span>
-    <span class="live-only"><i class="sw hs"></i>forecast Hs</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
+    <span class="live-only"><i class="sw hs"></i>forecast Hs 0–10 m · wave direction</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
 </figure>
 
+<div class="views seg glass" id="views" role="group" aria-label="Camera view (keys 1-5)">
+  <button type="button" data-view="quarter" title="Quarter (1)">Quarter</button><button type="button" data-view="beam" title="Side on (2)">Side</button><button type="button" data-view="bow" title="Bow (3)">Bow</button><button type="button" data-view="stern" title="Astern (4)">Astern</button><button type="button" data-view="top" title="From above (5)">Top</button>
+</div>
 <div class="dock-wrap">
   <div class="dock glass" role="toolbar" aria-label="Playback">
     <button id="panel-toggle" type="button" aria-controls="panel" aria-expanded="false">Details</button>

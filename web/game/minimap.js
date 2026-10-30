@@ -6,7 +6,7 @@
 
 import { toLocal, sampleAt, latest } from "./replay.js";
 import { relativeSea, GRADE_COLORS } from "./panel.js";
-import { addWeather, HS_GRADIENT } from "./weather-layer.js";
+import { addWeather, forecastField, HS_GRADIENT } from "./weather-layer.js";
 
 const LOSS_GROUP_S = 60; // cargo losses this close in time share one marker
 const PEAK_ROLL_S = 30; // a marker reports the largest roll in this time before the first loss
@@ -124,7 +124,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
       attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
     map.on("load", () => {
       for (const id of ["forecast", "area", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
-      map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0.15 } });
+      map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0 } }); // an anchor: the colour is the weather layer's
       if (field) setWeather = addWeather(map, field, "forecast"); // replays: the Copernicus field under everything else
       map.addLayer({ id: "forecast-edge", type: "line", source: "forecast", paint: { "line-color": HS_COLORS, "line-opacity": 0.6 } });
       map.addLayer({ id: "forecast-label", type: "symbol", source: "forecast", layout: { "text-field": ["get", "label"],
@@ -183,7 +183,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
     map.on("dragstart", () => setFollow(false));
     for (const el of legend.querySelectorAll(".live-only")) el.hidden = !live;
     for (const el of legend.querySelectorAll(".field-only")) el.hidden = !field;
-    legend.querySelector(".sw.field")?.style.setProperty("background", HS_GRADIENT);
+    for (const sw of legend.querySelectorAll(".sw.field, .sw.hs")) sw.style.setProperty("background", HS_GRADIENT);
   } else {
     figure?.setAttribute("hidden", ""); // MapLibre did not load (offline): keep the scene usable
   }
@@ -217,6 +217,9 @@ export function createMinimap(container, { replay, duration, live, field }) {
       if (key !== reportsKey) {
         reportsKey = key;
         map.getSource("forecast").setData(forecastAreas(reports));
+        setWeather?.remove();
+        const f = forecastField(reports); // released sectors only, see weather-layer.js
+        setWeather = f && addWeather(map, f, "forecast");
       }
       if (live.preview !== shownPreview || drawnAt === t) { // new preview, or the ship moved on along it
         shownPreview = live.preview;

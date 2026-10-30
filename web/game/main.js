@@ -431,8 +431,36 @@ resize();
 
 placeShip(start);
 updateSun(0);
-camera.position.set(ship.position.x - Math.sin(start.heading * RAD) * 170 - 90, 55, ship.position.z + Math.cos(start.heading * RAD) * 170);
-controls.target.set(ship.position.x, 8, ship.position.z);
+// low over the quarter, so the sky, rain and horizon are in view from the start (drag up for the deck)
+// Camera views around the ship: bearing from the bow (deg, clockwise), distance and height in metres. A view keeps
+// its place relative to the bow as the ship turns, until the player drags the camera; keys 1-5 pick one too.
+const VIEWS = {
+  quarter: { bearing: 140, distance: 230, height: 28 }, // low over the starboard quarter: sky, rain and horizon
+  beam: { bearing: 90, distance: 240, height: 14 }, // side on: the roll
+  bow: { bearing: 25, distance: 230, height: 22 }, // ahead, looking back at the bow in the seas
+  stern: { bearing: 180, distance: 210, height: 45 }, // astern: the course and the waves' angle to it
+  top: { bearing: 180, distance: 40, height: 420 }, // from above: the deck stowage and the losses
+};
+let viewLock = "quarter";
+const viewAt = (name, heading) => {
+  const v = VIEWS[name], dir = (heading + v.bearing) * RAD;
+  return new THREE.Vector3(ship.position.x + Math.sin(dir) * v.distance, v.height, ship.position.z - Math.cos(dir) * v.distance);
+};
+const viewButtons = document.querySelectorAll("#views button");
+const setView = (name) => {
+  viewLock = name;
+  for (const b of viewButtons) b.setAttribute("aria-pressed", String(b.dataset.view === name));
+};
+for (const b of viewButtons) b.onclick = () => setView(b.dataset.view);
+controls.addEventListener("start", () => setView(null)); // the player's own drag or zoom ends the view's hold
+addEventListener("keydown", (e) => {
+  const name = Object.keys(VIEWS)[+e.key - 1];
+  if (!name || e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  setView(name);
+});
+camera.position.copy(viewAt("quarter", start.heading));
+controls.target.set(ship.position.x, 14, ship.position.z);
+setView("quarter");
 
 let frames = 0, lastFps = performance.now(), lastFrame = lastFps, uiAt = 0;
 const prev = new THREE.Vector3();
@@ -459,7 +487,8 @@ renderer.setAnimationLoop((now) => {
   placeShip(s);
   camera.position.x += ship.position.x - prev.x; // the orbit camera travels with the ship
   camera.position.z += ship.position.z - prev.z;
-  controls.target.set(ship.position.x, 8, ship.position.z);
+  controls.target.set(ship.position.x, 14, ship.position.z);
+  if (viewLock) camera.position.lerp(viewAt(viewLock, s.heading), Math.min(1, dt * 2.5)); // glide to the view, then hold it
 
   wind.set(s.wind_e, -s.wind_n);
   const storm = THREE.MathUtils.smoothstep(wind.length(), 7, 20); // whitecaps start near Beaufort 4
