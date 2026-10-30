@@ -6,6 +6,7 @@ import { BowSpray } from "./bow-spray.js";
 import { CargoFallView } from "./cargo-fall-view.js";
 import { createPanel } from "./panel.js";
 import { createMinimap } from "./minimap.js";
+import { loadField } from "./weather-layer.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout, topDown } from "./cargo-layout.js";
 import { sampleAt, toLocal, fromScene } from "./replay.js";
@@ -341,7 +342,8 @@ for (const b of document.querySelectorAll("[data-rate]"))
   };
 
 const updatePanel = createPanel({ replay, startMs, duration, dev, sea });
-const updateMap = createMinimap(document.getElementById("map"), { replay, duration, live });
+const field = live ? null : await loadField(data.storm?.id ?? replay.storm_id); // replays only: see weather-layer.js
+const updateMap = createMinimap(document.getElementById("map"), { replay, duration, live, field });
 const mapProgress = document.getElementById("map-progress"), dockTime = document.getElementById("dock-time");
 const mmss = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 ui.fps.hidden = !q.has("fps"); // ?fps shows the frame rate

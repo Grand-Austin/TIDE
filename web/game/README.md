@@ -34,6 +34,8 @@ stowage. CI does not run it yet.
 | `assets/` | `s175.glb` and `containers.glb`, exported from `assets/blender/s175.blend` |
 | `replays/` | Replays written by `pipeline.export_replay` |
 | `scenes/` | 34 Biscay storm scenes from `pipeline.export_scene` (`index.json` lists them) |
+| `fields/` | each storm's Copernicus Hs and wind grid from `pipeline.export_fields`, drawn on the passage map in replays (not in live play: it would show the hidden escape region) |
+| `weather-layer.js` | the passage map's Hs colour field and wind streamlines |
 | `classic.html` | Earlier single-file storm page; still hosts live play (`?live`) until it moves into `main.js` |
 
 ## Storm scenes
@@ -42,6 +44,7 @@ stowage. CI does not run it yet.
 uv run python -m pipeline.fetch_region biscay              # once: a year of waves, wind, currents (~0.8 GB, git-ignored)
 uv run python -m pipeline.storms biscay --subsets          # data/storms/biscay.json and committed per-storm subsets
 uv run python -m pipeline.export_scene biscay-20260123-06  # web/game/scenes/<id>.json; uses the subsets, about 7 min
+uv run python -m pipeline.export_fields biscay              # web/game/fields/<id>.json for every storm, about 1 min
 ```
 
 What is data and what is not:

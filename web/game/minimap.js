@@ -6,6 +6,7 @@
 
 import { toLocal, sampleAt, latest } from "./replay.js";
 import { relativeSea, GRADE_COLORS } from "./panel.js";
+import { addWeather, HS_GRADIENT } from "./weather-layer.js";
 
 const LOSS_GROUP_S = 60; // cargo losses this close in time share one marker
 const PEAK_ROLL_S = 30; // a marker reports the largest roll in this time before the first loss
@@ -102,11 +103,11 @@ export function lossPopup(p, startMs) {
 const line = (coords) => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
 const outline = ([w, e, s, n]) => line([[w, s], [e, s], [e, n], [w, n], [w, s]]);
 
-export function createMinimap(container, { replay, duration, live }) {
+export function createMinimap(container, { replay, duration, live, field }) {
   const maplibre = globalThis.maplibregl, figure = container.closest("figure");
   const legend = document.getElementById("map-legend"), settle = document.getElementById("map-settle");
   let map = null, marker = null, placed = false, ready = false, follow = false, ship = [replay.lon[0], replay.lat[0]], drawnAt = -1, geo = null, count = -1;
-  let reportsKey = "", shownPreview = null, lossKey = -1;
+  let reportsKey = "", shownPreview = null, lossKey = -1, setWeather = null;
   const startMs = Date.parse(replay.start_utc);
   if (maplibre) {
     let bounds;
@@ -123,7 +124,8 @@ export function createMinimap(container, { replay, duration, live }) {
       attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
     map.on("load", () => {
       for (const id of ["forecast", "area", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
-      map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0.3 } });
+      map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0.15 } });
+      if (field) setWeather = addWeather(map, field, "forecast"); // replays: the Copernicus field under everything else
       map.addLayer({ id: "forecast-edge", type: "line", source: "forecast", paint: { "line-color": HS_COLORS, "line-opacity": 0.6 } });
       map.addLayer({ id: "forecast-label", type: "symbol", source: "forecast", layout: { "text-field": ["get", "label"],
         "text-font": ["Noto Sans Regular"], "text-size": 11 }, paint: { "text-color": "#d6e2ee", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
@@ -156,11 +158,17 @@ export function createMinimap(container, { replay, duration, live }) {
       const big = figure.classList.toggle("big");
       expand.setAttribute("aria-pressed", String(big));
       expand.setAttribute("aria-label", big ? "Shrink the map" : "Enlarge the map");
+      expand.title = big ? "Shrink the map (Esc)" : "Enlarge the map";
+      expand.textContent = big ? "✕" : "⤢";
       map.resize();
       if (follow) map.jumpTo({ center: ship });
     };
     // a click on the small map enlarges it; once big, clicks pan and open loss markers as usual
     document.getElementById("map").addEventListener("click", () => figure.classList.contains("big") || expand.onclick());
+    // and Esc or a click anywhere outside the map shrinks it again
+    const shrink = () => figure.classList.contains("big") && expand.onclick();
+    document.addEventListener("keydown", (e) => e.key === "Escape" && shrink());
+    document.addEventListener("pointerdown", (e) => figure.contains(e.target) || shrink());
     // Locate: fly to the ship and keep it centred until the player pans the map themselves.
     const locateButton = document.getElementById("map-locate");
     const setFollow = (on) => {
@@ -174,6 +182,8 @@ export function createMinimap(container, { replay, duration, live }) {
     locateButton.onclick = () => (follow ? setFollow(false) : locate());
     map.on("dragstart", () => setFollow(false));
     for (const el of legend.querySelectorAll(".live-only")) el.hidden = !live;
+    for (const el of legend.querySelectorAll(".field-only")) el.hidden = !field;
+    legend.querySelector(".sw.field")?.style.setProperty("background", HS_GRADIENT);
   } else {
     figure?.setAttribute("hidden", ""); // MapLibre did not load (offline): keep the scene usable
   }
@@ -190,6 +200,7 @@ export function createMinimap(container, { replay, duration, live }) {
         placed = true;
       }
     }
+    setWeather?.(startMs + t * 1000);
     if (ready && Math.abs(t - drawnAt) >= 2) { // a line redraw per 2 s of scene time is plenty at this scale
       drawnAt = t;
       const at = (j) => [replay.lon[j], replay.lat[j]];
