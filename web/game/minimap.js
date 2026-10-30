@@ -133,6 +133,11 @@ const outline = ([w, e, s, n]) => line([[w, s], [e, s], [e, n], [w, n], [w, s]])
 
 export function createMinimap(container, { replay, duration, live, field }) {
   const maplibre = globalThis.maplibregl, figure = container.closest("figure");
+  // the left column's cards stop above the small map, whatever its header and legend make its height
+  if (figure && globalThis.ResizeObserver) new ResizeObserver(() => {
+    if (!figure.classList.contains("big") && !figure.hidden)
+      document.documentElement.style.setProperty("--map-box", `${figure.offsetHeight}px`);
+  }).observe(figure);
   const legend = document.getElementById("map-legend"), settle = document.getElementById("map-settle");
   let map = null, marker = null, placed = false, ready = false, follow = false, ship = [replay.lon[0], replay.lat[0]], drawnAt = -1, geo = null, count = -1;
   let reportsKey = "", shownPreview = null, lossKey = -1, setWeather = null, windOn = false;
