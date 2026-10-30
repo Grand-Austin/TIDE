@@ -9,6 +9,18 @@ const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "Sout
   "-1,-1": "South-west", "-1,0": "West", "-1,1": "North-west", "0,0": "Your area" };
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
 
+// "Heading 250° → ordered 130°: turning to port, 120° to go, about 12 min at the current rate" (game time).
+export function turnNote(replay, orderedHeading) {
+  const t = replay.t, h = replay.heading, n = t.length;
+  if (!n) return "";
+  const now = h[n - 1], togo = ((orderedHeading - now + 540) % 360) - 180;
+  if (Math.abs(togo) < 2) return `Heading ${now.toFixed(0)}°, on the ordered course`;
+  const i = Math.max(0, n - 61); // rate over the last minute of game time
+  const rate = Math.abs((((now - h[i] + 540) % 360) - 180) / Math.max(t[n - 1] - t[i], 1)) * 60; // degrees per minute
+  const eta = rate > 0.5 ? `, about ${Math.ceil(Math.abs(togo) / rate)} min at ${rate.toFixed(0)}°/min` : ", barely turning: more speed gives the rudder more grip";
+  return `Heading ${now.toFixed(0)}° → ordered ${orderedHeading.toFixed(0)}°: turning to ${togo < 0 ? "port" : "starboard"}, ${Math.abs(togo).toFixed(0)}° to go${eta}`;
+}
+
 export async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return r.json();
@@ -197,7 +209,8 @@ export function liveOverlay() {
       if (view !== "status") return;
       const left = v.remaining_s;
       render("Mission", `<p class="live-status">${Math.floor(left / 3600)} h ${String(Math.floor((left % 3600) / 60)).padStart(2, "0")} min left · ` +
-        `${st.paused ? "paused" : `running ×${(+v.achieved_rate || 0).toFixed(1)}`}</p><h2>Released forecasts</h2><ul>${forecasts(live)}</ul>` +
+        `${st.paused ? "paused" : `running ×${(+v.achieved_rate || 0).toFixed(1)}`}</p><p>${turnNote(live.replay, v.target_heading_deg)}</p>` +
+        `<h2>Released forecasts</h2><ul>${forecasts(live)}</ul>` +
         `<p class="live-status">Game forecasts generated from the historical reconstruction.</p>`);
     },
     score(s) {

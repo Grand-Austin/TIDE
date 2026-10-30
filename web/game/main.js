@@ -8,7 +8,7 @@ import { createPanel } from "./panel.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout } from "./cargo-layout.js";
 import { sampleAt, toLocal, fromScene } from "./replay.js";
-import { startLive, liveOverlay, liveScenarios } from "./live.js";
+import { startLive, liveOverlay, liveScenarios, turnNote } from "./live.js";
 
 const q = new URLSearchParams(location.search);
 const loader = new GLTFLoader();
@@ -371,11 +371,11 @@ if (live) {
     document.activeElement?.blur();
     if (e.code === "Space") return live.pause(!live.state.paused);
     live.steer(...turn);
-    helmNote.textContent = `Order: heading ${live.helm.heading.toFixed(0)}° · ${live.helm.speed.toFixed(1)} kn` +
-      (live.state.paused ? " · paused" : "");
+    helmNote.textContent = `Order ${live.helm.heading.toFixed(0)}° · ${live.helm.speed.toFixed(1)} kn — ` +
+      turnNote(replay, live.helm.heading) + (live.state.paused ? " · paused" : "");
     helmNote.hidden = false;
     clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => (helmNote.hidden = true), 1800);
+    noteTimer = setTimeout(() => (helmNote.hidden = true), 4000);
   }, true);
 }
 ui.credit.textContent = [replay.note, ...(replay.credits ?? ["Recorded TIDE session. Generated using E.U. Copernicus Marine Service Information: " +
