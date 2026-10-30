@@ -236,6 +236,8 @@ data/raw/
 # Curated Copernicus subsets are committed on purpose, see data/copernicus/README.md
 !data/copernicus/*.nc
 !data/storms/*/*/*.nc
+# A scenario may carry its own Copernicus cut when the wider window is not a committed storm subset
+!scenarios/*/environment/*.nc
 *.zarr/
 node_modules/
 .vercel/
