@@ -181,9 +181,12 @@ export function liveOverlay() {
     }
     card.hidden = false;
     pill.hidden = true;
+    // a decision gets the whole left column: index.html hides the passage map while body.deciding is set
+    document.body.classList.toggle("deciding", !!attention);
   };
   // put a decision aside: the session stays paused while the player looks around
   const lookFirst = (label) => {
+    document.body.classList.remove("deciding");
     card.hidden = true;
     pill.textContent = label;
     pill.hidden = false;

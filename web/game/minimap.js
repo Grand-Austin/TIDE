@@ -159,6 +159,8 @@ export function createMinimap(container, { replay, duration, live }) {
       map.resize();
       if (follow) map.jumpTo({ center: ship });
     };
+    // a click on the small map enlarges it; once big, clicks pan and open loss markers as usual
+    document.getElementById("map").addEventListener("click", () => figure.classList.contains("big") || expand.onclick());
     // Locate: fly to the ship and keep it centred until the player pans the map themselves.
     const locateButton = document.getElementById("map-locate");
     const setFollow = (on) => {

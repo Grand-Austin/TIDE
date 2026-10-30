@@ -24,7 +24,7 @@
   ::-webkit-scrollbar-thumb { background: #2b4660; border-radius: 3px; }
 
   /* left column: title card, then the live briefing / decision / mission card */
-  .left { position: fixed; top: 12px; left: 12px; width: 330px; max-height: calc(100vh - 300px); display: flex; flex-direction: column;
+  .left { position: fixed; top: 12px; left: 12px; width: 330px; max-height: calc(100vh - 240px); display: flex; flex-direction: column;
           gap: 10px; z-index: 7; }
   .head { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
   .brand { display: flex; align-items: center; gap: 8px; }
@@ -72,6 +72,10 @@
   .expand { width: 26px; height: 26px; padding: 0; border: 1px solid var(--edge); border-radius: 7px; background: transparent; cursor: pointer; }
   .expand[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(92, 200, 232, 0.12); }
   .map.big { z-index: 8; width: min(560px, calc(100vw - var(--side) - 24px)); } .map.big #map { height: min(420px, 55vh); }
+  /* small until clicked: no legend, a short map; a click on the map enlarges it (minimap.js) */
+  .map:not(.big) { width: 220px; } .map:not(.big) #map { height: 120px; cursor: zoom-in; } .map:not(.big) .legend { display: none; }
+  /* while a briefing or decision is open the left column takes the height and the map steps aside */
+  body.deciding .map { display: none; } body.deciding .left { max-height: calc(100vh - 110px); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--muted); padding: 0 2px; }
   .legend[hidden] { display: none; }
   .legend [hidden] { display: none !important; }
