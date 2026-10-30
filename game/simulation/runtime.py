@@ -217,14 +217,16 @@ class Simulation:
             c.speed_integral += error * cfg.dt_s
         # PID autopilot. The integral removes the steady heading error that a constant wind and wave
         # yaw moment leaves under PD control. It accumulates only once the reference has reached the
-        # ordered heading and the rudder is not saturated, and it can ask for at most the rudder limit,
-        # so a long rate-limited turn does not wind it up into an overshoot.
+        # ordered heading, the ship is within 10° of it and the rudder is not saturated, and it can ask
+        # for at most the rudder limit.
         heading_error = _wrap(c.heading_ref - state.x[11])
         w = cfg.yaw_natural_frequency
         ki = v.M[5, 5] * w**3 / 5
         yaw = v.M[5, 5] * (w**2 * heading_error - 2 * w * state.x[5]) + ki * c.heading_integral
         yaw_limit = cfg.max_yaw_moment_nm * max(1.0, (water_body[0] / cfg.yaw_reference_speed_mps) ** 2)
-        settled = abs(_wrap(math.radians(command.heading_deg) - c.heading_ref)) < 1e-9
+        # integrate only near the ordered heading: during a long turn the error is large for minutes and
+        # would wind the integral up to the rudder limit, which then carries the ship 15–40° past the order
+        settled = abs(_wrap(math.radians(command.heading_deg) - c.heading_ref)) < 1e-9 and abs(heading_error) < math.radians(10)
         if settled and (abs(yaw) < yaw_limit or yaw * heading_error < 0):
             c.heading_integral = float(np.clip(c.heading_integral + heading_error * cfg.dt_s,
                                                -yaw_limit / ki, yaw_limit / ki))
