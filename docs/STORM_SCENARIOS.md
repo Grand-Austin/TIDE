@@ -7,9 +7,9 @@ at least 99% of total TEU retained. See [Builder experiment loop and qualificati
 
 ## Current status at handoff
 
-The Builder source and its tests are in place. The current `scenarios/biscay-*/validation.json` files are historical
-pipeline reports: they do not record TEU retention, and some do not pass. No current Biscay scenario has a
-qualified Builder route. Therefore no second playable scenario is published, and no impossibility claim is made.
+The Builder source and its tests are in place. The four earlier `scenarios/biscay-*` packages were removed; the
+current storm package is `scenarios/sole-20261022-21`, built by the Builder from the 2026-10-22 peak, with eight
+user-approved routes. The report shape shown below is historical and predates the Builder qualification gate.
 A local `data/runs/builder-smoke` directory is an old smoke artifact, not qualification evidence. The peer `agent/solutions.py` writer and the parent Builder and CLI changes are present in source. The targeted
 tests and the parent final suite remain pending; do not treat this documentation as test evidence.
 

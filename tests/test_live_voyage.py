@@ -7,7 +7,7 @@ from game.scenario import ROOT
 
 
 def scenario_definition():
-    path = ROOT / "scenarios/biscay-20251218-03/scenario.json"
+    path = ROOT / "scenarios/sole-20261022-21/scenario.json"
     return json.loads(path.read_text())
 
 

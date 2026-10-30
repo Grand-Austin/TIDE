@@ -233,7 +233,7 @@ def test_storm_settings_preserve_s175_damping_and_dissipate_energy():
     state = np.zeros(12)
     # This coupled roll/yaw motion gained energy under the former D66 override.
     state[3], state[5] = 0.001, 0.0004347365205377971
-    paths = sorted(Path("scenarios").glob("biscay-*/scenario.json"))
+    paths = sorted(Path("scenarios").glob("*/scenario.json"))
     assert paths
     for path in paths:
         settings = Settings(**json.loads(path.read_text())["settings"])
@@ -359,7 +359,7 @@ def test_wave_frequency_surge_keeps_linear_damping(vessel):
 def test_wave_frequency_layer_does_not_drift_the_ship_ahead():
     # Regression: in a real head-sea storm the wave-frequency layer ran 164 m ahead in 3 min and kept accelerating.
     from game.scenario import ROOT, load_scenario
-    scenario = load_scenario(ROOT / "scenarios/biscay-20260123-06/scenario.json")
+    scenario = load_scenario(ROOT / "scenarios/sole-20261022-21/scenario.json")
     with scenario.environment() as env:
         sim = scenario.simulation(env)
         start = scenario.definition["initial"]

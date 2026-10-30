@@ -342,7 +342,7 @@ def test_unsafe_initial_position_is_pending_without_relocation(tmp_path):
 )
 def test_real_biscay_voyage_plan_smoke_runs_once():
     scenario = json.loads(
-        (ROOT / "scenarios/biscay-20261022-21/scenario.json").read_text()
+        (ROOT / "scenarios/sole-20261022-21/scenario.json").read_text()
     )
     initial = copy.deepcopy(scenario["initial"])
     initial["time"] = scenario["start"]

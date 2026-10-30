@@ -68,8 +68,8 @@ Run commands from the repository root.
 ```bash
 uv sync --locked
 uv run python -m agent build \
-  --scenario scenarios/biscay-20260123-06/scenario.json \
-  --out data/runs/builder-biscay-20260123-06 \
+  --scenario scenarios/sole-20261022-21/scenario.json \
+  --out data/runs/builder-sole-20261022-21 \
   --mode local
 ```
 
@@ -108,8 +108,8 @@ CLI exit codes:
 
 ```bash
 uv run python -m agent build \
-  --scenario scenarios/biscay-20260123-06/scenario.json \
-  --out data/runs/builder-ai-biscay-20260123-06 \
+  --scenario scenarios/sole-20261022-21/scenario.json \
+  --out data/runs/builder-ai-sole-20261022-21 \
   --mode ai \
   --models models.json \
   --keys config/api_keys.local.json

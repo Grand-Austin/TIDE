@@ -110,7 +110,7 @@ def test_helper_mixes_body_rates_with_heading_fallback():
 
 def test_live_samples_append_turn_rate_aligned_with_fields(monkeypatch, tmp_path):
     avoid_live_run_collision(monkeypatch, tmp_path)
-    game = Game("biscay-20251218-03")
+    game = Game("sole-20261022-21")
     try:
         with game.lock:
             sample = dict(game.session.last_sample)
@@ -125,7 +125,7 @@ def test_live_samples_append_turn_rate_aligned_with_fields(monkeypatch, tmp_path
 
 def test_preview_uses_session_clock_and_does_not_mutate_the_state(monkeypatch, tmp_path):
     avoid_live_run_collision(monkeypatch, tmp_path)
-    game = Game("biscay-20251218-03")
+    game = Game("sole-20261022-21")
     try:
         with game.lock:
             session = game.session

@@ -2,7 +2,7 @@ from game.live import Game
 
 
 def test_preview_runs_the_ship_ahead_without_moving_it():
-    game = Game("biscay-20251218-03")
+    game = Game("sole-20261022-21")
     try:
         with game.lock:
             game.session.pause(manual=True)
