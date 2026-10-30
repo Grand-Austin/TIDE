@@ -4,6 +4,8 @@ import { deckLayout } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
 import { sampleAt, latest, fromScene } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
+import { turnInfo } from "./live.js";
+import { forecastField } from "./weather-layer.js";
 
 test("panel numbers come from released cargo and sea state", async () => {
   globalThis.document ??= {}; // panel.js only touches the DOM inside createPanel
@@ -188,4 +190,33 @@ test("cargo losses group into map markers that say what the sea was doing", () =
   expect(html).toContain("peak roll 17° to port");
   expect(html).toContain("0.72 g");
   expect(html).toContain("wind 35 kn from 270°");
+});
+
+test("helm gauge turns the short way round and times the turn", () => {
+  const replay = { t: Array.from({ length: 61 }, (_, i) => i), heading: Array.from({ length: 61 }, (_, i) => 350 + i / 6) }; // 10°/min
+  const k = turnInfo(replay, 30); // 360 -> 30 across north
+  expect(k.togo).toBeCloseTo(30);
+  expect(k.rate).toBeCloseTo(10);
+  expect(k.min).toBe(3);
+  expect(turnInfo({ t: [0, 60], heading: [100, 100] }, 90)).toMatchObject({ togo: -10, min: null });
+});
+
+test("forecast field colours each sector by its own Hs, edge to edge", () => {
+  const sector = (w, hs) => ({ sector_bbox: [w, w + 0.5667, 50, 50.5667], hs_range_m: [hs, hs], wave_from_deg: 270 });
+  const f = forecastField([sector(-11, 8), sector(-10.4333, 6)]);
+  expect(f.lon[0]).toBeCloseTo(-11);
+  expect(f.lon.at(-1)).toBeCloseTo(-9.8666); // the outer edges are grid lines, so colour reaches them
+  const row = f.hs[0].slice(0, f.lon.length), mid = f.lon.findIndex((x) => Math.abs(x + 10.4333) < 1e-6);
+  expect(mid).toBeGreaterThan(0); // and so is the shared edge, where the two sectors meet halfway
+  expect([row[0], row[mid - 1], row[mid], row[mid + 1], row.at(-1)]).toEqual([80, 80, 70, 60, 60]);
+});
+
+test("sea crests keep the data's direction with a storm-swell spread", () => {
+  for (const seed of [1, 2, 3, 4, 5]) {
+    const waves = spectrumWaves({ hs: 8, tp: 12, fromDeg: 270, seed }); // travelling east
+    const e = (f) => waves.reduce((m, v) => m + v.a * v.a * f(Math.atan2(-v.dz, v.dx)), 0);
+    const mean = Math.atan2(e(Math.sin), e(Math.cos)), rms = Math.sqrt(e((d) => (d - mean) ** 2) / e(() => 1));
+    expect(Math.abs(mean * (180 / Math.PI))).toBeLessThan(3);
+    expect(rms * (180 / Math.PI)).toBeLessThan(15);
+  }
 });

@@ -31,6 +31,8 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-30 | The 3D sea spreads its 24 components with cos-2s (Mitsuyasu, s_max 50) in mirrored pairs, instead of uniform ±35° | Crests read as one direction (energy spread about 11° instead of 20°, mean within 2° of the data's wave_from); looks only, the motion model is unchanged | Parke |
+| 2026-10-30 | Live map colours each released forecast sector by its own Hs on a grid that lands on the sector edges; only the wave-direction streaks blend between sectors | The blended field ran colours across the drawn sector lines and stopped short of the outer edges | Parke |
 | 2026-10-30 | Restore the prepared S175 damping and original fixed yaw-moment bound; retain PID. Remove the yaw-decay override and speed-based moment multiplier | The single-entry damping override breaks positive semidefiniteness and can add energy with no external input. Retain the MSS-consistent vessel matrices and revalidate the scenarios | User |
 | 2026-10-30 | The passage map guides with released information only: forecast areas coloured by forecast Hs, the scenario's operating area, the track, and the helm preview. It never shows the escape region or an exit direction | Rule 4, and finding the way out from the forecasts is the exercise; solver hints stay with Xuan's planned solver, at a judgement cost | Parke |
 | 2026-10-30 | Helm preview: `game.live` runs the scenario's own ship model ahead on a copy of the session (`/api/preview`, track only, no cargo, region or forecast evaluated), at a 1 s step instead of 0.1 s, until a minute after the ship settles on the order (8 min at most) | 3 s per preview was unusable at 60x. Against the 0.1 s step, 1 s keeps 8-minute tracks within 13 m and the end heading within 1° (three orders, Celtic Sea, before and after the yaw damping change) in about 0.4 s | Parke |
@@ -103,8 +105,16 @@ Newest first. Proposed decisions move here once the team agrees.
 - Daily scenario selection from the latest Copernicus analysis and forecast ("today's most dangerous sea").
 - GitHub Pages deployment of static pages (storm animation, recorded replays); needs team agreement.
 - Online play, leaderboard and teacher view (a database only becomes useful then).
+- Phase-locked 3D sea: draw the simulation's strongest wave components with their phases, so a crest under the hull lines up with the ship's motion. Needs `game/` to send components; 2+ days.
 
 ## Log
+
+- 2026-10-30 — Parke (3D page, second pass, on `tide/storm-game`):
+  - Arrow-key helm gauge (`helmGauge` in `web/game/live.js`): compass with heading, order and the turn still to go, ordered speed against speed through water; fixed size, sits above the playback dock. Its class no longer collides with the panel's `.helm` compass.
+  - Camera views are a vertical strip beside the panel. Passage map is larger (360×220, enlarged up to 560×400) with a Wind / Waves streamline toggle, off by default.
+  - Weather colour image rows are spaced in Web Mercator, so colours sit on the map's sector lines.
+  - 3D sea crests follow the data's wave direction more clearly (see Decisions).
+  - Tests: 280 Python pass; `bun test` passes except the old three-tier layout check.
 
 - 2026-10-30 — Parke (3D page and passage map, on `tide/storm-game`):
   - Deck losses no longer leave boxes floating; the stack loses its top box first.

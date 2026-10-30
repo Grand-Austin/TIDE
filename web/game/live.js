@@ -17,16 +17,71 @@ const ENDINGS = {
 };
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
 
-// "Heading 250° → ordered 130°: turning to port, 120° to go, about 12 min at the current rate" (game time).
-export function turnNote(replay, orderedHeading) {
+// Heading now, signed degrees still to turn (+ starboard), turn rate in °/min and minutes to go (null when barely turning).
+export function turnInfo(replay, orderedHeading) {
   const t = replay.t, h = replay.heading, n = t.length;
-  if (!n) return "";
+  if (!n) return null;
   const now = h[n - 1], togo = ((orderedHeading - now + 540) % 360) - 180;
-  if (Math.abs(togo) < 2) return `Heading ${now.toFixed(0)}°, on the ordered course`;
   const i = Math.max(0, n - 61); // rate over the last minute of game time
   const rate = Math.abs((((now - h[i] + 540) % 360) - 180) / Math.max(t[n - 1] - t[i], 1)) * 60; // degrees per minute
-  const eta = rate > 0.5 ? `, about ${Math.ceil(Math.abs(togo) / rate)} min at ${rate.toFixed(0)}°/min` : ", barely turning: more speed gives the rudder more grip";
-  return `Heading ${now.toFixed(0)}° → ordered ${orderedHeading.toFixed(0)}°: turning to ${togo < 0 ? "port" : "starboard"}, ${Math.abs(togo).toFixed(0)}° to go${eta}`;
+  return { now, togo, rate, min: rate > 0.5 ? Math.ceil(Math.abs(togo) / rate) : null };
+}
+
+// "Heading 250° → ordered 130°: turning to port, 120° to go, about 12 min at the current rate" (game time).
+export function turnNote(replay, orderedHeading) {
+  const k = turnInfo(replay, orderedHeading);
+  if (!k) return "";
+  if (Math.abs(k.togo) < 2) return `Heading ${k.now.toFixed(0)}°, on the ordered course`;
+  const eta = k.min !== null ? `, about ${k.min} min at ${k.rate.toFixed(0)}°/min` : ", barely turning: more speed gives the rudder more grip";
+  return `Heading ${k.now.toFixed(0)}° → ordered ${orderedHeading.toFixed(0)}°: turning to ${k.togo < 0 ? "port" : "starboard"}, ${Math.abs(k.togo).toFixed(0)}° to go${eta}`;
+}
+
+// Helm gauge shown while the arrow keys steer: a north-up compass with the heading (blue ship), the order (orange
+// mark) and the turn still to go (orange arc), beside the numbers and the ordered speed against the speed through water.
+const DIAL_R = 40;
+const onRing = (deg, r = DIAL_R) => [r * Math.sin((deg * Math.PI) / 180), -r * Math.cos((deg * Math.PI) / 180)].map((v) => v.toFixed(1));
+const TICKS = Array.from({ length: 36 }, (_, k) => {
+  const [x0, y0] = onRing(k * 10, k % 3 ? 43 : 40), [x1, y1] = onRing(k * 10, 46);
+  return `<line class="tick${k % 3 ? "" : " major"}" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"/>`;
+}).join("");
+
+export function helmGauge() {
+  const box = Object.assign(document.createElement("div"), { className: "helm-gauge glass", hidden: true });
+  // above the playback dock, so it shares the dock's lane between the map and the panel (index.html)
+  (document.querySelector(".dock-wrap") ?? document.body).prepend(box);
+  let timer = null;
+  const render = (live) => {
+    const { heading: order, speed } = live.helm, k = turnInfo(live.replay, order);
+    if (!k) return;
+    const { now, togo, rate, min } = k, steady = Math.abs(togo) < 2, sog = (live.replay.sog.at(-1) ?? 0) * KN;
+    const [ax, ay] = onRing(now), [bx, by] = onRing(now + togo);
+    const status = steady ? `<span class="ok">On the ordered course</span>`
+      : `<b class="ord">${togo < 0 ? "Port" : "Starboard"} ${Math.abs(togo).toFixed(0)}°</b> · ` +
+        (min !== null ? `about ${min} min at ${rate.toFixed(0)}°/min` : "barely turning: add speed for rudder grip");
+    box.innerHTML =
+      `<svg viewBox="-50 -50 100 100" aria-hidden="true">${TICKS}<text class="n" x="0" y="-28">N</text>` +
+      (steady ? "" : `<path class="turn" d="M${ax} ${ay} A${DIAL_R} ${DIAL_R} 0 0 ${togo > 0 ? 1 : 0} ${bx} ${by}"/>`) +
+      `<path class="order" d="M0 -39 L-5 -49 L5 -49 Z" transform="rotate(${order.toFixed(1)})"/>` +
+      `<g transform="rotate(${now.toFixed(1)})"><line class="hdg" x1="0" y1="-14" x2="0" y2="-${DIAL_R}"/>` +
+      `<path class="ship" d="M0 -15 L7 11 L0 6 L-7 11 Z"/></g></svg>` +
+      `<div class="helm-read"><div class="helm-hdg mono"><b>${now.toFixed(0)}°</b><span>→</span><b class="ord">${order.toFixed(0)}°</b></div>` +
+      `<div class="helm-turn">${status}</div>` +
+      `<div class="helm-spd" title="Orange: ordered speed · blue mark: speed through water"><span>Speed</span>` +
+      `<i><b style="width:${(speed / 18) * 100}%"></b><s style="left:${Math.min(100, (sog / 18) * 100)}%"></s></i>` +
+      `<span class="mono ord">${speed.toFixed(1)} kn</span></div>` +
+      `<div class="helm-keys"><kbd>←</kbd><kbd>→</kbd> 5° · <kbd>⇧</kbd> 1° · <kbd>↑</kbd><kbd>↓</kbd> 0.5 kn` +
+      `${live.state?.paused ? ' · <span class="ord">paused</span>' : ""}</div></div>`;
+    box.setAttribute("aria-label", `${turnNote(live.replay, order)}, ordered speed ${speed.toFixed(1)} knots`);
+  };
+  return {
+    show(live) { // after a key: show for a few seconds
+      render(live);
+      box.hidden = false;
+      clearTimeout(timer);
+      timer = setTimeout(() => (box.hidden = true), 5000);
+    },
+    update: (live) => box.hidden || render(live), // while shown, follow the turn
+  };
 }
 
 export async function post(path, body) {
@@ -156,7 +211,28 @@ const CSS = `
   .live-hint { color: var(--order); font-size: 12px; }
   @keyframes live-glow { 50% { box-shadow: 0 0 0 1px var(--order), 0 0 26px 4px rgba(242, 169, 59, 0.45); } }
   @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(242, 169, 59, 0.7); } 100% { box-shadow: 0 0 0 12px rgba(242, 169, 59, 0); } }
-  @media (prefers-reduced-motion: reduce) { .live-card.attention:not(.touched), .live-card.attention button.primary, .live-pill { animation: none; } }`;
+  @media (prefers-reduced-motion: reduce) { .live-card.attention:not(.touched), .live-card.attention button.primary, .live-pill { animation: none; } }
+  /* fixed size and single-line rows, so changing the order never resizes the card */
+  .helm-gauge { width: 380px; max-width: 100%; height: 116px; box-sizing: border-box; display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px 10px 10px; border-radius: 20px; backdrop-filter: blur(14px); color: var(--text); white-space: nowrap; }
+  .helm-gauge[hidden] { display: none; }
+  .helm-gauge svg { width: 96px; height: 96px; flex: none; }
+  .helm-gauge .tick { stroke: var(--muted); stroke-width: 1; opacity: 0.45; } .helm-gauge .tick.major { stroke-width: 1.6; opacity: 0.9; }
+  .helm-gauge .n { fill: var(--muted); font-size: 10px; font-weight: 700; text-anchor: middle; }
+  .helm-gauge .turn { fill: none; stroke: var(--order); stroke-width: 4; stroke-linecap: round; opacity: 0.85; }
+  .helm-gauge .order { fill: var(--order); } .helm-gauge .hdg { stroke: var(--accent); stroke-width: 1.5; }
+  .helm-gauge .ship { fill: var(--accent); stroke: #0b1622; stroke-width: 1; }
+  .helm-read { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+  .helm-hdg { display: flex; align-items: baseline; gap: 8px; font-size: 24px; line-height: 1; }
+  .helm-hdg b { min-width: 4ch; font-weight: 600; color: var(--accent); } .helm-hdg span { color: var(--muted); font-size: 16px; }
+  .helm-gauge .ord { color: var(--order); } .helm-gauge .ok { color: #6fd3a0; }
+  .helm-turn { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; } .helm-turn b { font-weight: 600; }
+  .helm-spd { display: grid; grid-template-columns: auto 1fr 7ch; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .helm-spd i { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
+  .helm-spd b { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--order); }
+  .helm-spd s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; background: var(--accent); }
+  .helm-keys { font-size: 11px; color: var(--muted); }
+  .helm-gauge kbd { display: inline-block; min-width: 14px; padding: 0 4px; border: 1px solid var(--edge); border-radius: 4px; font: inherit; text-align: center; }`;
 
 export function liveOverlay() {
   document.head.append(Object.assign(document.createElement("style"), { textContent: CSS }));

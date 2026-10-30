@@ -10,7 +10,7 @@ import { loadField } from "./weather-layer.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout, topDown } from "./cargo-layout.js";
 import { sampleAt, toLocal, fromScene } from "./replay.js";
-import { startLive, liveOverlay, liveScenarios, turnNote } from "./live.js";
+import { startLive, liveOverlay, liveScenarios, helmGauge } from "./live.js";
 
 const q = new URLSearchParams(location.search);
 const loader = new GLTFLoader();
@@ -388,13 +388,10 @@ ui.scene.onchange = () => (location.search = (ui.scene.value === "replay" ? "?re
 const overlay = live ? liveOverlay() : null;
 if (live) {
   ui.scrub.disabled = true;
-  setInterval(() => live.poll().then(() => overlay.update(live)).catch(() => {}), 400);
+  const helm = helmGauge();
+  setInterval(() => live.poll().then(() => (overlay.update(live), helm.update(live))).catch(() => {}), 400);
   // Captured before the scene picker or a focused button sees the key, so arrows always steer the ship
   // (a focused <select> would otherwise switch scenes). Typing in a text field is left alone.
-  const helmNote = Object.assign(document.createElement("div"), { className: "live-pill", hidden: true });
-  Object.assign(helmNote.style, { position: "fixed", left: "50%", transform: "translateX(-50%)", top: "auto", bottom: "104px" });
-  document.body.append(helmNote);
-  let noteTimer = null;
   addEventListener("keydown", (e) => {
     if (overlay.open || e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     const step = e.shiftKey ? 1 : 5;
@@ -405,11 +402,7 @@ if (live) {
     document.activeElement?.blur();
     if (e.code === "Space") return live.pause(!live.state.paused);
     live.steer(...turn);
-    helmNote.textContent = `Order ${live.helm.heading.toFixed(0)}° · ${live.helm.speed.toFixed(1)} kn — ` +
-      turnNote(replay, live.helm.heading) + (live.state.paused ? " · paused" : "");
-    helmNote.hidden = false;
-    clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => (helmNote.hidden = true), 4000);
+    helm.show(live);
   }, true);
 }
 // the mission or replay note goes in the title card; the full credits open from the short sources line

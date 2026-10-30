@@ -107,7 +107,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
   const maplibre = globalThis.maplibregl, figure = container.closest("figure");
   const legend = document.getElementById("map-legend"), settle = document.getElementById("map-settle");
   let map = null, marker = null, placed = false, ready = false, follow = false, ship = [replay.lon[0], replay.lat[0]], drawnAt = -1, geo = null, count = -1;
-  let reportsKey = "", shownPreview = null, lossKey = -1, setWeather = null;
+  let reportsKey = "", shownPreview = null, lossKey = -1, setWeather = null, windOn = false;
   const startMs = Date.parse(replay.start_utc);
   if (maplibre) {
     let bounds;
@@ -125,7 +125,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
     map.on("load", () => {
       for (const id of ["forecast", "area", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
       map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0 } }); // an anchor: the colour is the weather layer's
-      if (field) setWeather = addWeather(map, field, "forecast"); // replays: the Copernicus field under everything else
+      if (field) (setWeather = addWeather(map, field, "forecast")).wind(windOn); // replays: the Copernicus field under everything else
       map.addLayer({ id: "forecast-edge", type: "line", source: "forecast", paint: { "line-color": HS_COLORS, "line-opacity": 0.6 } });
       map.addLayer({ id: "forecast-label", type: "symbol", source: "forecast", layout: { "text-field": ["get", "label"],
         "text-font": ["Noto Sans Regular"], "text-size": 11 }, paint: { "text-color": "#d6e2ee", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
@@ -180,6 +180,15 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.flyTo({ center: ship, zoom: Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
     };
     locateButton.onclick = () => (follow ? setFollow(false) : locate());
+    // Streamlines off by default: replays draw the Copernicus wind, live play the released forecast wave direction.
+    const windButton = document.getElementById("map-wind");
+    windButton.hidden = !field && !live;
+    if (live) [windButton.textContent, windButton.title] = ["Waves", "Show the forecast wave direction"];
+    windButton.onclick = () => {
+      windOn = !windOn;
+      windButton.setAttribute("aria-pressed", String(windOn));
+      setWeather?.wind(windOn);
+    };
     map.on("dragstart", () => setFollow(false));
     for (const el of legend.querySelectorAll(".live-only")) el.hidden = !live;
     for (const el of legend.querySelectorAll(".field-only")) el.hidden = !field;
@@ -220,6 +229,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
         setWeather?.remove();
         const f = forecastField(reports); // released sectors only, see weather-layer.js
         setWeather = f && addWeather(map, f, "forecast");
+        setWeather?.wind(windOn);
       }
       if (live.preview !== shownPreview || drawnAt === t) { // new preview, or the ship moved on along it
         shownPreview = live.preview;

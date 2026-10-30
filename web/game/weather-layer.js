@@ -26,31 +26,36 @@ export async function loadField(stormId) {
   }
 }
 
-const FORECAST_STEP = 0.05; // degrees between grid points of a forecast field
+const FORECAST_STEP = 0.05; // at most this many degrees between grid points of a forecast field
 const FORECAST_FLOW_MPS = 10; // streak speed for the forecast wave direction (a direction only, not a wind speed)
 
-// Released forecast reports as a field: Hs is the mid-range of each sector, blended between sector centres by
-// inverse distance squared, and null outside every sector. Static in time.
+// Released forecast reports as a field: Hs is the mid-range of the sector a point lies in (the mean on a shared edge),
+// so colours change on the drawn sector lines; the wave direction is blended between sector centres by inverse
+// distance squared for smooth streaks. Null outside every sector. Static in time.
 export function forecastField(reports) {
   if (!reports.length) return null;
   const [w, e, s, n] = [0, 1, 2, 3].map((q) => (q % 2 ? Math.max : Math.min)(...reports.map((r) => r.sector_bbox[q])));
-  const lon = [], lat = [];
-  for (let x = w; x <= e + 1e-9; x += FORECAST_STEP) lon.push(x);
-  for (let y = s; y <= n + 1e-9; y += FORECAST_STEP) lat.push(y);
+  // the step divides the smallest sector side, so sector edges (a regular lattice) fall on grid lines
+  const side = Math.min(...reports.map(({ sector_bbox: [a, b, c, d] }) => Math.min(b - a, d - c)));
+  const step = side / Math.ceil(side / FORECAST_STEP);
+  const axis = (a, b) => Array.from({ length: Math.round((b - a) / step) + 1 }, (_, i) => a + i * step);
+  const lon = axis(w, e), lat = axis(s, n);
   const centres = reports.map((r) => [(r.sector_bbox[0] + r.sector_bbox[1]) / 2, (r.sector_bbox[2] + r.sector_bbox[3]) / 2]);
   const hs = [], we = [], wn = [];
+  const tol = step / 100;
   for (const y of lat) for (const x of lon) {
-    if (!reports.some(({ sector_bbox: [a, b, c, d] }) => x >= a && x <= b && y >= c && y <= d)) {
+    const own = reports.filter(({ sector_bbox: [a, b, c, d] }) => x >= a - tol && x <= b + tol && y >= c - tol && y <= d + tol);
+    if (!own.length) {
       hs.push(null); we.push(null); wn.push(null);
       continue;
     }
-    let sw = 0, sh = 0, se = 0, sn = 0;
+    let se = 0, sn = 0;
     reports.forEach((r, q) => {
       const f = 1 / ((x - centres[q][0]) ** 2 + (y - centres[q][1]) ** 2 + 1e-4), to = ((r.wave_from_deg + 180) * Math.PI) / 180;
-      [sw, sh, se, sn] = [sw + f, sh + f * (r.hs_range_m[0] + r.hs_range_m[1]) / 2, se + f * Math.sin(to), sn + f * Math.cos(to)];
+      [se, sn] = [se + f * Math.sin(to), sn + f * Math.cos(to)];
     });
     const m = Math.hypot(se, sn) || 1;
-    hs.push(Math.round((10 * sh) / sw)); we.push(Math.round((10 * FORECAST_FLOW_MPS * se) / m)); wn.push(Math.round((10 * FORECAST_FLOW_MPS * sn) / m));
+    hs.push(Math.round((10 * own.reduce((sum, r) => sum + (r.hs_range_m[0] + r.hs_range_m[1]) / 2, 0)) / own.length)); we.push(Math.round((10 * FORECAST_FLOW_MPS * se) / m)); wn.push(Math.round((10 * FORECAST_FLOW_MPS * sn) / m));
   }
   return { lon, lat, ms: [0, 1], hs: [hs, hs], wind_e: [we, we], wind_n: [wn, wn] };
 }
@@ -94,10 +99,14 @@ export function addWeather(map, field, beforeId) {
   const ictx = image.getContext("2d");
   let k = 0, drawnK = -1;
 
+  // MapLibre stretches the image linearly in Web Mercator, so rows are spaced in Mercator y, not in latitude;
+  // spaced in latitude the colours drift off the forecast sector lines by kilometres.
+  const merc = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  const [mn, ms] = [merc(n), merc(s)];
   const paint = () => {
     const px = ictx.createImageData(W, H);
     for (let y = 0; y < H; y++) {
-      const lat = n - ((n - s) * (y + 0.5)) / H;
+      const lat = (360 / Math.PI) * Math.atan(Math.exp(mn - ((mn - ms) * (y + 0.5)) / H)) - 90;
       for (let x = 0; x < W; x++) {
         const [i, j] = grid(w + ((e - w) * (x + 0.5)) / W, lat), hs = sample(field, "hs", k, i, j), o = 4 * (y * W + x);
         if (Number.isNaN(hs)) continue; // land and coast stay the basemap's
@@ -136,9 +145,11 @@ export function addWeather(map, field, beforeId) {
   resize();
   map.on("resize", resize);
   map.on("move", () => tctx.clearRect(0, 0, trails.width, trails.height));
-  let last = performance.now(), stopped = false;
+  let last = performance.now(), stopped = false, windOn = false; // streamlines start hidden: set.wind(true)
+  trails.hidden = true;
   const frame = (now) => {
     if (stopped) return;
+    if (!windOn) return requestAnimationFrame(frame);
     const dt = Math.min(50, now - last), ratio = trails.width / trails.clientWidth || 1;
     last = now;
     tctx.globalCompositeOperation = "destination-out";
@@ -177,6 +188,11 @@ export function addWeather(map, field, beforeId) {
     })()));
     k = Math.max(0, j);
     if (drawnK < 0 || Math.abs(k - drawnK) >= REDRAW_STEP) paint();
+  };
+  set.wind = (on) => {
+    windOn = on;
+    trails.hidden = !on;
+    tctx.clearRect(0, 0, trails.width, trails.height);
   };
   set.remove = () => {
     stopped = true;

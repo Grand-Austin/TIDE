@@ -14,17 +14,34 @@ function mulberry32(seed) {
   };
 }
 
-export function spectrumWaves({ hs, tp, fromDeg, spreadDeg = 35, steepness = 0.75, seed = 1 }) {
+// Directional spreading cos^2s(θ/2) with Mitsuyasu's s(ω): narrowest at the peak, wider for short waves, so the long
+// crests read as one direction. s_max 50: storm swell, between Goda's 25 (short decay) and 75 (long decay).
+const S_MAX = 50;
+
+// |θ| at quantile u of the cos^2s(θ/2) spread, from a coarse numeric integral (steps of 2.8°)
+function spreadAngle(sp, u) {
+  const n = 64, f = (k) => Math.cos(((k + 0.5) * Math.PI) / n / 2) ** (2 * sp);
+  let total = 0;
+  for (let k = 0; k < n; k++) total += f(k);
+  for (let k = 0, acc = 0; k < n; k++) if ((acc += f(k)) >= u * total) return ((k + 0.5) * Math.PI) / n;
+  return Math.PI;
+}
+
+export function spectrumWaves({ hs, tp, fromDeg, steepness = 0.75, seed = 1 }) {
   const wp = (2 * Math.PI) / tp, gamma = 3.3, rand = mulberry32(seed);
   const travel = ((fromDeg + 180) * Math.PI) / 180;
   const w0 = 0.75 * wp, dw = (3.0 * wp - w0) / N_WAVES;
   const waves = [];
+  let off = 0;
   for (let i = 0; i < N_WAVES; i++) {
     const w = w0 + (i + 0.5) * dw;
     const sigma = w <= wp ? 0.07 : 0.09;
     const s = w ** -5 * Math.exp(-1.25 * (wp / w) ** 4) * gamma ** Math.exp(-((w - wp) ** 2) / (2 * sigma ** 2 * wp ** 2));
-    // shortcut: uniform ±spread instead of a cos-2s spreading function; fine for looks, revisit if directions matter
-    const dir = travel + (rand() * 2 - 1) * (spreadDeg * Math.PI) / 180;
+    const sp = S_MAX * (w <= wp ? (w / wp) ** 5 : (w / wp) ** -2.5);
+    // a middle quantile, so 24 components give every seed a similar spread; odd components mirror their neighbour,
+    // so the sea's mean direction stays the data's
+    off = i % 2 ? -off : (rand() < 0.5 ? -1 : 1) * spreadAngle(sp, 0.2 + 0.6 * rand());
+    const dir = travel + off;
     waves.push({ w, k: (w * w) / G, a: Math.sqrt(2 * s * dw), dx: Math.sin(dir), dz: -Math.cos(dir), phase: rand() * 2 * Math.PI });
   }
   const scale = hs / (4 * Math.sqrt(waves.reduce((m0, v) => m0 + (v.a * v.a) / 2, 0)));

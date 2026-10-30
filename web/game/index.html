@@ -24,7 +24,7 @@
   ::-webkit-scrollbar-thumb { background: #2b4660; border-radius: 3px; }
 
   /* left column: title card, then the live briefing / decision / mission card */
-  .left { position: fixed; top: 12px; left: 12px; width: 330px; max-height: calc(100vh - 240px); display: flex; flex-direction: column;
+  .left { position: fixed; top: 12px; left: 12px; width: 330px; max-height: calc(100vh - 340px); display: flex; flex-direction: column;
           gap: 10px; z-index: 7; }
   .head { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
   .brand { display: flex; align-items: center; gap: 8px; }
@@ -71,9 +71,10 @@
   .map .row #map-progress { margin-left: auto; }
   .expand { width: 26px; height: 26px; padding: 0; border: 1px solid var(--edge); border-radius: 7px; background: transparent; cursor: pointer; }
   .expand[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(92, 200, 232, 0.12); }
-  .map.big { z-index: 8; width: min(440px, 38vw); } .map.big #map { height: min(300px, 42vh); }
+  .expand.text { width: auto; padding: 0 8px; font-size: 11px; } .expand[hidden] { display: none; }
+  .map.big { z-index: 8; width: min(560px, 44vw); } .map.big #map { height: min(400px, 52vh); }
   /* small until clicked: no legend, a short map; a click on the map enlarges it (minimap.js) */
-  .map:not(.big) { width: 220px; } .map:not(.big) #map { height: 120px; cursor: zoom-in; } .map:not(.big) .legend { display: none; } .map:not(.big) .maplibregl-ctrl-attrib { display: none; }
+  .map:not(.big) { width: 360px; } .map:not(.big) #map { height: 220px; cursor: zoom-in; } .map:not(.big) .legend { display: none; } .map:not(.big) .maplibregl-ctrl-attrib { display: none; }
   /* while a briefing or decision is open the left column takes the height and the map steps aside */
   body.deciding .map { display: none; } body.deciding .left { max-height: calc(100vh - 110px); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--muted); padding: 0 2px; }
@@ -94,7 +95,8 @@
   .loss-popup .maplibregl-popup-close-button { color: var(--muted); font-size: 16px; padding: 0 6px; }
 
   /* bottom centre: a floating playback dock between the map and the panel */
-  .dock-wrap { position: fixed; left: 324px; right: var(--side); bottom: calc(var(--credit-h) + 4px); display: flex; justify-content: center;
+  .dock-wrap { position: fixed; left: 384px; right: var(--side); bottom: calc(var(--credit-h) + 4px); display: flex; flex-direction: column;
+               align-items: center; gap: 8px;
                pointer-events: none; }
   .dock { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 999px; min-width: 0;
           width: min(780px, 100%); box-sizing: border-box; font-size: 13px; }
@@ -107,7 +109,8 @@
   .seg { display: flex; padding: 2px; border-radius: 999px; background: rgba(3, 9, 16, 0.45); flex: none; }
   .seg button { height: 30px; min-width: 40px; padding: 0 8px; font-size: 12px; }
   .seg button[aria-pressed="true"] { background: #2b4660; color: #fff; }
-  .views { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; }
+  /* camera views: a vertical strip beside the panel, clear of the cards and toasts at the top */
+  .views { position: fixed; top: 12px; right: calc(var(--side) + 8px); z-index: 4; flex-direction: column; border-radius: 18px; }
   .views button { border: 0; background: transparent; color: var(--text); border-radius: 999px; cursor: pointer; }
   .toggle { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; cursor: pointer;
             white-space: nowrap; color: var(--muted); font-size: 12px; flex: none; }
@@ -127,7 +130,7 @@
   .sources .credit p { margin: 0 0 6px; } .sources .credit p:last-child { margin: 0; color: var(--order); }
   #fps { position: fixed; right: calc(var(--side) + 8px); top: 12px; color: #0b1622; font: 11px ui-monospace, monospace; }
 
-  @media (max-width: 1180px) { .map { display: none; } .dock-wrap { left: 12px; } .views { top: auto; bottom: 150px; } }
+  @media (max-width: 1180px) { .map { display: none; } .left { max-height: calc(100vh - 240px); } .dock-wrap { left: 12px; } .views { top: auto; bottom: 150px; } }
   @media (max-width: 900px) {
     :root { --credit-h: 44px; }
     .left { right: 12px; width: auto; max-height: 45vh; }
@@ -233,6 +236,7 @@
 
 <figure class="map glass" aria-labelledby="map-title">
   <div class="row"><h2 id="map-title">Passage</h2><span class="muted mono" id="map-progress"></span>
+    <button type="button" class="expand text" id="map-wind" aria-pressed="false" title="Show the wind (Copernicus)">Wind</button>
     <button type="button" class="expand" id="map-locate" aria-pressed="false" aria-label="Centre on the ship and follow it" title="Follow the ship">◎</button>
     <button type="button" class="expand" id="map-expand" aria-pressed="false" aria-label="Enlarge the map" title="Enlarge the map">⤢</button></div>
   <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas and the predicted track"></div>
