@@ -1,8 +1,8 @@
 {
   "version": 1,
   "scenario": "biscay-20261022-21",
-  "definition_sha256": "f20f3273f3e0949d36c54152a38c37a143c7ae988803a0d923a096baab74f7a2",
-  "gameplay_sha256": "ab4fdaf5dc42f42cd9304515a6a147a13464a14031842aa8244f31820353e921",
+  "definition_sha256": "c3f4299f2c3fb4b51cf11de51fb91f861e1dd1372f5a5f4077a7131afd8aaa8a",
+  "gameplay_sha256": "20f5f2a8990e4e8b935913d609c13f989f11a197ac8100879aa165c108788308",
   "rule": "passed when at least one strategy escapes without losing the ship",
   "passed": false,
   "reference": null,
@@ -22,127 +22,127 @@
           "speed_knots": 9.72
         },
         {
-          "t": 304.0,
-          "heading_deg": 45.0,
+          "t": 300.0,
+          "heading_deg": 44.6,
           "speed_knots": 9.72
         },
         {
-          "t": 604.0,
-          "heading_deg": 44.5,
+          "t": 600.8000000000001,
+          "heading_deg": 44.2,
           "speed_knots": 9.72
         },
         {
-          "t": 904.0,
+          "t": 900.8000000000001,
           "heading_deg": 43.5,
           "speed_knots": 9.72
         },
         {
-          "t": 1204.0,
-          "heading_deg": 41.4,
+          "t": 1201.0,
+          "heading_deg": 41.7,
           "speed_knots": 9.72
         },
         {
-          "t": 1504.0,
-          "heading_deg": 40.3,
+          "t": 1501.0,
+          "heading_deg": 223.8,
           "speed_knots": 9.72
         },
         {
-          "t": 1804.0,
-          "heading_deg": 34.3,
+          "t": 1801.0,
+          "heading_deg": 200.1,
           "speed_knots": 9.72
         },
         {
-          "t": 2104.0,
-          "heading_deg": 336.9,
+          "t": 2101.0,
+          "heading_deg": 215.4,
           "speed_knots": 9.72
         },
         {
-          "t": 2404.0,
-          "heading_deg": 175.6,
+          "t": 2401.0,
+          "heading_deg": 27.9,
           "speed_knots": 9.72
         },
         {
-          "t": 2704.2000000000003,
-          "heading_deg": 150.3,
+          "t": 2701.0,
+          "heading_deg": 90.7,
           "speed_knots": 9.72
         },
         {
-          "t": 3004.2000000000003,
-          "heading_deg": 326.0,
+          "t": 3001.0,
+          "heading_deg": 261.9,
           "speed_knots": 9.72
         },
         {
-          "t": 3304.2000000000003,
-          "heading_deg": 355.8,
+          "t": 3301.0,
+          "heading_deg": 291.6,
           "speed_knots": 9.72
         },
         {
-          "t": 3604.2000000000003,
-          "heading_deg": 186.5,
+          "t": 3601.0,
+          "heading_deg": 275.6,
           "speed_knots": 9.72
         },
         {
-          "t": 3904.2000000000003,
-          "heading_deg": 152.1,
+          "t": 3901.0,
+          "heading_deg": 94.2,
           "speed_knots": 9.72
         },
         {
-          "t": 4205.6,
-          "heading_deg": 322.4,
+          "t": 4201.0,
+          "heading_deg": 191.6,
           "speed_knots": 9.72
         },
         {
-          "t": 4505.6,
-          "heading_deg": 344.7,
+          "t": 4501.0,
+          "heading_deg": 336.5,
           "speed_knots": 9.72
         },
         {
-          "t": 4805.6,
-          "heading_deg": 180.2,
+          "t": 4801.0,
+          "heading_deg": 80.7,
           "speed_knots": 9.72
         },
         {
-          "t": 5105.6,
-          "heading_deg": 115.2,
+          "t": 5101.0,
+          "heading_deg": 252.6,
           "speed_knots": 9.72
         },
         {
-          "t": 5405.6,
-          "heading_deg": 297.3,
+          "t": 5401.0,
+          "heading_deg": 289.0,
           "speed_knots": 9.72
         },
         {
-          "t": 5705.6,
-          "heading_deg": 267.3,
+          "t": 5701.0,
+          "heading_deg": 256.1,
           "speed_knots": 9.72
         },
         {
-          "t": 6005.6,
-          "heading_deg": 213.3,
+          "t": 6005.8,
+          "heading_deg": 66.5,
           "speed_knots": 9.72
         },
         {
-          "t": 6305.6,
-          "heading_deg": 36.4,
+          "t": 6305.8,
+          "heading_deg": 185.8,
           "speed_knots": 9.72
         },
         {
-          "t": 6605.6,
-          "heading_deg": 353.4,
+          "t": 6605.8,
+          "heading_deg": 330.4,
           "speed_knots": 9.72
         },
         {
-          "t": 6905.6,
-          "heading_deg": 247.3,
+          "t": 6905.8,
+          "heading_deg": 64.0,
           "speed_knots": 9.72
         }
       ],
       "outcome": "timeout",
       "elapsed_s": 7200.0,
-      "lost_teu": 120,
+      "lost_teu": 45,
       "grade": 4,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20261022-21/exit-20261030-075154"
+      "session": "data/runs/check-biscay-20261022-21/exit-20261030-203333"
     },
     {
       "name": "avoid_beam",
@@ -159,127 +159,127 @@
           "speed_knots": 9.72
         },
         {
-          "t": 304.0,
-          "heading_deg": 45,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 604.0,
+          "t": 300.0,
           "heading_deg": 44,
           "speed_knots": 9.72
         },
         {
-          "t": 904.0,
+          "t": 600.0,
+          "heading_deg": 44,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 901.8000000000001,
           "heading_deg": 43,
           "speed_knots": 9.72
         },
         {
-          "t": 1204.0,
-          "heading_deg": 42,
+          "t": 1206.8,
+          "heading_deg": 43,
           "speed_knots": 9.72
         },
         {
-          "t": 1504.0,
-          "heading_deg": 41,
+          "t": 1506.8000000000002,
+          "heading_deg": 224,
           "speed_knots": 9.72
         },
         {
-          "t": 1804.0,
-          "heading_deg": 36,
+          "t": 1806.8000000000002,
+          "heading_deg": 200,
           "speed_knots": 9.72
         },
         {
-          "t": 2104.0,
-          "heading_deg": 22,
+          "t": 2106.8,
+          "heading_deg": 218,
           "speed_knots": 9.72
         },
         {
-          "t": 2404.0,
-          "heading_deg": 210,
+          "t": 2406.8,
+          "heading_deg": 30,
           "speed_knots": 9.72
         },
         {
           "t": 2706.8,
-          "heading_deg": 204,
+          "heading_deg": 100,
           "speed_knots": 9.72
         },
         {
           "t": 3006.8,
-          "heading_deg": 29,
+          "heading_deg": 267,
           "speed_knots": 9.72
         },
         {
           "t": 3306.8,
-          "heading_deg": 276,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3606.8,
-          "heading_deg": 201,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3906.8,
-          "heading_deg": 55,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 4206.8,
-          "heading_deg": 301,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 4507.0,
-          "heading_deg": 205,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 4807.0,
-          "heading_deg": 63,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 5107.0,
-          "heading_deg": 298,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 5407.0,
-          "heading_deg": 213,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 5707.0,
-          "heading_deg": 37,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 6007.0,
           "heading_deg": 297,
           "speed_knots": 9.72
         },
         {
-          "t": 6307.0,
-          "heading_deg": 207,
+          "t": 3606.8,
+          "heading_deg": 277,
           "speed_knots": 9.72
         },
         {
-          "t": 6607.0,
-          "heading_deg": 52,
+          "t": 3906.8,
+          "heading_deg": 95,
           "speed_knots": 9.72
         },
         {
-          "t": 6907.0,
-          "heading_deg": 303,
+          "t": 4206.8,
+          "heading_deg": 202,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4506.8,
+          "heading_deg": 24,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4806.8,
+          "heading_deg": 276,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5106.8,
+          "heading_deg": 206,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5406.8,
+          "heading_deg": 25,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5706.8,
+          "heading_deg": 97,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6006.8,
+          "heading_deg": 273,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6309.8,
+          "heading_deg": 302,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6609.8,
+          "heading_deg": 275,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6909.8,
+          "heading_deg": 85,
           "speed_knots": 9.72
         }
       ],
       "outcome": "timeout",
       "elapsed_s": 7200.0,
-      "lost_teu": 80,
-      "grade": 4,
+      "lost_teu": 165,
+      "grade": 5,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20261022-21/avoid_beam-20261030-080356"
+      "session": "data/runs/check-biscay-20261022-21/avoid_beam-20261030-205312"
     }
   ]
 }
