@@ -206,7 +206,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.on("mouseleave", "losses", () => (map.getCanvas().style.cursor = ""));
       ready = true;
       if (!portsOn) setPorts(false); // the layer may have been switched off while the style was loading
-      // a replay flies in to the ship; live play stays on the whole area, where every released forecast area shows
+      // a replay flies in to the ship; live play stays on the whole area until Locate, which zooms in as a replay does
       if (!live) setTimeout(() => locate(INTRO_MS), INTRO_DELAY_MS);
     });
     container.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show"); // small map: start collapsed
@@ -239,9 +239,9 @@ export function createMinimap(container, { replay, duration, live, field }) {
     };
     const locate = (duration = 1200) => {
       setFollow(true);
-      map.flyTo({ center: ship, zoom: live ? map.getZoom() : Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
+      map.flyTo({ center: ship, zoom: Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
     };
-    locateButton.onclick = () => (follow ? setFollow(false) : locate());
+    locateButton.onclick = () => locate(); // always re-centres; dragging the map is what stops following
     // Ports: the guidance layer switches off as a whole, ring and labels included
     const portsButton = document.getElementById("map-ports");
     const setPorts = (on) => {

@@ -327,7 +327,7 @@ function placeShip(s) {
 
 // --- playback controls
 const ui = Object.fromEntries(["play", "scrub", "fps", "scene", "credit", "slowmo", "panel", "panel-toggle"].map((id) => [id, document.getElementById(id)]));
-let simT = 0, rate = 5, playing = true;
+let simT = 0, rate = 5, playing = true, liveSlow = false;
 ui.scrub.max = duration;
 ui.play.onclick = () => {
   if (live) return live.pause(!live.state.paused);
@@ -404,7 +404,6 @@ if (live) {
     order("−", "Slower, 1 kn (↓ 0.5 kn)", 0, -1), speedOut, order("+", "Faster, 1 kn (↑ 0.5 kn)", 0, 1));
   showSpeed();
   ui.scrub.hidden = true;
-  ui.slowmo.closest("label").hidden = true; // slow motion is a replay setting; live time follows the session
   ui.play.after(ctl);
   setInterval(() => live.poll().then(() => (overlay.update(live), helm.update(live), showSpeed())).catch(() => {}), 400);
   // Captured before the scene picker or a focused button sees the key, so arrows always steer the ship
@@ -489,6 +488,10 @@ renderer.setAnimationLoop((now) => {
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
   const slow = ui.slowmo.checked && (fallView.falling(simT) || now < slowUntil); // watch each fall at 2x at most
+  if (live && slow !== liveSlow) { // live: the session itself runs at 1x while boxes fall, then back to the chosen rate
+    liveSlow = slow;
+    if (rate > 1) live.rate(slow ? 1 : rate === 60 ? 0 : rate).catch(() => {});
+  }
   if (live) {
     // live: play at the session's own pace, about LIVE_BUFFER_S of wall time behind its newest record, so the
     // 400 ms polls and a slower server moment (a helm preview) never run the scene dry; the gap steers the pace
