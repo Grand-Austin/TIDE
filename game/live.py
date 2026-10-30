@@ -286,6 +286,7 @@ def validated(folder: Path) -> bool:
 
 
 GAME: Game | None = None
+UNVALIDATED = False  # --unvalidated: also list scenarios without a passing report, marked as such (playtests only)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -313,8 +314,10 @@ class Handler(SimpleHTTPRequestHandler):
             items = []
             for path in sorted(SCENARIOS.glob("*/scenario.json")):
                 d = json.loads(path.read_text())
-                if "storm" in d.get("collection", {}) and validated(path.parent):
-                    items.append({"id": d["id"], "title": d["title"], "start": d["start"]})
+                ok = validated(path.parent)
+                if "storm" in d.get("collection", {}) and (ok or UNVALIDATED):
+                    title = d["title"] if ok else f"[unverified] {d['title']}"
+                    items.append({"id": d["id"], "title": title, "start": d["start"], "validated": ok})
             return self._json(items)
         if url.path == "/api/state":
             if GAME is None:
@@ -353,7 +356,11 @@ class Handler(SimpleHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--unvalidated", action="store_true",
+                        help="also offer scenarios whose validation is missing, failed or out of date (playtests only)")
     args = parser.parse_args()
+    global UNVALIDATED
+    UNVALIDATED = args.unvalidated
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"TIDE live play: http://localhost:{args.port}/game/ (pick a 'Play:' scenario)")
     server.serve_forever()
