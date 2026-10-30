@@ -33,6 +33,7 @@ SEGMENT_S = 1.0
 RATES = (1.0, 5.0, 20.0, 0.0)  # 0 = as fast as the simulation runs
 ROLL_CHECK_DEG = 10.0
 MAX_FORECAST_CHECKS = 2
+CHECKPOINT_GAP_S = 600.0  # game seconds after one decision before the next opens; the briefing does not count
 PREVIEW_S = 480.0  # longest helm preview
 PREVIEW_CHUNK_S = 60.0  # the preview stops a chunk after the ship settles on the ordered heading
 PREVIEW_TRACK_S = 10.0  # one preview track point per this much game time
@@ -135,6 +136,10 @@ class Game:
         if s.outcome or s.reason in ("domain_boundary", "model_limit", "numerical_failure"):
             self._finish()
             return
+        new = [r for r in view["reports"] if r["id"] not in self.seen_reports]
+        self.seen_reports |= {r["id"] for r in view["reports"]}
+        if self._recently_decided(view):
+            return  # a burst of losses or a forecast right after a decision does not stack another card
         if s.reason == "cargo_grade_increased":
             self._open_checkpoint("cargo", f"Cargo grade rose to {view['cargo']['grade']}: deck containers are going overboard.")
             return
@@ -142,11 +147,13 @@ class Game:
             self.roll_checked = True
             self._open_checkpoint("roll", f"The ship rolled {abs(view['vessel']['roll_deg']):.0f}°.")
             return
-        new = [r for r in view["reports"] if r["id"] not in self.seen_reports]
-        self.seen_reports |= {r["id"] for r in view["reports"]}
         if any(r["important"] for r in new) and self.forecast_checks < MAX_FORECAST_CHECKS:
             self.forecast_checks += 1
             self._open_checkpoint("forecast", "A new forecast has been released.")
+
+    def _recently_decided(self, view) -> bool:
+        last = [cp["t"] for cp in self.checkpoints if cp["trigger"] != "briefing"]
+        return bool(last) and view["vessel"]["time_s"] - last[-1] < CHECKPOINT_GAP_S
 
     def _open_checkpoint(self, trigger: str, message: str):
         s = self.session
