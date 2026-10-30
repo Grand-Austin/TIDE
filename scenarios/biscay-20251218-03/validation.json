@@ -1,11 +1,11 @@
 {
   "version": 1,
   "scenario": "biscay-20251218-03",
-  "definition_sha256": "756cbf5dfa3237574a110d863a41a28ccc5bf4b9befb7f3d5684e356a41f9c8d",
-  "gameplay_sha256": "cc4766839c497051ab68c8531cf84da716e111e44c81206dea0e56eb5843ba47",
+  "definition_sha256": "77feb815707d446baeb4804fb0a4cc34e89433934659559cba41248e79def85e",
+  "gameplay_sha256": "aaf8cb8b1f315db976e1c5cd63abf40504fa659c884e797b64cfc9065ef016b7",
   "rule": "passed when at least one strategy escapes without losing the ship",
   "passed": true,
-  "reference": "exit",
+  "reference": "avoid_beam",
   "strategies": [
     {
       "name": "exit",
@@ -22,57 +22,57 @@
           "speed_knots": 9.72
         },
         {
-          "t": 304.8,
-          "heading_deg": 71.1,
+          "t": 300.0,
+          "heading_deg": 71.4,
           "speed_knots": 9.72
         },
         {
-          "t": 604.8000000000001,
-          "heading_deg": 71.2,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 904.8000000000001,
-          "heading_deg": 71.3,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1209.8,
-          "heading_deg": 71.3,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1509.8000000000002,
+          "t": 600.0,
           "heading_deg": 71.5,
           "speed_knots": 9.72
         },
         {
-          "t": 1809.8000000000002,
+          "t": 900.0,
           "heading_deg": 71.6,
           "speed_knots": 9.72
         },
         {
-          "t": 2109.8,
-          "heading_deg": 71.8,
+          "t": 1204.0,
+          "heading_deg": 71.7,
           "speed_knots": 9.72
         },
         {
-          "t": 2409.8,
-          "heading_deg": 71.8,
+          "t": 1504.0,
+          "heading_deg": 71.9,
           "speed_knots": 9.72
         },
         {
-          "t": 2709.8,
+          "t": 1804.0,
+          "heading_deg": 72.0,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2104.0,
           "heading_deg": 72.1,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2404.0,
+          "heading_deg": 72.3,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2704.0,
+          "heading_deg": 72.6,
           "speed_knots": 9.72
         }
       ],
       "outcome": "escaped",
-      "elapsed_s": 2887.5,
-      "lost_teu": 15,
-      "grade": 3,
+      "elapsed_s": 2909.0,
+      "lost_teu": 5,
+      "grade": 1,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20251218-03/exit-20261030-075152"
+      "session": "data/runs/check-biscay-20251218-03/exit-20261030-203333"
     },
     {
       "name": "avoid_beam",
@@ -89,57 +89,57 @@
           "speed_knots": 9.72
         },
         {
-          "t": 304.8,
+          "t": 300.0,
           "heading_deg": 71,
           "speed_knots": 9.72
         },
         {
-          "t": 604.8000000000001,
+          "t": 600.0,
           "heading_deg": 71,
           "speed_knots": 9.72
         },
         {
-          "t": 904.8000000000001,
+          "t": 900.0,
           "heading_deg": 71,
           "speed_knots": 9.72
         },
         {
-          "t": 1209.8,
-          "heading_deg": 71,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1509.8000000000002,
-          "heading_deg": 71,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1809.8000000000002,
+          "t": 1200.0,
           "heading_deg": 72,
           "speed_knots": 9.72
         },
         {
-          "t": 2109.8,
+          "t": 1500.0,
           "heading_deg": 72,
           "speed_knots": 9.72
         },
         {
-          "t": 2409.8,
+          "t": 1800.0,
           "heading_deg": 72,
           "speed_knots": 9.72
         },
         {
-          "t": 2709.8,
+          "t": 2100.0,
           "heading_deg": 72,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2400.0,
+          "heading_deg": 72,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2700.0,
+          "heading_deg": 73,
           "speed_knots": 9.72
         }
       ],
       "outcome": "escaped",
-      "elapsed_s": 2887.5,
-      "lost_teu": 15,
-      "grade": 3,
+      "elapsed_s": 2908.0,
+      "lost_teu": 0,
+      "grade": 0,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20251218-03/avoid_beam-20261030-075620"
+      "session": "data/runs/check-biscay-20251218-03/avoid_beam-20261030-204431"
     }
   ]
 }

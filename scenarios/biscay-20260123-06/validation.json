@@ -1,11 +1,11 @@
 {
   "version": 1,
   "scenario": "biscay-20260123-06",
-  "definition_sha256": "59336e1c9fa135e465feaa5c41409fe6d62f384d77c4da4d2f654bc4941582e2",
-  "gameplay_sha256": "669ec8a82e5f49276187b1a55afabd782df8a3c322b995a56479fe126f054751",
+  "definition_sha256": "c54dded46d275f73429a5ecb4acca355380f52626e27d033165724e667d9783c",
+  "gameplay_sha256": "4e877cd9c7f66176821fb8b78223a9004bda76053dc06a30d84a18d41641bb50",
   "rule": "passed when at least one strategy escapes without losing the ship",
-  "passed": true,
-  "reference": "exit",
+  "passed": false,
+  "reference": null,
   "strategies": [
     {
       "name": "exit",
@@ -22,47 +22,127 @@
           "speed_knots": 9.72
         },
         {
-          "t": 303.2,
-          "heading_deg": 356.6,
+          "t": 301.0,
+          "heading_deg": 357.0,
           "speed_knots": 9.72
         },
         {
-          "t": 603.2,
-          "heading_deg": 355.8,
+          "t": 601.0,
+          "heading_deg": 356.1,
           "speed_knots": 9.72
         },
         {
-          "t": 903.2,
-          "heading_deg": 353.8,
+          "t": 901.0,
+          "heading_deg": 354.7,
           "speed_knots": 9.72
         },
         {
-          "t": 1206.8,
-          "heading_deg": 351.7,
+          "t": 1201.8,
+          "heading_deg": 352.8,
           "speed_knots": 9.72
         },
         {
-          "t": 1507.4,
-          "heading_deg": 350.4,
+          "t": 1501.8000000000002,
+          "heading_deg": 349.8,
           "speed_knots": 9.72
         },
         {
-          "t": 1807.4,
-          "heading_deg": 347.8,
+          "t": 1801.8000000000002,
+          "heading_deg": 344.1,
           "speed_knots": 9.72
         },
         {
-          "t": 2107.4,
-          "heading_deg": 335.4,
+          "t": 2101.8,
+          "heading_deg": 310.4,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2401.8,
+          "heading_deg": 146.1,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 2701.8,
+          "heading_deg": 108.1,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3001.8,
+          "heading_deg": 292.5,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3301.8,
+          "heading_deg": 268.5,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3601.8,
+          "heading_deg": 259.8,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3901.8,
+          "heading_deg": 76.8,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4201.8,
+          "heading_deg": 140.2,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4501.8,
+          "heading_deg": 307.0,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4801.8,
+          "heading_deg": 338.9,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5101.8,
+          "heading_deg": 175.1,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5401.8,
+          "heading_deg": 42.7,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5701.8,
+          "heading_deg": 261.7,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6001.8,
+          "heading_deg": 202.8,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6301.8,
+          "heading_deg": 14.6,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6601.8,
+          "heading_deg": 92.9,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6901.8,
+          "heading_deg": 266.8,
           "speed_knots": 9.72
         }
       ],
-      "outcome": "escaped",
-      "elapsed_s": 2400.6,
-      "lost_teu": 125,
-      "grade": 5,
+      "outcome": "timeout",
+      "elapsed_s": 7200.0,
+      "lost_teu": 110,
+      "grade": 4,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20260123-06/exit-20261030-075154"
+      "session": "data/runs/check-biscay-20260123-06/exit-20261030-203333"
     },
     {
       "name": "avoid_beam",
@@ -79,127 +159,127 @@
           "speed_knots": 9.72
         },
         {
-          "t": 301.8,
+          "t": 304.40000000000003,
           "heading_deg": 29,
           "speed_knots": 9.72
         },
         {
-          "t": 601.8000000000001,
+          "t": 605.4,
           "heading_deg": 307,
           "speed_knots": 9.72
         },
         {
-          "t": 902.2,
-          "heading_deg": 29,
+          "t": 905.4000000000001,
+          "heading_deg": 307,
           "speed_knots": 9.72
         },
         {
-          "t": 1202.2,
-          "heading_deg": 308,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1502.2,
-          "heading_deg": 306,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1802.2,
+          "t": 1205.4,
           "heading_deg": 30,
           "speed_knots": 9.72
         },
         {
-          "t": 2102.2000000000003,
-          "heading_deg": 32,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 2402.2000000000003,
-          "heading_deg": 306,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 2702.2000000000003,
-          "heading_deg": 254,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3002.2000000000003,
-          "heading_deg": 90,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3302.2000000000003,
-          "heading_deg": 309,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3602.2000000000003,
-          "heading_deg": 232,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3902.2000000000003,
-          "heading_deg": 59,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 4207.2,
+          "t": 1505.4,
           "heading_deg": 307,
           "speed_knots": 9.72
         },
         {
-          "t": 4507.2,
-          "heading_deg": 212,
+          "t": 1805.4,
+          "heading_deg": 31,
           "speed_knots": 9.72
         },
         {
-          "t": 4807.2,
-          "heading_deg": 58,
+          "t": 2105.4,
+          "heading_deg": 304,
           "speed_knots": 9.72
         },
         {
-          "t": 5107.200000000001,
-          "heading_deg": 310,
+          "t": 2405.4,
+          "heading_deg": 308,
           "speed_knots": 9.72
         },
         {
-          "t": 5407.200000000001,
-          "heading_deg": 126,
+          "t": 2705.4,
+          "heading_deg": 114,
           "speed_knots": 9.72
         },
         {
-          "t": 5707.200000000001,
-          "heading_deg": 224,
+          "t": 3005.4,
+          "heading_deg": 229,
           "speed_knots": 9.72
         },
         {
-          "t": 6007.200000000001,
+          "t": 3309.0,
           "heading_deg": 309,
           "speed_knots": 9.72
         },
         {
-          "t": 6307.200000000001,
-          "heading_deg": 83,
+          "t": 3609.0,
+          "heading_deg": 84,
           "speed_knots": 9.72
         },
         {
-          "t": 6607.200000000001,
-          "heading_deg": 214,
+          "t": 3909.0,
+          "heading_deg": 226,
           "speed_knots": 9.72
         },
         {
-          "t": 6907.200000000001,
-          "heading_deg": 309,
+          "t": 4209.0,
+          "heading_deg": 301,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4509.0,
+          "heading_deg": 93,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4809.0,
+          "heading_deg": 243,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5109.0,
+          "heading_deg": 301,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5409.0,
+          "heading_deg": 118,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5709.0,
+          "heading_deg": 259,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6009.0,
+          "heading_deg": 306,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6309.0,
+          "heading_deg": 109,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6609.0,
+          "heading_deg": 240,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6909.0,
+          "heading_deg": 33,
           "speed_knots": 9.72
         }
       ],
       "outcome": "timeout",
       "elapsed_s": 7200.0,
-      "lost_teu": 210,
-      "grade": 5,
+      "lost_teu": 45,
+      "grade": 4,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20260123-06/avoid_beam-20261030-075527"
+      "session": "data/runs/check-biscay-20260123-06/avoid_beam-20261030-205308"
     }
   ]
 }

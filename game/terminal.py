@@ -92,6 +92,7 @@ def forecast_lines(view, width):
             (
                 f"  Hs {hs[0]:g}-{hs[1]:g} m | wind {wind[0]:g}-{wind[1]:g} m/s | "
                 f"waves from {r['wave_from_deg']:g} deg / {r['wave_period_s']:g} s"
+                + (f" | wind from {r['wind_from_deg']:g} deg, {r['wind_shift']}" if "wind_from_deg" in r else "")
             ),
             f"  Trend: {r['trend']}. {r['reason']}",
         ]

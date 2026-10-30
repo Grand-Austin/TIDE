@@ -264,6 +264,9 @@ test("the forecast reads as a marine bulletin: own area first, Beaufort force an
   expect(html).toContain("Issued 18:40 UTC · valid to 19:40 UTC");
   expect(html.indexOf("Your area")).toBeLessThan(html.indexOf("East"));
   expect(html).toContain("<b>Your area</b>: wind force 8 to 9 (34–44 kn). Sea high, 8–8.5 m, rising. Waves from W, 12 s.");
+  const veer = bulletin([{ ...report([1, 1], [8, 8.5], "steady"), wave_from_deg: 247.5, wind_from_deg: 292.5, wind_shift: "veering" }], [1, 1]);
+  expect(veer).toContain("wind from WNW force 8 to 9, veering (34–44 kn)");
+  expect(veer).toContain("Waves from WSW, 12 s.");
   expect(html).toContain("Sea very rough, 4.5–5 m. Waves");
   expect(html).toContain("How to read it");
   expect(bulletin([], [1, 1])).toContain("None released yet");

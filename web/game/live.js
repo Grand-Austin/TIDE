@@ -53,7 +53,7 @@ const hhmm = (iso) => iso.slice(11, 16);
 const READING = `<details class="reading"><summary>How to read it</summary><ol>` +
   `<li>Compare your area with its neighbours: a lower Hs is a calmer sea.</li>` +
   `<li>The map arrows show where the waves run. Picture your bow on a heading: waves on the beam roll the ship hardest and throw boxes overboard.</li>` +
-  `<li>A rising area gets worse within the hour: decide early, the ship takes minutes to turn.</li></ol></details>`;
+  `<li>A rising area gets worse within the hour, and a veering or backing wind turns the sea with it: decide early, the ship takes minutes to turn.</li></ol></details>`;
 
 // The released forecasts as a ship receives them: issue and validity times, then one line per sea area, the ship's
 // own area first and the rest in compass order (no ranking, so the bulletin does not pick the way out).
@@ -64,7 +64,10 @@ export function bulletin(reports, shipSector) {
   const lines = [...reports].sort((a, b) => ((order.indexOf(where(a)) + 1) % 9) - ((order.indexOf(where(b)) + 1) % 9)).map((r) => {
     const [w0, w1] = r.wind_range_mps.map(beaufort), [h0, h1] = r.hs_range_m;
     const force = w0 === w1 ? `${w0}` : `${w0} to ${w1}`, sea = seaState(h0) === seaState(h1) ? seaState(h1) : `${seaState(h0)} to ${seaState(h1)}`;
-    return `<li><b>${DIRS[where(r)] ?? "Further away"}</b>: wind force ${force} (${(r.wind_range_mps[0] * KN).toFixed(0)}–` +
+    // wind_from_deg and wind_shift arrive with forecasts built since 30 Oct; older reports give the force alone
+    const from = Number.isFinite(r.wind_from_deg) ? `from ${compass(r.wind_from_deg)} ` : "";
+    const shift = r.wind_shift && r.wind_shift !== "steady" ? `, ${r.wind_shift}` : "";
+    return `<li><b>${DIRS[where(r)] ?? "Further away"}</b>: wind ${from}force ${force}${shift} (${(r.wind_range_mps[0] * KN).toFixed(0)}–` +
       `${(r.wind_range_mps[1] * KN).toFixed(0)} kn). Sea ${sea}, ${h0}–${h1} m${r.trend === "increasing" ? ", rising" : ""}. ` +
       `Waves from ${compass(r.wave_from_deg)}, ${r.wave_period_s} s.</li>`;
   });
@@ -73,7 +76,9 @@ export function bulletin(reports, shipSector) {
     `next update ${hhmm(valid)} UTC</p><ul class="bulletin">${lines.join("")}</ul>${READING}`;
 }
 
-const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
+// 16 points, as forecasts give directions to the nearest 22.5° (pipeline/gameplay.py)
+const POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+export const compass = (d) => POINTS[Math.round((((d % 360) + 360) % 360) / 22.5) % 16];
 
 // Signed actual rate for display: two decimals, direction, and no invented number for missing data.
 export function turnRateText(rate, { short = false } = {}) {
