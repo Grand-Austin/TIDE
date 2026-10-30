@@ -128,19 +128,6 @@ export function lossPopup(p, startMs) {
     `<p class="fine">Game cargo model: a stack goes when its load stays above its strength. Not a prediction of real container losses.</p>`;
 }
 
-// The voyage plan across the operating area: a constant course through the start position, clipped to the area
-// bbox [w, e, s, n] (degrees, locally flat). Returns [from, to] in [lon, lat], drawn in the direction of travel.
-export function plannedRoute([lon, lat], courseDeg, [w, e, s, n]) {
-  const c = (courseDeg * Math.PI) / 180, dx = Math.sin(c) / Math.cos((lat * Math.PI) / 180), dy = Math.cos(c);
-  let lo = -Infinity, hi = Infinity;
-  for (const [p, d, a, b] of [[lon, dx, w, e], [lat, dy, s, n]]) {
-    if (Math.abs(d) < 1e-12) continue;
-    const [t0, t1] = [(a - p) / d, (b - p) / d].sort((x, y) => x - y);
-    [lo, hi] = [Math.max(lo, t0), Math.min(hi, t1)];
-  }
-  return [[lon + lo * dx, lat + lo * dy], [lon + hi * dx, lat + hi * dy]];
-}
-
 const line = (coords) => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
 const outline = ([w, e, s, n]) => line([[w, s], [e, s], [e, n], [w, n], [w, s]]);
 
@@ -165,7 +152,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
     map = new maplibre.Map({ container, style: "https://tiles.openfreemap.org/styles/dark", bounds, fitBoundsOptions: { padding: 12 },
       attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
     map.on("load", () => {
-      for (const id of ["forecast", "forecast-arrow", "area", "route", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
+      for (const id of ["forecast", "forecast-arrow", "area", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
       map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0 } }); // an anchor: the colour is the weather layer's
       if (field) (setWeather = addWeather(map, field, "forecast")).wind(windOn); // replays: the Copernicus field under everything else
       map.addLayer({ id: "forecast-edge", type: "line", source: "forecast", paint: { "line-color": HS_COLORS, "line-opacity": 0.6 } });
@@ -182,27 +169,12 @@ export function createMinimap(container, { replay, duration, live, field }) {
         layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Regular"], "text-size": 11,
           "text-anchor": ["get", "anchor"] },
         paint: { "text-color": "#a9baff", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
-      // the voyage plan the storm interrupts: a long-dashed line with the destination at its far end
-      map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#e6eef6", "line-width": 1.5, "line-dasharray": [6, 3], "line-opacity": 0.75 } });
-      map.addLayer({ id: "route-label", type: "symbol", source: "route", filter: ["==", ["geometry-type"], "Point"],
-        layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Regular"], "text-size": 11, "text-anchor": ["get", "anchor"], "text-offset": [0, 0] },
-        paint: { "text-color": "#e6eef6", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
       map.addLayer({ id: "ahead", type: "line", source: "ahead", paint: { "line-color": "#9db6cc", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
       map.addLayer({ id: "sailed", type: "line", source: "sailed", layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#5cc8e8", "line-width": 3 } });
       map.addLayer({ id: "preview", type: "line", source: "preview", layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#f2a93b", "line-width": 2.5, "line-dasharray": [1.5, 1.5] } });
       if (live) map.getSource("area").setData(outline(live.brief.area_bbox));
-      const voyage = live?.brief.voyage;
-      if (voyage) {
-        const start = [replay.lon[0], replay.lat[0]], [from, to] = plannedRoute(start, voyage.course_deg, live.brief.area_bbox);
-        // the label sits about 7 km ahead of the start, so it shows on the map zoomed in to the ship
-        const k = Math.min(0.9, 0.06 / Math.hypot((to[0] - start[0]) * Math.cos((start[1] * Math.PI) / 180), to[1] - start[1]));
-        const near = [start[0] + k * (to[0] - start[0]), start[1] + k * (to[1] - start[1])];
-        map.getSource("route").setData({ type: "FeatureCollection", features: [line([from, to]),
-          { type: "Feature", geometry: { type: "Point", coordinates: near },
-            properties: { label: `Planned route to ${voyage.to}`, anchor: to[1] > from[1] ? "top" : "bottom" } }] });
-      }
       // guidance ports: the nearest few container ports within PORT_RANGE_NM of the ship, and that range as a ring
       map.addSource("port-range", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "port-range", type: "line", source: "port-range", paint: { "line-color": "#6ee7b7",
@@ -295,7 +267,6 @@ export function createMinimap(container, { replay, duration, live, field }) {
     };
     map.on("dragstart", () => setFollow(false));
     for (const el of legend.querySelectorAll(".live-only")) el.hidden = !live;
-    document.getElementById("map-route").hidden = !live?.brief.voyage;
     for (const el of legend.querySelectorAll(".field-only")) el.hidden = !field;
     for (const sw of legend.querySelectorAll(".sw.field, .sw.hs")) sw.style.setProperty("background", HS_GRADIENT);
   } else {

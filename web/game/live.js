@@ -189,8 +189,7 @@ export async function startLive(id, { onLoss }) {
     note: `${brief.title}. ${brief.objective}`,
     credits: ["Live TIDE session. Generated using E.U. Copernicus Marine Service Information (storm subsets in data/storms)",
       "Cloud and rain: Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, Copernicus C3S",
-      "Forecast cards are game forecasts generated from the historical reconstruction",
-      ...(brief.voyage ? [brief.voyage.basis] : [])],
+      "Forecast cards are game forecasts generated from the historical reconstruction"],
     t: [], sog: [], ...Object.fromEntries(COLUMNS.map((c) => [c, []])),
     cargo: [{ t: 0, lost_teu: 0, grade: 0, total_teu: 1200 }],
     orders: [{ t: 0, heading_deg: brief.initial.heading_deg, speed_knots: brief.initial.speed_mps * KN }],
@@ -402,11 +401,7 @@ export function liveOverlay() {
 
   const briefing = (live, cp) => {
     const b = live.brief;
-    const v = b.voyage;
-    render("Briefing", `<p><b>${b.title}</b></p>` +
-      (v ? `<p>Your voyage: <b>${v.from} → ${v.to}</b>, planned course ${Math.round(v.course_deg)}°. The storm has caught ` +
-        `you on this route. Hold the course, or leave it for safer seas: the white dashed line on the <b>Passage</b> map is the plan.</p>` : "") +
-      `<p>${b.objective}${v ? ` You do not need to reach ${v.to} in this exercise: get out of the storm first.` : ""}</p>` +
+    render("Briefing", `<p><b>${b.title}</b></p><p>${b.objective}</p>` +
       `<p>${b.start.slice(0, 16).replace("T", " ")} UTC · ${(b.budget_s / 3600).toFixed(0)} h · S175 container ship, 1,200 TEU. ` +
       `The storm area's edge is not shown: read the sea, the Details panel and the forecasts.</p>` +
       `<p>The <b>Passage</b> map shows the released forecast areas, coloured by forecast wave height, and in dashed orange ` +
@@ -432,8 +427,6 @@ export function liveOverlay() {
       const left = v.remaining_s;
       render("Mission", `<p class="live-status">${Math.floor(left / 3600)} h ${String(Math.floor((left % 3600) / 60)).padStart(2, "0")} min left · ` +
         `${st.paused ? "paused" : `running ×${(+v.achieved_rate || 0).toFixed(1)}`}</p>` +
-        (live.brief.voyage ? `<p class="live-status">Voyage ${live.brief.voyage.from} → ${live.brief.voyage.to} · ` +
-          `planned course ${Math.round(live.brief.voyage.course_deg)}°</p>` : "") +
         `<p>${turnNote(live.replay, v.target_heading_deg)}</p>` +
         forecasts(live) +
         `<p class="live-status">Game forecasts generated from the historical reconstruction.</p>`);

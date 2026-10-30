@@ -88,7 +88,6 @@
   .legend span { display: inline-flex; align-items: center; gap: 5px; }
   .sw { display: inline-block; width: 16px; height: 0; border-top: 3px solid var(--accent); }
   .sw.ahead { border-top: 2px dashed var(--order); }
-  .sw.route { border-top: 2px dashed #e6eef6; }
   .sw.ocean { border-top: 2px dashed #8fa6ff; }
   .sw.port { width: 8px; height: 8px; border: 0; border-radius: 50%; background: #6ee7b7; }
   .sw.hs { height: 9px; border: 0; border-radius: 2px; background: linear-gradient(90deg, #4caf7d, #e6c84f, #f0954a, #b8324a); }
@@ -255,7 +254,7 @@
     <button type="button" class="expand" id="map-locate" aria-pressed="false" aria-label="Centre on the ship and follow it" title="Follow the ship">◎</button>
     <button type="button" class="expand" id="map-expand" aria-pressed="false" aria-label="Enlarge the map" title="Enlarge the map">⤢</button></div>
   <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas, the ocean track, the nearest container ports and the predicted track"></div>
-  <div class="legend" id="map-legend"><span><i class="sw sailed"></i>sailed</span><span class="live-only"><i class="sw ahead"></i>your order</span><span class="live-only" id="map-route" hidden><i class="sw route"></i>planned route</span>
+  <div class="legend" id="map-legend"><span><i class="sw sailed"></i>sailed</span><span class="live-only"><i class="sw ahead"></i>your order</span>
     <span><i class="sw ocean"></i>Le Havre–Halifax track</span><span><i class="sw port"></i>container port ≤ 200 nm</span>
     <span class="live-only"><i class="sw hs"></i>forecast Hs 0–10 m · arrow: waves run this way</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
 </figure>

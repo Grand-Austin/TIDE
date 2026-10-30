@@ -48,9 +48,8 @@ Two layers give the map a wider reference than the storm area.
 
 - **Ocean track.** A great-circle line from Le Havre (France) to Halifax (Canada), about 2543 nm, sampled every
   40 nm. It crosses the Bay of Biscay about 50 nm north of the 2026-01-08 scenario start. Press **Ocean** to fit
-  the whole track; it enlarges the map first. This is a reference crossing for the North Atlantic, not any
-  scenario's `voyage.json` plan: each scenario keeps its own authored from/to ports and course, drawn as the
-  shorter "planned route" line. A Portugal–Halifax crossing was the other candidate, but its great circle passes
+  the whole track; it enlarges the map first. This is a reference crossing for the North Atlantic, not a
+  scenario's own route. A Portugal–Halifax crossing was the other candidate, but its great circle passes
   about 380 nm south of the Biscay operating area.
 - **Ports.** The ship's 200 nm range is the rule. **Ports** shows or hides the ring and the markers. The map draws
   at most the six nearest ports from the global list. A click gives the name, country, straight-line distance and

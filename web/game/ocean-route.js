@@ -1,8 +1,8 @@
 // The one ocean track the game draws: Le Havre to Halifax, the North Europe–Canada leg of a container service.
 // A great-circle line, sampled about every 40 nm, and it crosses the Bay of Biscay where the storm scenarios start.
 //
-// This is a reference track for the map, not the scenario's authored voyage (each scenario keeps its own
-// voyage.json with its own from/to ports and course). It shows where an Atlantic crossing runs in this region.
+// This is a reference track for the map, not a scenario's own route. It shows where an Atlantic crossing runs in
+// this region.
 // A Portugal–Halifax crossing was the alternative; its great circle passes about 380 nm south of the Biscay
 // operating area, so it would not appear where the game is played.
 

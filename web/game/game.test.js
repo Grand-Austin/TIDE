@@ -7,7 +7,7 @@ import { sampleAt, latest, fromScene, turnRateAt } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
 import { turnInfo, turnNote, turnRateText, shipLossNote, beaufort, seaState, bulletin } from "./live.js";
 import { forecastField } from "./weather-layer.js";
-import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, plannedRoute, waveArrows } from "./minimap.js";
+import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, waveArrows } from "./minimap.js";
 import { OCEAN_TRACK, LE_HAVRE, HALIFAX, routeLengthNm, routeBounds, routeFeature } from "./ocean-route.js";
 import { nearbyPorts, rangeRing, portPopup } from "./port-guide.js";
 import { DEEPWATER_PORTS } from "./deepwater-ports.js";
@@ -191,17 +191,6 @@ test("passage map draws released forecast areas and the helm preview note", () =
   expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 100)).toBe("Steady on 130° in about 7 min"); // settled_s counts from from_s
   expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 485)).toBe("On the ordered 130°");
   expect(settleNote({ heading_deg: 130, settled_s: null, from_s: 0 }, 0)).toBe("Still turning to 130° after 8 min");
-});
-
-test("the planned route crosses the operating area along the initial course, in the direction of travel", () => {
-  const bbox = [-11.85, -10.15, 50.15, 51.85];
-  const [from, to] = plannedRoute([-10.5, 51.0], 270, bbox); // due west: edge to edge at the start latitude
-  expect(from[0]).toBeCloseTo(-10.15, 6);
-  expect(to[0]).toBeCloseTo(-11.85, 6);
-  expect(to[1]).toBeCloseTo(51.0, 6);
-  const [a, b] = plannedRoute([-10.5, 51.0], 200, bbox); // south-south-west: leaves through the south edge
-  expect(b[1]).toBeCloseTo(50.15, 6);
-  expect(a[1]).toBeGreaterThan(51.0);
 });
 
 test("forecast arrows point where the waves run, inside their area", () => {
