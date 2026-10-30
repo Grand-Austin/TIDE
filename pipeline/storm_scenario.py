@@ -25,7 +25,8 @@ import xarray as xr
 from scipy.spatial import ConvexHull
 
 from game.scenario import ROOT, digest, load_scenario, utc
-from pipeline.export_scene import OUT as SCENES, STORM_SETTINGS
+from pipeline.export_scene import MARGIN, STORM_SETTINGS, daylight_start
+from pipeline.fetch_region import REGIONS
 from pipeline.gameplay import build_gameplay
 from pipeline.scenario import write_json
 from pipeline.storms import OUT as STORMS
@@ -56,18 +57,26 @@ def region(waves: xr.Dataset, time: datetime, threshold: float, bbox):
     return np.array(points)[ConvexHull(points).vertices] if len(points) >= 3 else np.empty((0, 2))
 
 
-def depth_inside(polygon, lon, lat):
-    """Distance (km) from the point to the polygon edge and the nearest edge point; None if outside."""
+def depth_inside(polygon, lon, lat, bbox=None, sea=None):
+    """Distance (km) from the point to the polygon edge and the nearest edge point; None if outside.
+    Edges that run along the data box only mark where the data stop, not where the storm ends, so they
+    are no exit; nor is an edge with land just beyond it (sea(lon, lat) is False there)."""
     from game.rules.mission import inside
     if len(polygon) < 3 or not inside(polygon.tolist(), lon, lat):
         return None
     best = (math.inf, None)
     for a, b in zip(polygon, np.roll(polygon, -1, axis=0)):
+        if bbox is not None and any(abs(a[k] - edge) < 0.1 and abs(b[k] - edge) < 0.1
+                                    for k, edges in ((0, bbox[:2]), (1, bbox[2:])) for edge in edges):
+            continue
         ax, ay = km(a[0], a[1], lon, lat)
         bx, by = km(b[0], b[1], lon, lat)
         t = max(0.0, min(1.0, -(ax * (bx - ax) + ay * (by - ay)) / max((bx - ax) ** 2 + (by - ay) ** 2, 1e-9)))
         px, py = ax + t * (bx - ax), ay + t * (by - ay)
         d = math.hypot(px, py)
+        beyond = (lon + px * (1 + 3 / max(d, 1e-6)) / (111.32 * math.cos(math.radians(lat))), lat + py * (1 + 3 / max(d, 1e-6)) / 110.54)
+        if sea is not None and not sea(*beyond):
+            continue
         if d < best[0]:
             best = (d, (lon + px / (111.32 * math.cos(math.radians(lat))), lat + py / 110.54))
     return best
@@ -76,11 +85,17 @@ def depth_inside(polygon, lon, lat):
 def build(storm_id: str) -> Path:
     region_name = storm_id.split("-")[0]
     storm = next(s for s in json.loads((STORMS / f"{region_name}.json").read_text())["storms"] if s["id"] == storm_id)
-    scene = json.loads((SCENES / f"{storm_id}.json").read_text())
-    start = utc(scene["start"])
-    lon, lat = scene["start_lon_lat"]
+    # start where and when pipeline.export_scene would: the peak cell, in the storm's best daylight window
+    west, east, south, north = REGIONS[region_name]
+    lon = min(max(storm["lon"], west + MARGIN), east - MARGIN)
+    lat = min(max(storm["lat"], south + MARGIN), north - MARGIN)
     folder = STORMS / region_name / storm_id
     waves = xr.open_dataset(folder / "waves.nc")
+    hs_at = lambda t: float(waves.VHM0.interp(time=np.datetime64(t.replace(tzinfo=None)), longitude=lon, latitude=lat))
+    start = daylight_start(region_name, storm, lon, lat)
+    if start is None or not hs_at(start) >= 0.6 * storm["hs_m"]:
+        # the storm is still building while the sun is up: play its peak at night instead
+        start = utc(storm["peak"]) - timedelta(minutes=20)
     bbox = [round(float(waves.longitude.min()) + 0.15, 3), round(float(waves.longitude.max()) - 0.15, 3),
             round(float(waves.latitude.min()) + 0.15, 3), round(float(waves.latitude.max()) - 0.15, 3)]
     hs0 = float(waves.VHM0.interp(time=np.datetime64(start.replace(tzinfo=None)), longitude=lon, latitude=lat))
@@ -88,16 +103,21 @@ def build(storm_id: str) -> Path:
     # nearest edge so that it sits START_KM inside and the two-hour budget is a fair fight
     threshold = math.floor((hs0 - 1.0) * 2) / 2
     polygon = region(waves, start, threshold, bbox)
-    found = depth_inside(polygon, lon, lat)
+    at = np.datetime64(start.replace(tzinfo=None))
+    sea = lambda x, y: bool(np.isfinite(waves.VHM0.sel(longitude=x, latitude=y, method="nearest").interp(time=at)))
+    found = depth_inside(polygon, lon, lat, bbox, sea)
     if found is None:
         raise SystemExit(f"{storm_id}: the start is not inside the Hs >= {threshold:g} m region")
     if found[0] > INSIDE_KM[1]:
         f = (found[0] - START_KM) / found[0]
         lon, lat = lon + (found[1][0] - lon) * f, lat + (found[1][1] - lat) * f
-        found = depth_inside(polygon, lon, lat)
+        found = depth_inside(polygon, lon, lat, bbox, sea)
+        if found is None or not sea(lon, lat):
+            raise SystemExit(f"{storm_id}: moving the start towards the edge ends on land or outside the region")
         hs0 = float(waves.VHM0.interp(time=np.datetime64(start.replace(tzinfo=None)), longitude=lon, latitude=lat))
     inside_km, exit_point = found
-    scene_from = scene["samples"][0][scene["fields"].index("wave_from")]
+    angle = np.deg2rad(waves.VMDR.sel(longitude=lon, latitude=lat, method="nearest").interp(time=at))
+    scene_from = float(np.rad2deg(np.arctan2(np.sin(angle), np.cos(angle)))) % 360  # head seas to begin with
     out = OUT / storm_id
     out.mkdir(parents=True, exist_ok=True)
     end = start + timedelta(seconds=BUDGET_S)
@@ -151,13 +171,15 @@ def write_weather(path: Path, lat: float, lon: float, start: datetime, end: date
 
 
 def check(path: Path, strategy: str, out: Path) -> dict:
-    """Play one scripted strategy with the local engine: 'exit' steers for the nearest edge, 'head' holds head seas."""
+    """Play one scripted strategy with the local engine: 'exit' steers for the nearest edge, 'avoid_beam' does the
+    same but keeps the waves off the beam, 'head' holds head seas."""
     from game.session import Session
     from pipeline.scenario import displacement
     scenario = load_scenario(path)
     gameplay = json.loads((ROOT / scenario.definition["gameplay"]["path"]).read_text())
     with scenario.environment() as env:
-        s = Session(scenario, scenario.simulation(env), gameplay, out / f"{strategy}-{datetime.now():%Y%m%d-%H%M%S}")
+        session_dir = out / f"{strategy}-{datetime.now():%Y%m%d-%H%M%S}"
+        s = Session(scenario, scenario.simulation(env), gameplay, session_dir)
         d = scenario.definition
         target, budget = d["mission"]["target_lon_lat"], d["mission"]["budget_s"]
         heading = d["initial"]["heading_deg"]
@@ -166,8 +188,14 @@ def check(path: Path, strategy: str, out: Path) -> dict:
         next_order = 0
         while not s.outcome and s.state.exposure.elapsed_s < budget:
             t = s.state.exposure.elapsed_s
-            if strategy == "exit" and t >= next_order:
+            if strategy in ("exit", "avoid_beam") and t >= next_order:
                 _, heading = displacement(s.sim.position(s.state), target)
+                if strategy == "avoid_beam":
+                    # the heading nearest the exit bearing that keeps the waves off the beam (50–130° off the bow)
+                    wave_from = s.visible()["vessel"]["wave_from_deg"]
+                    off = lambda h: abs((wave_from - h + 180) % 360 - 180)
+                    heading = min((h % 360 for h in range(int(heading) - 180, int(heading) + 181, 5)
+                                   if not 50 <= off(h) <= 130), key=lambda h: abs((h - heading + 180) % 360 - 180))
                 s.set_order(heading, SPEED_MPS * 3600 / 1852)  # an order pauses the session
                 s.authorize_resume()
                 next_order = t + 300
@@ -178,7 +206,37 @@ def check(path: Path, strategy: str, out: Path) -> dict:
                 s.authorize_resume()
         v = s.visible()
         return {"strategy": strategy, "outcome": s.outcome, "reason": s.reason, "elapsed_s": v["elapsed_s"],
-                "lost_teu": v["cargo"]["lost_teu"], "grade": v["cargo"]["grade"]}
+                "lost_teu": v["cargo"]["lost_teu"], "grade": v["cargo"]["grade"], "session": str(session_dir)}
+
+
+SOLVERS = {
+    "exit": "pipeline.storm_scenario: steer for the nearest region edge at the start, re-aimed every 5 min",
+    "avoid_beam": "pipeline.storm_scenario: as exit, but keep the waves off the beam (50-130 deg off the bow)",
+    "head": "pipeline.storm_scenario: hold head seas",
+}
+
+
+def write_validation(storm_id: str, results: list[dict]) -> Path:
+    """validation.json in the shape of docs/STORM_SCENARIOS.md; orders come from each session's log."""
+    out = OUT / storm_id
+    strategies = []
+    for r in results:
+        log = Path(r["session"]) / "events.jsonl"
+        orders = [{"t": e["time_s"], "heading_deg": round(e["data"]["heading_deg"], 1),
+                   "speed_knots": round(e["data"]["speed_mps"] * 3600 / 1852, 2)}
+                  for e in map(json.loads, log.read_text().splitlines()) if e["kind"] == "player_order"]
+        strategies.append({"name": r["strategy"], "solver": SOLVERS.get(r["strategy"], r["strategy"]), "orders": orders,
+                           "outcome": r["outcome"] or r["reason"], "elapsed_s": round(r["elapsed_s"], 1),
+                           "lost_teu": r["lost_teu"], "grade": r["grade"], "ship_lost": r["outcome"] == "ship_lost",
+                           "session": str(Path(r["session"]).relative_to(ROOT))})
+    passing = [x for x in strategies if x["outcome"] == "escaped" and not x["ship_lost"]]
+    reference = min(passing, key=lambda x: (x["lost_teu"], x["elapsed_s"]))["name"] if passing else None
+    path = out / "validation.json"
+    write_json(path, {"version": 1, "scenario": storm_id, "definition_sha256": digest(out / "scenario.json"),
+                      "gameplay_sha256": digest(out / "gameplay.json"),
+                      "rule": "passed when at least one strategy escapes without losing the ship",
+                      "passed": bool(passing), "reference": reference, "strategies": strategies})
+    return path
 
 
 def main() -> None:
@@ -189,8 +247,10 @@ def main() -> None:
     for storm_id in args.storms:
         path = build(storm_id)
         if args.check:
-            for strategy in ("exit", "head"):
-                print(json.dumps(check(path, strategy, ROOT / "data/runs" / f"check-{storm_id}")), flush=True)
+            results = [check(path, strategy, ROOT / "data/runs" / f"check-{storm_id}") for strategy in ("exit", "avoid_beam")]
+            for r in results:
+                print(json.dumps(r), flush=True)
+            print(write_validation(storm_id, results))
 
 
 if __name__ == "__main__":
