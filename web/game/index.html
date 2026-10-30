@@ -9,7 +9,9 @@
 <style>
   :root { --panel: rgba(11, 22, 34, 0.72); --panel-solid: #0e1b29; --line: #1f3347; --edge: rgba(157, 182, 204, 0.16);
           --text: #d6e2ee; --muted: #a9bccd; --accent: #5cc8e8; --order: #f2a93b; --radius: 14px;
-          --shadow: 0 10px 30px rgba(3, 9, 16, 0.35); --side: 342px; --credit-h: 34px; }
+          --shadow: 0 10px 30px rgba(3, 9, 16, 0.35); --side: 342px; --credit-h: 34px;
+          /* the small passage map scales with the window; the left column and the dock make room for it */
+          --map-w: clamp(250px, 25vw, 360px); --map-h: clamp(110px, calc(100vh - 560px), 220px); }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #8d99a2; font-family: system-ui, sans-serif; color: var(--text); }
   canvas { display: block; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -24,7 +26,7 @@
   ::-webkit-scrollbar-thumb { background: #2b4660; border-radius: 3px; }
 
   /* left column: title card, then the live briefing / decision / mission card */
-  .left { position: fixed; top: 12px; left: 12px; width: 330px; max-height: calc(100vh - 340px); display: flex; flex-direction: column;
+  .left { position: fixed; top: 12px; left: 12px; width: 330px; max-height: calc(100vh - var(--map-h) - 120px); display: flex; flex-direction: column;
           gap: 10px; z-index: 7; }
   .head { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
   .brand { display: flex; align-items: center; gap: 8px; }
@@ -74,7 +76,7 @@
   .expand.text { width: auto; padding: 0 8px; font-size: 11px; } .expand[hidden] { display: none; }
   .map.big { z-index: 8; width: min(560px, 44vw); } .map.big #map { height: min(400px, 52vh); }
   /* small until clicked: no legend, a short map; a click on the map enlarges it (minimap.js) */
-  .map:not(.big) { width: 360px; } .map:not(.big) #map { height: 220px; cursor: zoom-in; } .map:not(.big) .legend { display: none; } .map:not(.big) .maplibregl-ctrl-attrib { display: none; }
+  .map:not(.big) { width: var(--map-w); } .map:not(.big) #map { height: var(--map-h); cursor: zoom-in; } .map:not(.big) .legend { display: none; } .map:not(.big) .maplibregl-ctrl-attrib { display: none; }
   /* while a briefing or decision is open the left column takes the height and the map steps aside */
   body.deciding .map { display: none; } body.deciding .left { max-height: calc(100vh - 110px); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--muted); padding: 0 2px; }
@@ -95,7 +97,7 @@
   .loss-popup .maplibregl-popup-close-button { color: var(--muted); font-size: 16px; padding: 0 6px; }
 
   /* bottom centre: a floating playback dock between the map and the panel */
-  .dock-wrap { position: fixed; left: 384px; right: var(--side); bottom: calc(var(--credit-h) + 4px); display: flex; flex-direction: column;
+  .dock-wrap { position: fixed; left: calc(var(--map-w) + 24px); right: var(--side); bottom: calc(var(--credit-h) + 4px); display: flex; flex-direction: column;
                align-items: center; gap: 8px;
                pointer-events: none; }
   .dock { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 999px; min-width: 0;
@@ -130,6 +132,7 @@
   .sources .credit p { margin: 0 0 6px; } .sources .credit p:last-child { margin: 0; color: var(--order); }
   #fps { position: fixed; right: calc(var(--side) + 8px); top: 12px; color: #0b1622; font: 11px ui-monospace, monospace; }
 
+  @media (max-width: 1440px) { .toggle span { display: none; } .toggle { padding: 0 8px; } } /* the slow-motion box keeps its title */
   @media (max-width: 1180px) { .map { display: none; } .left { max-height: calc(100vh - 240px); } .dock-wrap { left: 12px; } .views { top: auto; bottom: 150px; } }
   @media (max-width: 900px) {
     :root { --credit-h: 44px; }
@@ -260,7 +263,7 @@
       <button type="button" data-rate="20" aria-pressed="false">20×</button>
       <button type="button" data-rate="60" aria-pressed="false">60×</button>
     </div>
-    <label class="toggle"><input id="slowmo" type="checkbox" checked><span>Slow motion while boxes fall</span></label>
+    <label class="toggle" title="Slow motion while boxes fall"><input id="slowmo" type="checkbox" checked><span>Slow motion while boxes fall</span></label>
   </div>
 </div>
 <details class="sources">
