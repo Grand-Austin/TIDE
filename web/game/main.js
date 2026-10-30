@@ -321,10 +321,21 @@ ui["panel-toggle"].onclick = () => {
 
 // every exported storm scene, the recorded Menorca game, and live scenarios when game/live.py serves the page
 const index = await fetch("./scenes/index.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-if (index) ui.scene.replaceChildren(...index.storms.filter((x) => x.scene).map((x) =>
-  new Option(`Storm ${x.peak.slice(0, 10)} · ${x.area} · Hs ${x.hs_m} m · ${x.max_wind_kn} kn`, x.id)),
-  new Option("Menorca 9 Sep 2026 (recorded game)", "replay"));
-for (const x of await liveScenarios()) ui.scene.add(new Option(`Play: ${x.title}`, `live:${x.id}`));
+// grouped so the playable storms come first: they only appear when game/live.py serves the page
+const group = (label, options) => {
+  const g = Object.assign(document.createElement("optgroup"), { label });
+  g.append(...options);
+  return g;
+};
+const playable = (await liveScenarios()).map((x) => new Option(`▶ Play: ${x.title}`, `live:${x.id}`));
+const replays = (index?.storms ?? []).filter((x) => x.scene).map((x) =>
+  new Option(`Storm ${x.peak.slice(0, 10)} · ${x.area} · Hs ${x.hs_m} m · ${x.max_wind_kn} kn`, x.id));
+if (index) ui.scene.replaceChildren(
+  ...(playable.length ? [group("Play a storm (you steer)", playable)] : []),
+  group("Watch a storm replay (fixed demo orders)", replays),
+  group("Recorded game", [new Option("Menorca 9 Sep 2026", "replay")]));
+// opened through game/live.py without a choice: go straight to the first playable storm
+if (!location.search && playable.length) location.search = `?live=${playable[0].value.slice(5)}`;
 ui.scene.value = live ? `live:${liveId}` : sceneId ?? "replay";
 ui.scene.onchange = () => (location.search = ui.scene.value === "replay" ? "?replay=./replays/menorca-20260909.json"
   : ui.scene.value.startsWith("live:") ? `?live=${ui.scene.value.slice(5)}` : `?scene=${ui.scene.value}`);
