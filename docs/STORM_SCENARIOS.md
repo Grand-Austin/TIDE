@@ -13,11 +13,14 @@ if its validation report shows at least one way out.
   frozen per minute. `region_hs_m` is the start's Hs minus 1 m, rounded down to 0.5 m (the storm core).
 - **Start position.** The storm's peak cell, moved towards the nearest region edge until it is 15 km inside if it
   was deeper than 25 km. Edges along the data box and edges with land just beyond them are not exits.
-- **Mission.** Two hours, 5 m/s initial speed, head seas initially. Storm settings: dt 0.1 s, wave forces every
-  0.2 s, 1.5 MN thrust.
-- **Steering.** The PID autopilot retains the quicker storm reference settings. The prepared vessel damping
-  stays unchanged, and the yaw-moment limit is fixed at 30 MN m at every speed. The former 30 s yaw-decay
-  override and speed-squared moment multiplier have been removed; earlier turn measurements do not apply.
+- **Mission.** Two hours, 5 m/s initial speed, head seas initially. Storm settings: dt 0.1 s and wave forces every
+  0.2 s. Physical mode uses source propeller/rudder limits; the legacy 1.5 MN teaching cap does not apply.
+- **Steering.** `actuator_model: s175_maneuvering` separates low-frequency manoeuvring from the original
+  S175 six-DOF wave response. Its heading controller commands a physical rudder, with ±35° order,
+  5°/s rate and 160 RPM maximum ahead order. The prepared S175 damping remains unchanged on the wave
+  response; it is not also applied to the empirical manoeuvring model. The fixed 30 MN m limit belongs
+  to the retained teaching mode. See [TURNING_MODEL.md](TURNING_MODEL.md) for equations and limitations.
+  Changed configurations require new complete mission validation.
 - **Weather.** Hourly ERA5 cloud cover and precipitation at the start point (Open-Meteo) in `weather.json`.
 
 Changing these motion settings requires new strategy runs and validation reports; do not update report hashes

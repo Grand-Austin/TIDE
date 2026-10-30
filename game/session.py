@@ -53,8 +53,9 @@ def atomic_json(path, value):
 def motion_dict(state):
     d = asdict(state)
     d["start_time"] = state.start_time.isoformat()
-    for key in ("x", "wave_force", "wind_force"):
-        d[key] = d[key].tolist()
+    for key in ("x", "wave_force", "wind_force", "lf", "wf"):
+        if d.get(key) is not None:
+            d[key] = d[key].tolist()
     for key in ("phase", "previous_rate"):
         if d["wave"][key] is not None:
             d["wave"][key] = d["wave"][key].tolist()
@@ -66,6 +67,9 @@ def motion_state(d):
     d["start_time"] = utc(d["start_time"])
     for key in ("x", "wave_force", "wind_force"):
         d[key] = np.array(d[key], dtype=float)
+    for key in ("lf", "wf"):
+        if d.get(key) is not None:
+            d[key] = np.array(d[key], dtype=float)
     for key in ("phase", "previous_rate"):
         if d["wave"][key] is not None:
             d["wave"][key] = np.array(d["wave"][key], dtype=float)

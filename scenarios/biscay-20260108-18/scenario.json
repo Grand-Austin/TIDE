@@ -37,7 +37,8 @@
     "speed_time_constant_s": 60.0,
     "yaw_natural_frequency": 0.08,
     "roll_exposure_deg": 10.0,
-    "lateral_exposure_mps2": 0.9810000000000001
+    "lateral_exposure_mps2": 0.9810000000000001,
+    "actuator_model": "s175_maneuvering"
   },
   "wind_parameters": {
     "loa_m": 175.0,

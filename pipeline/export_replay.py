@@ -12,6 +12,8 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from game.simulation.turn_rate import turn_rate_series
+
 # replay column <- vessel sample field, decimals
 COLUMNS = {
     "lon": ("lon", 6), "lat": ("lat", 6), "heading": ("heading_deg", 2), "sog": ("speed_over_ground_mps", 3),
@@ -29,6 +31,9 @@ def export(session_dir):
     advances = [r for r in rows if r["kind"] == "advance" and r["data"].get("vessel")]
     if not advances:
         raise ValueError(f"{session_dir} has no advance records")
+    samples = [r["data"]["vessel"] for r in advances]
+    # Body rates are authoritative; older logs without them fall back to heading/time.
+    turn_rates = turn_rate_series(samples)
     replay = {
         "start_utc": start.isoformat().replace("+00:00", "Z"),
         "session": session_dir.name,
@@ -36,6 +41,7 @@ def export(session_dir):
         "outcome": result["outcome"],
         "t": [round(r["data"]["vessel"]["time_s"], 2) for r in advances],
         **{col: [round(r["data"]["vessel"][field], nd) for r in advances] for col, (field, nd) in COLUMNS.items()},
+        "turn_rate": [round(rate, 3) if rate is not None else None for rate in turn_rates],
         "orders": [
             {"t": r["time_s"], "heading_deg": r["data"]["heading_deg"], "speed_knots": round(r["data"]["speed_mps"] * 3600 / 1852, 3)}
             for r in rows if r["kind"] == "player_order"

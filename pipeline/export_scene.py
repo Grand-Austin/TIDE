@@ -13,6 +13,7 @@ import argparse
 import json
 import math
 from datetime import datetime, timezone
+from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -26,6 +27,7 @@ from game.ship import ShipDamageModel
 from game.scenario import ROOT
 from game.simulation.environment import CopernicusEnvironment
 from game.simulation.runtime import Command, Settings, Simulation
+from game.simulation.turn_rate import sample_turn_rate_deg_s
 from game.simulation.vessel import load_s175
 from game.simulation.wind import WindParameters
 from pipeline.fetch_region import PRODUCTS, REGIONS, directory
@@ -34,9 +36,9 @@ from pipeline.storms import OUT as STORMS
 OUT = ROOT / "web" / "game" / "scenes"
 # The frozen scenario's vessel settings and windage are reused unchanged.
 REFERENCE = json.loads((ROOT / "scenarios/menorca-20260909/scenario.json").read_text())
-SPEED_MPS = 5.0  # about 10 kn: enough flow past the rudder to turn in 10–12 m seas (see STATUS.md)
-# Storm scenes need more thrust than the calm Menorca scenario to hold that speed.
-STORM_SETTINGS = dict(REFERENCE["settings"], max_thrust_n=1_500_000.0,
+SPEED_MPS = 5.0  # Nominal initial speed, not a validated strong-sea steering capability.
+# Physical mode uses source rudder/RPM bounds; the retained force cap is teaching-mode metadata.
+STORM_SETTINGS = dict(REFERENCE["settings"], actuator_model="s175_maneuvering", max_thrust_n=1_500_000.0,
                       # the storm autopilot of pipeline.storm_scenario, so replays turn like the game
                       yaw_natural_frequency=0.08, max_reference_yaw_rate=math.radians(1.0))
 LEAD_S = 1200  # start this long before the peak
@@ -124,7 +126,7 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
                 sample.time_s, sample.lon, sample.lat, sample.heading_deg, sample.roll_deg, sample.pitch_deg,
                 sample.heave_m, sample.speed_through_water_mps, sample.hs_m, sample.tp_s, sample.wave_from_deg,
                 sample.wind_east_mps, sample.wind_north_mps, sample.current_east_mps, sample.current_north_mps,
-                cargo["lost_teu"], cargo["grade"]))])
+                cargo["lost_teu"], cargo["grade"], sample_turn_rate_deg_s(sample)))])
         return "ship_lost" if ship_events else None
 
     stop = "duration_reached"
@@ -141,6 +143,7 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
     scene = {
         "version": 1, "id": storm_id, "storm": storm, "start": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "start_lon_lat": [lon, lat], "vessel": {"name": "S175", "length_m": 175.0, "breadth_m": 25.4, "draft_m": 9.5},
+        "motion": {"algorithm": sim.algorithm_id, "settings": asdict(sim.settings), "seed": 1},
         "cargo": {"algorithm": cargo_model.algorithm_id, "config": cargo_model.config, "deck_units": 320, "total_teu": 1200,
                   "units": [{"id": unit, "teu": 1 + stack % 2, "stack": stack, "tier": tier}
                             for stack in range(STACKS) for tier, unit in enumerate(stack_unit_ids(stack))],
@@ -148,7 +151,7 @@ def export(storm_id: str, start: datetime | None = None) -> Path:
         "orders": orders, "plan_note": "Demonstration orders relative to the initial wave direction; not a player's game.",
         "stop": stop,
         "fields": ["t", "lon", "lat", "heading", "roll", "pitch", "heave", "stw", "hs", "tp", "wave_from",
-                   "wind_e", "wind_n", "current_e", "current_n", "lost_teu", "grade"],
+                   "wind_e", "wind_n", "current_e", "current_n", "lost_teu", "grade", "turn_rate"],
         "samples": samples, "events": events,
         "sea_surface_note": "The 3D sea surface is synthesised from Hs, Tp and direction; individual waves are not data.",
         "copernicus_products": PRODUCTS, "credit": CREDIT,

@@ -1,5 +1,22 @@
 # S175 motion repair and MSS comparison — 29 October 2026
 
+## Subsequent manoeuvring upgrade — 30 October 2026
+
+The four Biscay missions now select `s175_maneuvering`, separating native
+Son–Nomoto manoeuvring from the original S175 six-DOF wave response.
+See [TURNING_MODEL.md](TURNING_MODEL.md). The actuator-only integration and
+damping restoration below remain historical comparison results, not validation
+of the new combined model or its mission feasibility.
+
+## Son–Nomoto actuator integration — 30 October 2026
+
+The first integration selected the physical propeller/rudder mode described
+in [CONTAINER_ACTUATOR.md](CONTAINER_ACTUATOR.md). It retains the prepared hull
+matrices and has an independently reproduced original `container.m` reference.
+The fixed force limits below describe the retained `teaching` mode. The new
+mode uses source rudder/RPM constraints and remains an uncalibrated combination;
+calm-water checks still show slow turning. No new mission pass is claimed.
+
 ## Steering restoration — 30 October 2026
 
 The storm branch's later yaw-damping override has been removed. Simulation uses the prepared vessel's full

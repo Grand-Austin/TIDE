@@ -3,7 +3,9 @@
 // replay (replay.js), sends the player's orders, and shows forecasts, judgement checkpoints and the score.
 // Nothing here simulates: every number shown comes from the session.
 
-const COLUMNS = ["lon", "lat", "heading", "roll", "pitch", "heave", "hs", "tp", "wave_from", "wind_e", "wind_n", "cloud", "precip"];
+import { turnRateAt } from "./replay.js";
+
+const COLUMNS = ["lon", "lat", "heading", "turn_rate", "roll", "pitch", "heave", "hs", "tp", "wave_from", "wind_e", "wind_n", "cloud", "precip"];
 const KN = 1.94384;
 const PREVIEW_EVERY_S = 20; // game seconds between helm preview refreshes while the ship sails
 const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "South-east", "0,-1": "South",
@@ -17,23 +19,44 @@ const ENDINGS = {
 };
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
 
-// Heading now, signed degrees still to turn (+ starboard), turn rate in °/min and minutes to go (null when barely turning).
+// Signed actual rate for display: two decimals, direction, and no invented number for missing data.
+export function turnRateText(rate, { short = false } = {}) {
+  if (!Number.isFinite(rate)) return "—";
+  const zero = Math.abs(rate) < 0.005, dir = zero ? "steady" : rate > 0 ? (short ? "stbd" : "starboard") : "port";
+  return `${zero ? "0.00" : rate > 0 ? `+${rate.toFixed(2)}` : rate.toFixed(2)} °/s ${dir}`;
+}
+
+// Heading now, signed degrees still to turn (+ starboard), legacy average rate in °/min, signed actual rate
+// (deg/s, supplied or finite-difference fallback) and minutes to go. ETA uses the actual rate only when one was
+// supplied and its direction approaches the order; without the field the old average-rate ETA is unchanged.
 export function turnInfo(replay, orderedHeading) {
   const t = replay.t, h = replay.heading, n = t.length;
   if (!n) return null;
   const now = h[n - 1], togo = ((orderedHeading - now + 540) % 360) - 180;
   const i = Math.max(0, n - 61); // rate over the last minute of game time
   const rate = Math.abs((((now - h[i] + 540) % 360) - 180) / Math.max(t[n - 1] - t[i], 1)) * 60; // degrees per minute
-  return { now, togo, rate, min: rate > 0.5 ? Math.ceil(Math.abs(togo) / rate) : null };
+  const actual = turnRateAt(replay, t[n - 1]);
+  const actualSupplied = Number.isFinite(replay.turn_rate?.at(-1));
+  const approaching = Number.isFinite(actual) && Math.abs(togo) >= 2 && Math.sign(actual) === Math.sign(togo);
+  let min = null;
+  if (actualSupplied) {
+    if (approaching && Math.abs(actual) * 60 > 0.5) min = Math.ceil(Math.abs(togo) / (Math.abs(actual) * 60));
+  } else if (rate > 0.5) min = Math.ceil(Math.abs(togo) / rate);
+  return { now, togo, rate, actual, actualSupplied, approaching, min };
 }
 
-// "Heading 250° → ordered 130°: turning to port, 120° to go, about 12 min at the current rate" (game time).
+// "Heading 250° → ordered 130°: turning to port, 120° to go · rate -0.8 °/s port, about 3 min" (game time).
 export function turnNote(replay, orderedHeading) {
   const k = turnInfo(replay, orderedHeading);
   if (!k) return "";
-  if (Math.abs(k.togo) < 2) return `Heading ${k.now.toFixed(0)}°, on the ordered course`;
-  const eta = k.min !== null ? `, about ${k.min} min at ${k.rate.toFixed(0)}°/min` : ", barely turning: more speed gives the rudder more grip";
-  return `Heading ${k.now.toFixed(0)}° → ordered ${orderedHeading.toFixed(0)}°: turning to ${k.togo < 0 ? "port" : "starboard"}, ${Math.abs(k.togo).toFixed(0)}° to go${eta}`;
+  const rate = `rate ${turnRateText(k.actual)}`;
+  if (Math.abs(k.togo) < 2) return `Heading ${k.now.toFixed(0)}°, on the ordered course · ${rate}`;
+  const etaRate = k.actualSupplied ? Math.abs(k.actual) * 60 : k.rate;
+  const eta = k.min !== null ? `, about ${k.min} min at ${etaRate.toFixed(0)}°/min`
+    : k.actualSupplied && !k.approaching ? ", turning away from the order"
+    : ", barely turning: more speed gives the rudder more grip";
+  return `Heading ${k.now.toFixed(0)}° → ordered ${orderedHeading.toFixed(0)}°: turning to ${k.togo < 0 ? "port" : "starboard"}, ` +
+    `${Math.abs(k.togo).toFixed(0)}° to go · ${rate}${eta}`;
 }
 
 // Helm gauge shown while the arrow keys steer: a north-up compass with the heading (blue ship), the order (orange
@@ -53,11 +76,12 @@ export function helmGauge() {
   const render = (live) => {
     const { heading: order, speed } = live.helm, k = turnInfo(live.replay, order);
     if (!k) return;
-    const { now, togo, rate, min } = k, steady = Math.abs(togo) < 2, sog = (live.replay.sog.at(-1) ?? 0) * KN;
+    const { now, togo, actual, actualSupplied, approaching, min } = k, steady = Math.abs(togo) < 2, sog = (live.replay.sog.at(-1) ?? 0) * KN;
     const [ax, ay] = onRing(now), [bx, by] = onRing(now + togo);
     const status = steady ? `<span class="ok">On the ordered course</span>`
       : `<b class="ord">${togo < 0 ? "Port" : "Starboard"} ${Math.abs(togo).toFixed(0)}°</b> · ` +
-        (min !== null ? `about ${min} min at ${rate.toFixed(0)}°/min` : "barely turning: add speed for rudder grip");
+        (min !== null ? `about ${min} min` : actualSupplied && !approaching ? "turning away from the order"
+          : "barely turning: add speed for rudder grip");
     box.innerHTML =
       `<svg viewBox="-50 -50 100 100" aria-hidden="true">${TICKS}<text class="n" x="0" y="-28">N</text>` +
       (steady ? "" : `<path class="turn" d="M${ax} ${ay} A${DIAL_R} ${DIAL_R} 0 0 ${togo > 0 ? 1 : 0} ${bx} ${by}"/>`) +
@@ -65,7 +89,7 @@ export function helmGauge() {
       `<g transform="rotate(${now.toFixed(1)})"><line class="hdg" x1="0" y1="-14" x2="0" y2="-${DIAL_R}"/>` +
       `<path class="ship" d="M0 -15 L7 11 L0 6 L-7 11 Z"/></g></svg>` +
       `<div class="helm-read"><div class="helm-hdg mono"><b>${now.toFixed(0)}°</b><span>→</span><b class="ord">${order.toFixed(0)}°</b></div>` +
-      `<div class="helm-turn">${status}</div>` +
+      `<div class="helm-turn"><span class="helm-rate">Rate ${turnRateText(actual, { short: true })}</span> · ${status}</div>` +
       `<div class="helm-spd" title="Orange: ordered speed · blue mark: speed through water"><span>Speed</span>` +
       `<i><b style="width:${(speed / 18) * 100}%"></b><s style="left:${Math.min(100, (sog / 18) * 100)}%"></s></i>` +
       `<span class="mono ord">${speed.toFixed(1)} kn</span></div>` +
@@ -229,6 +253,7 @@ const CSS = `
   .helm-hdg b { min-width: 4ch; font-weight: 600; color: var(--accent); } .helm-hdg span { color: var(--muted); font-size: 16px; }
   .helm-gauge .ord { color: var(--order); } .helm-gauge .ok { color: #6fd3a0; }
   .helm-turn { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; } .helm-turn b { font-weight: 600; }
+  .helm-rate { color: var(--text); font-variant-numeric: tabular-nums; }
   .helm-spd { display: grid; grid-template-columns: auto 1fr 7ch; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
   .helm-spd i { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
   .helm-spd b { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--order); }
@@ -289,6 +314,7 @@ export function liveOverlay() {
       `<p class="live-hint">● Pick an answer for each question, set your orders, then press ${cp.trigger === "briefing" ? "Set sail" : "Carry on"}.</p>`,
       [button("Look around first", () => lookFirst("⏸ Paused for your decision · Answer")),
        button(cp.trigger === "briefing" ? "Set sail" : "Carry on", async () => {
+         clearTimeout(typing);
          const order = { heading_deg: ((+card.querySelector("#cp-h").value % 360) + 360) % 360,
                          speed_knots: Math.max(0, Math.min(18, +card.querySelector("#cp-s").value || 0)) };
          Object.assign(live.helm, { heading: order.heading_deg, speed: order.speed_knots });

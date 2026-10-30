@@ -80,6 +80,21 @@ commands drive an acceleration-limited reference, drag feedforward, PI feedback
 and bounded longitudinal force. These are teaching actuators, not a model of
 S175's actual propeller and rudder. Their limits are explicit in `Settings`.
 
+`Settings(actuator_model="son_nomoto")` instead uses the source container ship's
+rudder/propeller forces and servo states with the same S175 hull matrices. The
+mode remains available for comparison. Actual/ordered rudder and
+RPM are recorded; the old fixed force caps do not apply. Astern flow and extreme
+normalized-yaw inflow are unsupported. See [CONTAINER_ACTUATOR.md](CONTAINER_ACTUATOR.md)
+for source reproduction, numerical envelope, loading mismatch and slow-turning results.
+
+The four Biscay missions now select `actuator_model="s175_maneuvering"`.
+It separates low-frequency Son–Nomoto manoeuvring (including surge, sway, roll
+and yaw) from the original S175 six-DOF wave-frequency response. Actual rudder
+and shaft servos supply the loads; no heading or yaw rate is prescribed. The
+published full-rudder variant uses ±35° orders. The total pose and acceleration
+are composed before observation and cargo assessment. See
+[TURNING_MODEL.md](TURNING_MODEL.md) for the split, validation and limitations.
+
 Wind loads use the MSS Isherwood (1972) empirical model and the S175 wind/current
 demo geometry recorded in `data/vessels/s175/wind.json`. Forces enter surge and
 sway, with a yaw moment; no direct wind roll moment is assumed. Relative airflow

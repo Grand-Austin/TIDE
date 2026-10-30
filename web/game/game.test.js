@@ -1,11 +1,31 @@
-import { expect, test } from "bun:test";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import { spectrumWaves, displace, heightAt, detailMap } from "./ocean.js";
-import { deckLayout } from "./cargo-layout.js";
+import { deckLayout, topDown } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
-import { sampleAt, latest, fromScene } from "./replay.js";
+import { sampleAt, latest, fromScene, turnRateAt } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
-import { turnInfo } from "./live.js";
+import { turnInfo, turnNote, turnRateText } from "./live.js";
 import { forecastField } from "./weather-layer.js";
+import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup } from "./minimap.js";
+
+// Small Jest/Bun-style surface over node:assert, so the existing expectations still read naturally under node --test.
+function expect(actual) {
+  return {
+    toBe: (expected) => assert.strictEqual(actual, expected),
+    toEqual: (expected) => assert.deepStrictEqual(actual, expected),
+    toBeCloseTo: (expected, digits = 2) =>
+      assert.ok(Math.abs(actual - expected) < 0.5 * 10 ** -digits, `expected ${actual} to be close to ${expected}`),
+    toMatchObject: (expected) => {
+      for (const [key, value] of Object.entries(expected)) expect(actual[key]).toEqual(value);
+    },
+    toBeLessThan: (expected) => assert.ok(actual < expected, `expected ${actual} < ${expected}`),
+    toBeGreaterThan: (expected) => assert.ok(actual > expected, `expected ${actual} > ${expected}`),
+    toBeLessThanOrEqual: (expected) => assert.ok(actual <= expected, `expected ${actual} <= ${expected}`),
+    toBeUndefined: () => assert.strictEqual(actual, undefined),
+    toContain: (expected) => assert.ok(actual.includes(expected), `expected ${JSON.stringify(actual)} to contain ${JSON.stringify(expected)}`),
+  };
+}
 
 test("panel numbers come from released cargo and sea state", async () => {
   globalThis.document ??= {}; // panel.js only touches the DOM inside createPanel
@@ -94,25 +114,26 @@ test("height query lands on the displaced surface", () => {
 test("all 320 deck units stand on a box or the hatch, without overlaps", () => {
   const units = deckLayout([-11, 7.7, 47.45]);
   expect(units.length).toBe(320);
-  const halves = new Map(); // "tier:slot:half" -> unit id
+  const halves = new Map(); // "tier:stack:half" -> unit id
   for (const u of units) {
     expect(Math.abs(u.position[0])).toBeLessThan(11);
-    for (const half of u.size === 40 ? [0, 1] : [u.half]) {
-      const key = `${u.tier}:${u.bay * 9 + u.row}:${half}`;
+    for (const half of u.size === 40 ? [0, 1] : [0]) {
+      const key = `${u.tier}:${u.stack}:${half}`;
       expect(halves.has(key)).toBe(false);
       halves.set(key, u.id);
     }
   }
   for (const key of halves.keys()) {
-    const [tier, slot, half] = key.split(":").map(Number);
-    if (tier > 0) expect(halves.has(`${tier - 1}:${slot}:${half}`)).toBe(true);
+    const [tier, stack, half] = key.split(":").map(Number);
+    if (tier > 0) expect(halves.has(`${tier - 1}:${stack}:${half}`)).toBe(true);
   }
-  expect(units.filter((u) => u.tier !== (Number(u.id.slice(5)) - 1) % 3).map((u) => u.id)).toEqual(["deck-320", "deck-318"]);
+  // Five tiers per stack: unit NNN's tier follows i = 10 * (stack // 2) + stack % 2 + 2 * tier.
+  expect(units.filter((u) => u.tier !== Math.floor(((Number(u.id.slice(5)) - 1) % 10) / 2)).map((u) => u.id)).toEqual([]);
 });
 
 test("storm scene reads like a replay", () => {
-  const fields = ["t", "lon", "lat", "heading", "roll", "pitch", "heave", "stw", "hs", "tp", "wave_from", "wind_e", "wind_n", "lost_teu", "grade", "cloud", "precip"];
-  const row = (t, lost) => [t, -10.75, 48.5, 287, 1, 0, 0, 5, 12, 14, 287, 19, -14, lost, lost ? 1 : 0, 100, 0.3];
+  const fields = ["t", "lon", "lat", "heading", "turn_rate", "roll", "pitch", "heave", "stw", "hs", "tp", "wave_from", "wind_e", "wind_n", "lost_teu", "grade", "cloud", "precip"];
+  const row = (t, lost) => [t, -10.75, 48.5, 287, 0.2, 1, 0, 0, 5, 12, 14, 287, 19, -14, lost, lost ? 1 : 0, 100, 0.3];
   const r = fromScene({
     start: "2026-10-22T20:40:00Z", plan_note: "demo", credit: "Generated using E.U. Copernicus Marine Service Information",
     copernicus_products: { waves: "W" }, weather: { credit: "ERA5" },
@@ -127,6 +148,7 @@ test("storm scene reads like a replay", () => {
   expect(r.events[0].teu).toBe(3);
   expect(r.orders[0].speed_knots).toBeCloseTo(9.72, 2);
   expect(sampleAt(r, 0.75).cloud).toBe(100);
+  expect(sampleAt(r, 0.75).turn_rate).toBeCloseTo(0.2, 9); // exported actual rate, not inferred from heading
 });
 
 test("detail map tiles without a seam", () => {
@@ -141,7 +163,6 @@ test("detail map tiles without a seam", () => {
 });
 
 test("stacks lose boxes from the top down", () => {
-  const { topDown } = require("./cargo-layout.js");
   const units = deckLayout([0, 0, 0]), drawn = topDown(units);
   // stack 0 holds deck-001, -003, -005, -007, -009 (tiers 0-4); the first two losses there are its bottom boxes
   expect([drawn("deck-001"), drawn("deck-003")]).toEqual(["deck-009", "deck-007"]);
@@ -152,7 +173,6 @@ test("stacks lose boxes from the top down", () => {
 });
 
 test("passage map measures the track sailed", () => {
-  const { trackGeometry, sampleIndex } = require("./minimap.js");
   const r = { t: [0, 1, 2], lon: [-11.5, -11.5, -11.5], lat: [51.5, 51.51, 51.52] };
   const { run } = trackGeometry(r);
   expect(run[2]).toBeCloseTo(2 * 1105.74, 0);
@@ -160,7 +180,6 @@ test("passage map measures the track sailed", () => {
 });
 
 test("passage map draws released forecast areas and the helm preview note", () => {
-  const { forecastAreas, settleNote } = require("./minimap.js");
   const f = forecastAreas([{ sector_bbox: [-12, -11, 51, 52], hs_range_m: [8, 8.5] }]).features[0];
   expect(f.properties).toEqual({ hs: 8.5, label: "8–8.5 m" });
   expect(f.geometry.coordinates[0][2]).toEqual([-11, 52]);
@@ -170,7 +189,6 @@ test("passage map draws released forecast areas and the helm preview note", () =
 });
 
 test("cargo losses group into map markers that say what the sea was doing", () => {
-  const { lossMarkers, lossPopup } = require("./minimap.js");
   const n = 200, r = { t: [], lon: [], lat: [], heading: [], roll: [], pitch: [], heave: [], hs: [], tp: [], wave_from: [], wind_e: [], wind_n: [], sog: [],
     cargo: [{ t: 0, grade: 0 }, { t: 100, grade: 2 }],
     events: [{ time_s: 100, kind: "cargo_lost", unit_ids: ["a", "b", "c", "d", "e"], teu: 5, demand_g: 0.61 },
@@ -199,6 +217,61 @@ test("helm gauge turns the short way round and times the turn", () => {
   expect(k.rate).toBeCloseTo(10);
   expect(k.min).toBe(3);
   expect(turnInfo({ t: [0, 60], heading: [100, 100] }, 90)).toMatchObject({ togo: -10, min: null });
+});
+
+test("turn rate uses the supplied field and interpolates it", () => {
+  const r = { t: [0, 1, 2], heading: [359, 1, 3], turn_rate: [0.2, 0.4, 0.6] };
+  expect(sampleAt(r, 0.5).turn_rate).toBeCloseTo(0.3, 9);
+  expect(sampleAt(r, 1).turn_rate).toBeCloseTo(0.4, 9);
+  expect(turnRateAt(r, 2)).toBeCloseTo(0.6, 9);
+});
+
+test("old replays fall back to actual heading over real intervals, wrapping at north", () => {
+  const r = { t: [0, 2, 5], heading: [359, 1, 4] };
+  expect(sampleAt(r, 1).turn_rate).toBeCloseTo(1, 9); // 2° over 2 s
+  expect(sampleAt(r, 4).turn_rate).toBeCloseTo(1, 9); // 3° over the 3 s after that
+  expect(turnRateAt(r, 2)).toBeCloseTo(1, 9); // the timestamp interval, not the sample count
+  const port = { t: [0, 1.5], heading: [1, 359] };
+  expect(turnRateAt(port, 0.75)).toBeCloseTo(-4 / 3, 9); // 359 -> 0 -> 1 is the short way
+  const withOrder = { t: [0, 1], heading: [10, 8], orders: [{ t: 0, heading_deg: 180 }] };
+  expect(turnRateAt(withOrder, 0.5)).toBeCloseTo(-2, 9); // the order never supplies the rate
+});
+
+test("supplied actual rate drives ETA while the legacy average stays available", () => {
+  const replay = { t: [0, 60], heading: [100, 100], turn_rate: [0.5, 0.5] };
+  const k = turnInfo(replay, 130);
+  expect(k).toMatchObject({ now: 100, togo: 30, rate: 0, actual: 0.5, actualSupplied: true, approaching: true, min: 1 });
+  expect(turnRateText(k.actual)).toBe("+0.50 °/s starboard");
+});
+
+test("old scenes keep the legacy average-rate ETA while exposing actual rate", () => {
+  const replay = { t: [0, 60], heading: [359, 0] }; // 1° across north in one minute
+  const k = turnInfo(replay, 30);
+  expect(k.actual).toBeCloseTo(1 / 60, 9);
+  expect(k.actualSupplied).toBe(false);
+  expect(k.rate).toBeCloseTo(1, 9);
+  expect(k.min).toBe(30);
+});
+
+test("actual zero is zero, while missing data and one sample show a dash", () => {
+  const still = { t: [0, 1, 2], heading: [10, 10, 10], turn_rate: [0, 0, 0] };
+  expect(sampleAt(still, 1).turn_rate).toBe(0);
+  expect(turnInfo(still, 30)).toMatchObject({ actual: 0, actualSupplied: true, approaching: false, min: null });
+  expect(turnRateText(0)).toBe("0.00 °/s steady");
+  const one = { t: [0], heading: [10] };
+  expect(sampleAt(one, 0).turn_rate).toBeUndefined();
+  expect(turnRateText(undefined)).toBe("—");
+});
+
+test("signed port rate, and no ETA when the turn is away from the order", () => {
+  const port = { t: [0, 1, 2], heading: [102, 101, 100], turn_rate: [-0.25, -0.25, -0.25] };
+  const toward = turnInfo(port, 70);
+  expect(toward).toMatchObject({ togo: -30, actual: -0.25, actualSupplied: true, approaching: true, min: 2 });
+  expect(turnRateText(toward.actual)).toBe("-0.25 °/s port");
+  const away = turnInfo(port, 130); // ordered starboard while actually turning to port
+  expect(away).toMatchObject({ togo: 30, actual: -0.25, actualSupplied: true, approaching: false, min: null });
+  expect(turnNote(port, 130)).toContain("turning away from the order");
+  expect(turnNote(port, 130)).toContain("rate -0.25 °/s port");
 });
 
 test("forecast field colours each sector by its own Hs, edge to edge", () => {

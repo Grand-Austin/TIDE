@@ -10,7 +10,7 @@ import { loadField } from "./weather-layer.js";
 import { sunPosition, sunVector, SKY_VERTEX, SKY_FRAGMENT } from "./sky.js";
 import { deckLayout, topDown } from "./cargo-layout.js";
 import { sampleAt, toLocal, fromScene } from "./replay.js";
-import { startLive, liveOverlay, liveScenarios, helmGauge } from "./live.js";
+import { startLive, liveOverlay, liveScenarios, helmGauge, turnRateText } from "./live.js";
 
 const q = new URLSearchParams(location.search);
 const loader = new GLTFLoader();
@@ -346,6 +346,7 @@ const updatePanel = createPanel({ replay, startMs, duration, dev, sea });
 const field = live ? null : await loadField(data.storm?.id ?? replay.storm_id); // replays only: see weather-layer.js
 const updateMap = createMinimap(document.getElementById("map"), { replay, duration, live, field });
 const mapProgress = document.getElementById("map-progress"), dockTime = document.getElementById("dock-time");
+const turnNow = document.getElementById("p-turn");
 const mmss = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 ui.fps.hidden = !q.has("fps"); // ?fps shows the frame rate
 let slowUntil = 0; // after a cargo grade rise
@@ -536,6 +537,7 @@ renderer.setAnimationLoop((now) => {
     ui.play.setAttribute("aria-label", paused ? (live ? "Resume" : "Play") : "Pause");
     dockTime.textContent = `${mmss(simT)} / ${mmss(duration)}`;
     if (updatePanel(s, now)) slowUntil = now + 2500;
+    turnNow.textContent = `Rate ${turnRateText(s.turn_rate)}`;
     mapProgress.textContent = updateMap(simT, s);
   }
   frames++;

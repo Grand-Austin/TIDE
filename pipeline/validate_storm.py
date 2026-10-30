@@ -60,6 +60,8 @@ def trial(
         settings=settings or Settings(),
         wind_parameters=None,
     )
+    if sim.settings.actuator_model != "teaching":
+        raise ValueError("Constant-force replay requires teaching actuators; use pipeline.validate_maneuvering")
     sim.waves = WaveModel(vessel, seed=seed, n_frequencies=frequencies)
     state = sim.initial_state(
         datetime(2026, 10, 22, 21, tzinfo=UTC),

@@ -11,7 +11,7 @@ hidden region.
 from __future__ import annotations
 
 import argparse
-import dataclasses
+from copy import deepcopy
 import json
 import math
 import threading
@@ -25,6 +25,7 @@ from game.cargo import STACKS, stack_unit_ids
 from game.scenario import ROOT, load_scenario
 from game.session import Session
 from game.simulation.runtime import Command, Simulation
+from game.simulation.turn_rate import sample_turn_rate_deg_s
 
 WEB = ROOT / "web"
 SCENARIOS = ROOT / "scenarios"
@@ -34,11 +35,9 @@ ROLL_CHECK_DEG = 10.0
 MAX_FORECAST_CHECKS = 2
 PREVIEW_S = 480.0  # longest helm preview
 PREVIEW_CHUNK_S = 60.0  # the preview stops a chunk after the ship settles on the ordered heading
-# Preview time step: against the scenario's 0.1 s step, 1 s keeps 8-minute tracks within 13 m and the end heading
-# within 1 degree (three orders, Celtic Sea storm), and computes 8 minutes in about 0.4 s instead of 3 s.
-PREVIEW_DT_S = 1.0
+PREVIEW_TRACK_S = 10.0  # one preview track point per this much game time
 FIELDS = ["t", "lon", "lat", "heading", "roll", "pitch", "heave", "stw", "hs", "tp", "wave_from",
-          "wind_e", "wind_n", "current_e", "current_n", "lost_teu", "grade", "cloud", "precip"]
+          "wind_e", "wind_n", "current_e", "current_n", "lost_teu", "grade", "cloud", "precip", "turn_rate"]
 ENCOUNTERS = ["Head seas", "Bow-quartering seas", "Beam seas", "Stern-quartering seas", "Following seas"]
 COMPASS = {(0, 1): "North", (1, 1): "North-east", (1, 0): "East", (1, -1): "South-east",
            (0, -1): "South", (-1, -1): "South-west", (-1, 0): "West", (-1, 1): "North-west"}
@@ -85,8 +84,10 @@ class Game:
         self.stopped = False
         self.preview_busy = threading.Lock()
         sim = self.session.sim
+        # Keep the preview on the session's integration clock. Copying a state onto a coarser dt would
+        # multiply its tick-derived time (and wave/controller/exposure clock) by that step ratio.
         self.preview_sim = Simulation(sim.vessel, sim.environment, seed=d["seed"], wind_parameters=sim.wind_parameters,
-                                      settings=dataclasses.replace(sim.settings, dt_s=PREVIEW_DT_S, wave_period_s=PREVIEW_DT_S))
+                                      settings=sim.settings)
         self._append_sample()
         self._open_checkpoint("briefing", "Before you sail: read the sea and the forecasts.")
         threading.Thread(target=self._loop, daemon=True).start()
@@ -126,7 +127,7 @@ class Game:
             v["time_s"], v["lon"], v["lat"], v["heading_deg"], v["roll_deg"], v["pitch_deg"], v["heave_m"],
             v["speed_through_water_mps"], v["hs_m"], v["tp_s"], v["wave_from_deg"], v["wind_east_mps"],
             v["wind_north_mps"], v["current_east_mps"], v["current_north_mps"], cargo["lost_teu"], cargo["grade"],
-            cloud, precip)])
+            cloud, precip, sample_turn_rate_deg_s(v))])
 
     # ---------- judgement checkpoints ----------
     def _triggers(self, view):
@@ -200,27 +201,43 @@ class Game:
                 self.session.authorize_resume()
 
     def preview(self, heading_deg: float, speed_knots: float, horizon_s: float = PREVIEW_S) -> dict:
-        """Where this order takes the ship: the session's own ship model, at a coarser time step, run ahead on a
-        copy of its state until a minute after the ship settles on the order. Track only: no cargo, escape region or
-        forecast is evaluated, so nothing hidden leaks into it."""
+        """Where this order takes the ship: the session's own ship model, on the session's integration clock,
+        run ahead on a copy of its state until a minute after the ship settles on the order. Track only: no cargo,
+        escape region or forecast is evaluated, so nothing hidden leaks into it."""
         if not self.preview_busy.acquire(blocking=False):
             return {"busy": True}  # one preview at a time; the page asks again
         try:
             with self.lock:
-                state, start = self.session.state, self.session.last_sample["time_s"]
+                state = deepcopy(self.session.state)
+                start = float(self.session.last_sample["time_s"])
+            settings = self.preview_sim.settings
             command = Command(float(heading_deg) % 360, float(speed_knots) * 1852 / 3600)
+            try:
+                horizon = float(horizon_s)
+            except (TypeError, ValueError):
+                horizon = PREVIEW_S
+            if not math.isfinite(horizon) or horizon <= 0:
+                horizon = 0.0
+            horizon = min(horizon, PREVIEW_S)
+            # Whole integration steps keep every chunk accepted on the same fixed clock.
+            remaining_steps = math.floor(horizon / settings.dt_s + 1e-9)
+            chunk_steps = max(1, round(PREVIEW_CHUNK_S / settings.dt_s))
             path, settled, stop = [], None, "duration_reached"
-            while len(path) * PREVIEW_DT_S < horizon_s and stop == "duration_reached":
-                result = self.preview_sim.advance(state, command, min(PREVIEW_CHUNK_S, horizon_s - len(path) * PREVIEW_DT_S))
+            while remaining_steps > 0 and stop == "duration_reached":
+                steps = min(chunk_steps, remaining_steps)
+                result = self.preview_sim.advance(state, command, steps * settings.dt_s)
                 state, stop = result.state, result.stopping_reason
                 path += result.trajectory
+                remaining_steps -= steps
                 if settled is None:
                     settled = next((p.time_s - start for p in path
                                     if abs((p.heading_deg - command.heading_deg + 540) % 360 - 180) < 3), None)
-                elif path[-1].time_s - start >= settled + PREVIEW_CHUNK_S:
+                if settled is not None and path and path[-1].time_s - start >= settled + PREVIEW_CHUNK_S:
                     break
+            stride = max(1, round(PREVIEW_TRACK_S / settings.record_period_s))
             return {"from_s": start, "heading_deg": command.heading_deg, "speed_knots": float(speed_knots),
-                    "track": [[round(p.lon, 5), round(p.lat, 5), round(p.time_s, 1)] for p in path[9::10]],
+                    "track": [[round(p.lon, 5), round(p.lat, 5), round(p.time_s, 1)]
+                              for p in path[stride - 1::stride]],
                     "settled_s": settled, "stop": stop}
         finally:
             self.preview_busy.release()

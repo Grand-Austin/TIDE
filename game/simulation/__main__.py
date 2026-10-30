@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 
 from .environment import CopernicusEnvironment
-from .runtime import Command, Simulation
+from .runtime import Command, Settings, Simulation
 from .vessel import load_s175
 
 
@@ -21,16 +21,17 @@ def main():
     parser.add_argument("--heading", type=float, default=90)
     parser.add_argument("--speed", type=float, default=3, help="Target speed through water, m/s")
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--actuator-model", choices=["teaching", "son_nomoto", "s175_maneuvering"], default="teaching")
     parser.add_argument("--output", type=Path, default=Path("data/runs/toolkit-demo.json"))
     args = parser.parse_args()
     started = time.perf_counter()
     with CopernicusEnvironment.from_directory(Path(__file__).resolve().parents[2] / "data/copernicus") as env:
-        sim = Simulation(load_s175(), env, seed=args.seed)
+        sim = Simulation(load_s175(), env, seed=args.seed, settings=Settings(actuator_model=args.actuator_model))
         state = sim.initial_state(datetime.fromisoformat(args.time), args.lon, args.lat,
                                   heading_deg=args.heading, speed_mps=min(2, args.speed))
         result = sim.advance(state, Command(args.heading, args.speed), args.seconds)
     payload = {
-        "model": "S175 design waterline; MSS six-DOF Python port with teaching control",
+        "model": sim.algorithm_id,
         "seed": args.seed,
         "start_time": state.start_time.isoformat(),
         "settings": asdict(sim.settings),
