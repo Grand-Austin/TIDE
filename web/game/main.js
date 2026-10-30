@@ -391,7 +391,22 @@ const overlay = live ? liveOverlay() : null;
 if (live) {
   ui.scrub.disabled = true;
   const helm = helmGauge();
-  setInterval(() => live.poll().then(() => (overlay.update(live), helm.update(live))).catch(() => {}), 400);
+  // On-screen helm for mouse and touch, in the dock where the replay slider sits (live time cannot be scrubbed):
+  // the same orders as the arrow keys; a click steps 5 degrees or 1 kn.
+  const ctl = Object.assign(document.createElement("div"), { className: "seg helm-ctl" });
+  ctl.setAttribute("role", "group");
+  ctl.setAttribute("aria-label", "Helm orders");
+  const speedOut = Object.assign(document.createElement("span"), { className: "spd mono" });
+  const order = (label, title, dHeading, dSpeed) => Object.assign(document.createElement("button"), {
+    type: "button", textContent: label, title, onclick: () => (live.steer(dHeading, dSpeed), helm.show(live), showSpeed()) });
+  const showSpeed = () => (speedOut.textContent = `${live.helm.speed.toFixed(1)} kn`);
+  ctl.append(order("◀ 5°", "Turn to port 5° (←)", -5, 0), order("5° ▶", "Turn to starboard 5° (→)", 5, 0),
+    order("−", "Slower, 1 kn (↓ 0.5 kn)", 0, -1), speedOut, order("+", "Faster, 1 kn (↑ 0.5 kn)", 0, 1));
+  showSpeed();
+  ui.scrub.hidden = true;
+  ui.slowmo.closest("label").hidden = true; // slow motion is a replay setting; live time follows the session
+  ui.play.after(ctl);
+  setInterval(() => live.poll().then(() => (overlay.update(live), helm.update(live), showSpeed())).catch(() => {}), 400);
   // Captured before the scene picker or a focused button sees the key, so arrows always steer the ship
   // (a focused <select> would otherwise switch scenes). Typing in a text field is left alone.
   addEventListener("keydown", (e) => {
