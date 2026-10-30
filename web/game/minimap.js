@@ -7,6 +7,7 @@
 import { toLocal, sampleAt, latest } from "./replay.js";
 import { relativeSea, GRADE_COLORS } from "./panel.js";
 import { addWeather, forecastField, HS_GRADIENT } from "./weather-layer.js";
+import { beaufort } from "./live.js";
 
 const LOSS_GROUP_S = 60; // cargo losses this close in time share one marker
 const PEAK_ROLL_S = 30; // a marker reports the largest roll in this time before the first loss
@@ -43,7 +44,9 @@ export function forecastAreas(reports) {
     type: "FeatureCollection",
     features: reports.map((r) => {
       const [w, e, s, n] = r.sector_bbox;
-      return { type: "Feature", properties: { hs: r.hs_range_m[1], label: `${r.hs_range_m[0]}–${r.hs_range_m[1]} m` },
+      const [f0, f1] = r.wind_range_mps.map(beaufort), force = f0 === f1 ? `F${f0}` : `F${f0}–${f1}`;
+      return { type: "Feature", properties: { hs: r.hs_range_m[1],
+        label: `${r.hs_range_m[0]}–${r.hs_range_m[1]} m${r.trend === "increasing" ? " ↑" : ""}\n${force}` },
         geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } };
     }),
   };
@@ -174,7 +177,8 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.on("mouseenter", "losses", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "losses", () => (map.getCanvas().style.cursor = ""));
       ready = true;
-      setTimeout(() => locate(INTRO_MS), INTRO_DELAY_MS);
+      // a replay flies in to the ship; live play stays on the whole area, where every released forecast area shows
+      if (!live) setTimeout(() => locate(INTRO_MS), INTRO_DELAY_MS);
     });
     container.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show"); // small map: start collapsed
     const el = document.createElement("div");
@@ -205,7 +209,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
     };
     const locate = (duration = 1200) => {
       setFollow(true);
-      map.flyTo({ center: ship, zoom: Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
+      map.flyTo({ center: ship, zoom: live ? map.getZoom() : Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
     };
     locateButton.onclick = () => (follow ? setFollow(false) : locate());
     // Streamlines off by default: replays draw the Copernicus wind, live play the released forecast wave direction.

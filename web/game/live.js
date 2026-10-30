@@ -41,6 +41,33 @@ export function shipLossNote(replay, ship) {
     tip };
 }
 
+// Marine bulletin words for released numbers: Beaufort force from wind speed (upper bounds in m/s) and the WMO
+// sea-state term (code 3700) from significant wave height (upper bounds in m).
+const BEAUFORT_MPS = [0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1, 20.7, 24.4, 28.4, 32.6];
+const SEA_STATES = [[0.1, "calm"], [0.5, "smooth"], [1.25, "slight"], [2.5, "moderate"], [4, "rough"], [6, "very rough"],
+  [9, "high"], [14, "very high"], [Infinity, "phenomenal"]];
+export const beaufort = (mps) => BEAUFORT_MPS.filter((b) => mps > b).length;
+export const seaState = (hs) => SEA_STATES.find(([top]) => hs <= top)[1];
+const hhmm = (iso) => iso.slice(11, 16);
+
+// The released forecasts as a ship receives them: issue and validity times, then one line per sea area, the ship's
+// own area first and the rest in compass order (no ranking, so the bulletin does not pick the way out).
+export function bulletin(reports, shipSector) {
+  if (!reports.length) return `<h2>Weather bulletin</h2><p class="live-status">None released yet.</p>`;
+  const [sx, sy] = shipSector, order = Object.keys(DIRS);
+  const where = (r) => `${r.sector[0] - sx},${r.sector[1] - sy}`;
+  const lines = [...reports].sort((a, b) => ((order.indexOf(where(a)) + 1) % 9) - ((order.indexOf(where(b)) + 1) % 9)).map((r) => {
+    const [w0, w1] = r.wind_range_mps.map(beaufort), [h0, h1] = r.hs_range_m;
+    const force = w0 === w1 ? `${w0}` : `${w0} to ${w1}`, sea = seaState(h0) === seaState(h1) ? seaState(h1) : `${seaState(h0)} to ${seaState(h1)}`;
+    return `<li><b>${DIRS[where(r)] ?? "Further away"}</b>: wind force ${force} (${(r.wind_range_mps[0] * KN).toFixed(0)}–` +
+      `${(r.wind_range_mps[1] * KN).toFixed(0)} kn). Sea ${sea}, ${h0}–${h1} m${r.trend === "increasing" ? ", rising" : ""}. ` +
+      `Waves from ${compass(r.wave_from_deg)}, ${r.wave_period_s} s.</li>`;
+  });
+  const issued = reports.map((r) => r.issued_at).sort().at(-1), valid = reports.map((r) => r.valid_to).sort()[0];
+  return `<h2>Weather bulletin</h2><p class="live-status">Issued ${hhmm(issued)} UTC · valid to ${hhmm(valid)} UTC · ` +
+    `next update ${hhmm(valid)} UTC</p><ul class="bulletin">${lines.join("")}</ul>`;
+}
+
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
 
 // Signed actual rate for display: two decimals, direction, and no invented number for missing data.
@@ -248,6 +275,7 @@ const CSS = `
   .live-card textarea { min-height: 52px; font-family: inherit; resize: vertical; }
   .live-card .ok { color: #6fd3a0; } .live-card .bad { color: var(--order); }
   .live-card ul { margin: 0; padding-left: 16px; } .live-card li { margin: 3px 0; }
+  .live-card ul.bulletin { padding-left: 0; list-style: none; font-size: 12px; line-height: 1.4; }
   .live-stars { font-size: 24px; color: var(--order); letter-spacing: 4px; }
   .live-pill { align-self: flex-start; z-index: 7; border-radius: 999px; color: var(--order); border-color: var(--order); background: var(--panel); }
   .live-status { color: var(--muted); font-size: 12px; }
@@ -320,17 +348,11 @@ export function liveOverlay() {
     pill.hidden = false;
   };
 
-  const forecasts = (live) => {
-    const v = live.state.view, [sx, sy] = v.ship_sector;
-    return v.reports.map((r) =>
-      `<li><b>${DIRS[`${r.sector[0] - sx},${r.sector[1] - sy}`] ?? "Further away"}</b>: Hs ${r.hs_range_m[0]}–${r.hs_range_m[1]} m, ` +
-      `wind ${(r.wind_range_mps[0] * KN).toFixed(0)}–${(r.wind_range_mps[1] * KN).toFixed(0)} kn, waves from ${compass(r.wave_from_deg)}, ` +
-      `${r.wave_period_s} s, ${r.trend}</li>`).join("") || "<li>None released yet.</li>";
-  };
+  const forecasts = (live) => bulletin(live.state.view.reports, live.state.view.ship_sector);
 
   const questions = (live, cp, intro) => {
     const answers = {};
-    render(cp.trigger === "briefing" ? "Before you sail" : "Decision point", `${intro ?? ""}<p><b>${cp.message}</b></p>` +
+    render(cp.trigger === "briefing" ? "Before you sail" : "Decision point", `${intro ?? ""}<p><b>${cp.message}</b></p>` + forecasts(live) +
       cp.questions.map((q) => `<div class="q" data-q="${q.id}"><span>${q.prompt}</span><div class="choices">` +
         q.options.map((o) => `<button type="button" aria-pressed="false" data-v="${o}">${o}</button>`).join("") + "</div></div>").join("") +
       `<h2>Your orders</h2><div class="fields"><label>Heading °<input type="number" id="cp-h" min="0" max="359" value="${live.helm.heading.toFixed(0)}"></label>` +
@@ -401,7 +423,7 @@ export function liveOverlay() {
         (live.brief.voyage ? `<p class="live-status">Voyage ${live.brief.voyage.from} → ${live.brief.voyage.to} · ` +
           `planned course ${Math.round(live.brief.voyage.course_deg)}°</p>` : "") +
         `<p>${turnNote(live.replay, v.target_heading_deg)}</p>` +
-        `<h2>Released forecasts</h2><ul>${forecasts(live)}</ul>` +
+        forecasts(live) +
         `<p class="live-status">Game forecasts generated from the historical reconstruction.</p>`);
     },
     score(s, live) {

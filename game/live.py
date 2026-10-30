@@ -33,7 +33,7 @@ SEGMENT_S = 1.0
 RATES = (1.0, 5.0, 20.0, 0.0)  # 0 = as fast as the simulation runs
 ROLL_CHECK_DEG = 10.0
 MAX_FORECAST_CHECKS = 2
-CHECKPOINT_GAP_S = 600.0  # game seconds after one decision before the next opens; the briefing does not count
+CHECKPOINT_GAP_S = 300.0  # game seconds after one decision before the next opens; the briefing does not count
 PREVIEW_S = 480.0  # longest helm preview
 PREVIEW_CHUNK_S = 60.0  # the preview stops a chunk after the ship settles on the ordered heading
 PREVIEW_TRACK_S = 10.0  # one preview track point per this much game time

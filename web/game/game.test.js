@@ -5,7 +5,7 @@ import { deckLayout, topDown } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
 import { sampleAt, latest, fromScene, turnRateAt } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
-import { turnInfo, turnNote, turnRateText, shipLossNote } from "./live.js";
+import { turnInfo, turnNote, turnRateText, shipLossNote, beaufort, seaState, bulletin } from "./live.js";
 import { forecastField } from "./weather-layer.js";
 import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, plannedRoute } from "./minimap.js";
 
@@ -180,8 +180,8 @@ test("passage map measures the track sailed", () => {
 });
 
 test("passage map draws released forecast areas and the helm preview note", () => {
-  const f = forecastAreas([{ sector_bbox: [-12, -11, 51, 52], hs_range_m: [8, 8.5] }]).features[0];
-  expect(f.properties).toEqual({ hs: 8.5, label: "8–8.5 m" });
+  const f = forecastAreas([{ sector_bbox: [-12, -11, 51, 52], hs_range_m: [8, 8.5], wind_range_mps: [17.5, 22.5], trend: "increasing" }]).features[0];
+  expect(f.properties).toEqual({ hs: 8.5, label: "8–8.5 m ↑\nF8–9" });
   expect(f.geometry.coordinates[0][2]).toEqual([-11, 52]);
   expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 100)).toBe("Steady on 130° in about 7 min"); // settled_s counts from from_s
   expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 485)).toBe("On the ordered 130°");
@@ -249,6 +249,19 @@ test("a lost ship's result says why, what the sea was doing, and what would have
   expect(note.then).toBe("At that moment: beam seas, port, Hs 8.2 m, roll 17°, heading 0°.");
   expect(note.tip).toContain("off the beam");
   expect(shipLossNote({ t: [] }, { cause: "unknown" }).then).toBe(""); // no invented numbers without samples
+});
+
+test("the forecast reads as a marine bulletin: own area first, Beaufort force and WMO sea state", () => {
+  expect([beaufort(17.5), beaufort(20.7), beaufort(25), beaufort(40)]).toEqual([8, 8, 10, 12]);
+  expect([seaState(3), seaState(5.5), seaState(8.5), seaState(10)]).toEqual(["rough", "very rough", "high", "very high"]);
+  const report = (sector, hs, trend) => ({ sector, hs_range_m: hs, wind_range_mps: [17.5, 22.5], wave_from_deg: 270, wave_period_s: 12,
+    trend, issued_at: "2026-01-08T18:40:00+00:00", valid_to: "2026-01-08T19:40:00+00:00" });
+  const html = bulletin([report([2, 1], [4.5, 5], "steady"), report([1, 1], [8, 8.5], "increasing")], [1, 1]);
+  expect(html).toContain("Issued 18:40 UTC · valid to 19:40 UTC");
+  expect(html.indexOf("Your area")).toBeLessThan(html.indexOf("East"));
+  expect(html).toContain("<b>Your area</b>: wind force 8 to 9 (34–44 kn). Sea high, 8–8.5 m, rising. Waves from W, 12 s.");
+  expect(html).toContain("Sea very rough, 4.5–5 m. Waves");
+  expect(bulletin([], [1, 1])).toContain("None released yet");
 });
 
 test("helm gauge turns the short way round and times the turn", () => {
