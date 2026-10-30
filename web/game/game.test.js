@@ -5,7 +5,7 @@ import { deckLayout, topDown } from "./cargo-layout.js";
 import { sunPosition } from "./sky.js";
 import { sampleAt, latest, fromScene, turnRateAt } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
-import { turnInfo, turnNote, turnRateText } from "./live.js";
+import { turnInfo, turnNote, turnRateText, shipLossNote } from "./live.js";
 import { forecastField } from "./weather-layer.js";
 import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup } from "./minimap.js";
 
@@ -208,6 +208,36 @@ test("cargo losses group into map markers that say what the sea was doing", () =
   expect(html).toContain("peak roll 17° to port");
   expect(html).toContain("0.72 g");
   expect(html).toContain("wind 35 kn from 270°");
+});
+
+// a beam-sea ship, rolling 3° except 17° to port at t=90 (as in the map marker test)
+function beamSeaReplay() {
+  const r = { t: [], lon: [], lat: [], heading: [], roll: [], pitch: [], heave: [], hs: [], tp: [], wave_from: [], wind_e: [], wind_n: [], sog: [] };
+  for (let i = 0; i < 200; i++) {
+    r.t.push(i); r.lon.push(-11); r.lat.push(51); r.heading.push(0); r.roll.push(i === 90 ? -17 : 3); r.pitch.push(0); r.heave.push(0);
+    r.hs.push(8.2); r.tp.push(16); r.wave_from.push(270); r.wind_e.push(18); r.wind_n.push(0); r.sog.push(5);
+  }
+  return r;
+}
+
+test("a loss note says where the waves met the ship, the roll, and what helps", async () => {
+  globalThis.document ??= {};
+  const { lossNote, GRADES } = await import("./panel.js");
+  const r = beamSeaReplay(), note = lossNote(r, { time_s: 100, unit_ids: ["a", "b", "c"] });
+  expect(note.text).toBe("3 boxes overboard: beam seas, port, rolling up to 17°");
+  expect(note.tip).toContain("bow or stern");
+  r.heading.fill(270); // head seas: no beam advice
+  expect(lossNote(r, { time_s: 100, unit_ids: ["a"] }).tip).toContain("heading or speed");
+  expect(GRADES.length).toBe(6);
+  expect(GRADES[5]).toContain("120 TEU");
+});
+
+test("a lost ship's result says why, what the sea was doing, and what would have helped", () => {
+  const note = shipLossNote(beamSeaReplay(), { lost: true, cause: "sustained_rolling", time_s: 90 });
+  expect(note.cause).toContain("Heavy rolling");
+  expect(note.then).toBe("At that moment: beam seas, port, Hs 8.2 m, roll 17°, heading 0°.");
+  expect(note.tip).toContain("off the beam");
+  expect(shipLossNote({ t: [] }, { cause: "unknown" }).then).toBe(""); // no invented numbers without samples
 });
 
 test("helm gauge turns the short way round and times the turn", () => {

@@ -5,11 +5,15 @@ import { latest, sampleAt } from "./replay.js";
 
 const DECK_TEU = 480; // game/cargo.py: hold cargo is protected, so only deck TEU can be lost
 export const GRADE_COLORS = ["#4caf7d", "#9ccc65", "#e6c84f", "#f0954a", "#e25c4b", "#b8324a"];
+// What each grade means: the share of all 1,200 TEU lost (game/cargo.py _grade). Losing the ship loses it all.
+export const GRADES = ["no cargo lost", "up to 0.5% of the cargo lost, 6 TEU", "more than 0.5% lost, over 6 TEU",
+  "more than 1% lost, over 12 TEU", "more than 3% lost, over 36 TEU", "more than 10% lost, over 120 TEU"];
+const PEAK_ROLL_S = 30; // a loss note reports the largest roll in this time before the boxes went
 
 export function cargoStatus(c) {
   return {
     totalPct: (100 * (c.total_teu - c.lost_teu)) / c.total_teu,
-    deckPct: (100 * (DECK_TEU - c.lost_teu)) / DECK_TEU,
+    deckPct: Math.max(0, (100 * (DECK_TEU - c.lost_teu)) / DECK_TEU), // a lost ship takes the hold cargo too
     grade: c.grade,
     lostTeu: c.lost_teu,
   };
@@ -22,11 +26,24 @@ export function relativeSea(heading, waveFrom) {
   return { rel, label: a <= 30 || a > 150 ? name : `${name}, ${rel > 0 ? "starboard" : "port"}` };
 }
 
+// Why a batch of boxes went, from what the player could see: where the waves met the ship and the largest roll in
+// the half minute before. The tip names the beam because roll loads the stacks sideways (game/cargo.py).
+export function lossNote(replay, e) {
+  const s = sampleAt(replay, e.time_s), rs = relativeSea(s.heading, s.wave_from), a = Math.abs(rs.rel);
+  const roll = Math.max(...Array.from({ length: PEAK_ROLL_S + 1 }, (_, k) => Math.abs(sampleAt(replay, e.time_s - k).roll)));
+  const n = e.unit_ids.length;
+  const tip = a > 60 && a <= 150 ? "Waves on the beam roll the ship hardest: bring them towards the bow or stern."
+    : "Rolling loads the stacks sideways: a change of heading or speed changes how the waves meet the ship.";
+  return { text: `${n} box${n > 1 ? "es" : ""} overboard: ${rs.label}, rolling up to ${roll.toFixed(0)}°`, tip };
+}
+
 export function lossLog(replay, t) {
   const log = replay.events.filter((e) => e.kind === "cargo_lost" && e.time_s <= t)
-    .map((e) => ({ t: e.time_s, text: `${e.unit_ids.length} unit${e.unit_ids.length > 1 ? "s" : ""} overboard`, detail: e.unit_ids.join(", ") }));
+    .map((e) => ({ t: e.time_s, text: `${e.unit_ids.length} unit${e.unit_ids.length > 1 ? "s" : ""} overboard`, detail: e.unit_ids.join(", "),
+      loss: e }));
   replay.cargo.forEach((c, i) => {
-    if (i > 0 && c.grade > replay.cargo[i - 1].grade && c.t <= t) log.push({ t: c.t, text: `Cargo loss grade ${c.grade}`, grade: c.grade });
+    if (i > 0 && c.grade > replay.cargo[i - 1].grade && c.t <= t)
+      log.push({ t: c.t, text: `Cargo loss grade ${c.grade}`, detail: GRADES[c.grade], grade: c.grade });
   });
   return log.sort((a, b) => b.t - a.t);
 }
@@ -72,8 +89,9 @@ export function createPanel({ replay, startMs, duration, dev, sea }) {
       el[bar].style.background = GRADE_COLORS[c.grade];
     }
     el["p-grade"].textContent = `Grade ${c.grade}`;
+    el["p-grade"].title = `Grade ${c.grade}: ${GRADES[c.grade]}`;
     el["p-grade"].style.background = GRADE_COLORS[c.grade];
-    el["p-lost"].textContent = c.lostTeu ? `${c.lostTeu} TEU lost` : "No loss";
+    el["p-lost"].textContent = c.lostTeu ? `${c.lostTeu} TEU lost (grade ${c.grade}: ${GRADES[c.grade]})` : "No loss";
 
     const log = lossLog(replay, s.t), key = `${log.length}`;
     if (key !== logKey) {
@@ -87,13 +105,20 @@ export function createPanel({ replay, startMs, duration, dev, sea }) {
       }));
     }
 
-    // a grade rise while playing forward gets a banner; the caller slows down while it shows
+    // boxes going and a grade rise while playing forward get a banner that says why; the caller slows down on a rise
     let rose = false;
-    if (shownGrade !== null && c.grade > shownGrade && s.t > lastT && s.t - lastT < 30) {
-      el["p-toast"].textContent = `Cargo loss grade ${c.grade} — ${c.totalPct.toFixed(1)}% of cargo left`;
+    const forward = s.t > lastT && s.t - lastT < 30;
+    const fresh = forward && log.find((e) => e.loss && e.t > lastT);
+    const graded = forward && shownGrade !== null && c.grade > shownGrade;
+    if (fresh || graded) {
+      const note = fresh && lossNote(replay, fresh.loss);
+      el["p-toast"].replaceChildren(...[
+        graded && `Cargo loss grade ${c.grade}: ${GRADES[c.grade]} · ${c.totalPct.toFixed(1)}% of cargo left`,
+        note && note.text, note && note.tip,
+      ].filter(Boolean).map((text, k) => Object.assign(document.createElement(k ? "small" : "div"), { textContent: text })));
       el["p-toast"].style.borderColor = GRADE_COLORS[c.grade];
-      toastUntil = now + 3000;
-      rose = true;
+      toastUntil = now + (note ? 6000 : 3000); // the reason needs time to read
+      rose = graded;
     }
     el["p-toast"].hidden = now > toastUntil;
     shownGrade = c.grade;

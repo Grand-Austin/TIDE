@@ -3,7 +3,8 @@
 // replay (replay.js), sends the player's orders, and shows forecasts, judgement checkpoints and the score.
 // Nothing here simulates: every number shown comes from the session.
 
-import { turnRateAt } from "./replay.js";
+import { sampleAt, turnRateAt } from "./replay.js";
+import { relativeSea, GRADES } from "./panel.js";
 
 const COLUMNS = ["lon", "lat", "heading", "turn_rate", "roll", "pitch", "heave", "hs", "tp", "wave_from", "wind_e", "wind_n", "cloud", "precip"];
 const KN = 1.94384;
@@ -17,6 +18,29 @@ const ENDINGS = {
   model_limit: "The ship's motion left the range the model covers",
   numerical_failure: "The simulation could not continue",
 };
+// Why the ship was lost (game/ship.py causes), in plain words. The limits are authored game assumptions.
+const SHIP_LOSS = {
+  roll_capsize: "She capsized: one roll went further than she could come back from.",
+  sustained_rolling: "Heavy rolling, beyond 20°, went on too long and the hull gave way.",
+  structural_overload: "Pitching and slamming overloaded the hull for too long.",
+  following_sea_instability: "Fast following seas made her surf and swing broadside (broach).",
+  extreme_pitch: "She pitched beyond 35° in one wave.",
+  extreme_acceleration: "One wave threw the hull with an extreme acceleration.",
+};
+const ROLL_LOSS = new Set(["roll_capsize", "sustained_rolling"]);
+
+// The result card's account of a lost ship: the cause, where the waves met her then, and what would have helped.
+export function shipLossNote(replay, ship) {
+  const s = Number.isFinite(ship?.time_s) && replay.t.length ? sampleAt(replay, ship.time_s) : null;
+  const sea = s ? relativeSea(s.heading, s.wave_from) : null;
+  const tip = ROLL_LOSS.has(ship?.cause) ? "Next time keep the waves off the beam: bring them towards the bow or stern."
+    : ship?.cause === "following_sea_instability" ? "Next time slow down or take the following seas at an angle."
+    : "Next time ease speed into the waves, or meet them at an angle.";
+  return { cause: SHIP_LOSS[ship?.cause] ?? "The hull failed in the storm.",
+    then: s ? `At that moment: ${sea.label}, Hs ${s.hs.toFixed(1)} m, roll ${Math.abs(s.roll).toFixed(0)}°, heading ${Math.round(s.heading)}°.` : "",
+    tip };
+}
+
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
 
 // Signed actual rate for display: two decimals, direction, and no invented number for missing data.
@@ -358,7 +382,7 @@ export function liveOverlay() {
     get open() { return !card.hidden && view === "decision"; },
     update(live) {
       const st = live.state, v = st.view;
-      if (st.score && !shownScore) return this.score(st.score);
+      if (st.score && !shownScore) return this.score(st.score, live);
       if (st.checkpoint && shownCheckpoint !== st.checkpoint.id) {
         shownCheckpoint = st.checkpoint.id;
         view = "decision";
@@ -372,7 +396,7 @@ export function liveOverlay() {
         `<h2>Released forecasts</h2><ul>${forecasts(live)}</ul>` +
         `<p class="live-status">Game forecasts generated from the historical reconstruction.</p>`);
     },
-    score(s) {
+    score(s, live) {
       shownScore = true;
       view = "score";
       const p = s.parts;
@@ -382,7 +406,8 @@ export function liveOverlay() {
       render("Voyage result", `<div class="live-stars">${"★".repeat(s.stars)}${"☆".repeat(3 - s.stars)}</div>` +
         `<p><b>${s.ship_lost ? "Ship lost: the mission failed and all cargo went down with her"
           : s.escaped ? "Escaped the storm" : ENDINGS[s.outcome] ?? `Did not escape (${s.outcome})`}</b></p>` +
-        `<p>${(s.elapsed_s / 60).toFixed(0)} min · ${s.lost_teu} TEU lost (grade ${s.grade}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
+        (s.ship_lost ? (({ cause, then, tip }) => `<p>${cause} ${then}</p><p class="live-hint">${tip}</p>`)(shipLossNote(live.replay, s.ship)) : "") +
+        `<p>${(s.elapsed_s / 60).toFixed(0)} min · ${s.lost_teu} TEU lost (grade ${s.grade}: ${GRADES[s.grade]}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
         `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${s.total}/100</b></p><ul>${review}</ul>` +
         `<p class="live-status">Game scoring for training, not a professional assessment.</p>`);
     },
