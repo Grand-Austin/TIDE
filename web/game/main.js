@@ -457,6 +457,17 @@ camera.position.copy(viewAt("quarter", start.heading));
 controls.target.set(ship.position.x, 14, ship.position.z);
 setView("quarter");
 
+// ?film&t=1384&view=beam&rate=1: a clean shot for screen recording (pitch video): no interface, starting at t
+// (scene seconds) at the given rate, slow motion off, in one of the VIEWS. A replay only; live play ignores it.
+if (q.has("film") && !live) {
+  document.body.classList.add("film");
+  simT = Math.max(0, Math.min(duration, +(q.get("t") ?? 0)));
+  rate = +(q.get("rate") ?? 1);
+  ui.slowmo.checked = false;
+  if (VIEWS[q.get("view")]) setView(q.get("view"));
+  camera.position.copy(viewAt(viewLock ?? "quarter", sampleAt(replay, simT).heading));
+}
+
 let frames = 0, lastFps = performance.now(), lastFrame = lastFps, uiAt = 0;
 const prev = new THREE.Vector3();
 renderer.setAnimationLoop((now) => {
