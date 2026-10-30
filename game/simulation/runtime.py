@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 import math
 from typing import Callable
@@ -41,6 +41,10 @@ class Settings:
     max_reference_accel: float = 0.02
     speed_time_constant_s: float = 60.0
     yaw_natural_frequency: float = 0.04
+    # Floor on the yaw decay time M66/D66. The prepared S175 damping is a wave-frequency equivalent with a yaw decay
+    # of about 2 s, which holds the ship to about 7 deg/min under full rudder; manoeuvring yaw damping is much lower.
+    # A longer floor lowers only D66. The default (1 s) leaves the prepared vessel unchanged.
+    yaw_decay_time_s: float = 1.0
     roll_exposure_deg: float = 10.0
     lateral_exposure_mps2: float = 0.1 * 9.81
 
@@ -171,9 +175,13 @@ class Simulation:
 
     def __init__(self, vessel: Vessel, environment, *, seed: int = 1, settings: Settings | None = None,
                  wind_parameters: WindParameters | None = WindParameters()):
+        self.settings = settings or Settings()
+        if vessel.M[5, 5] / vessel.D[5, 5] < self.settings.yaw_decay_time_s:
+            damping = vessel.D.copy()
+            damping[5, 5] = vessel.M[5, 5] / self.settings.yaw_decay_time_s
+            vessel = replace(vessel, D=damping)
         self.vessel = vessel
         self.environment = environment
-        self.settings = settings or Settings()
         self.waves = WaveModel(vessel, seed=seed)
         self.wind_parameters = wind_parameters
 

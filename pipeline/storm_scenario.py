@@ -42,7 +42,7 @@ START_KM = 15.0
 # The autopilot answers twice as fast (natural frequency 0.08 rad/s, reference turn rate up to 1 deg/s): with the
 # defaults a storm turn at 10 kn ran at about 5 deg/min, which players read as an ignored order. Measured at the
 # 8 Jan 2026 start: 9.4 deg/min, roll unchanged. The hull's own yaw response limits further gains.
-SETTINGS = dict(STORM_SETTINGS, dt_s=0.1, wave_period_s=0.2, yaw_natural_frequency=0.08, max_reference_yaw_rate=math.radians(1.0))
+SETTINGS = dict(STORM_SETTINGS, dt_s=0.1, wave_period_s=0.2)
 
 
 def km(lon, lat, lon0, lat0):
