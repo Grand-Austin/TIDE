@@ -175,7 +175,15 @@ float shipFoam(vec2 p) {
   float hull = abs(fwd) < 91.0 ? (1.0 - smoothstep(0.5, 4.5 + 4.0 * uBowFoam * bow, abs(abs(stb) - half_b))) * (0.35 + (0.65 + uBowFoam) * bow) : 0.0;
   float aft = -fwd - 88.0, width = 8.0 + aft * 0.36; // wake widens behind the stern
   float wake = aft > 0.0 ? (1.0 - smoothstep(width * 0.25, width, abs(stb))) * exp(-aft / 380.0) : 0.0;
-  return (hull + 0.8 * wake) * smoothstep(0.5, 4.0, uShip.w);
+  // Kelvin arms from the bow: crests diverge at about 19.5 deg (tan = 0.354) and fade with distance; short
+  // feathered crests sit just inside each arm, as seen from the air behind a moving ship
+  float behind = 88.0 - fwd, edge = half_b + max(behind, 0.0) * 0.354, w = 1.2 + behind * 0.012;
+  float arms = behind > 0.0 && behind < 500.0
+    ? (exp(-pow((abs(stb) - edge) / w, 2.0)) * 0.45
+       + smoothstep(0.7, 1.0, sin((behind * 0.94 - abs(stb) * 0.34) * 0.16)) * exp(-pow((abs(stb) - edge + 1.5 * w) / (1.6 * w), 2.0)) * 0.18)
+      * exp(-behind / 170.0)
+    : 0.0;
+  return (hull + 0.8 * wake + arms) * smoothstep(0.5, 4.0, uShip.w);
 }
 
 float cargoFoam(vec2 p) {
@@ -220,8 +228,13 @@ void main() {
   vec2 q = toWind * vWorld.xz;
   float bubbles = texture2D(uDetailMap, q / vec2(9.0, 26.0) + vec2(0.0, uTime * 0.03)).a * 0.6
                 + texture2D(uDetailMap, q / vec2(2.7, 6.0) + vec2(0.3, uTime * 0.08)).a * 0.4;
-  float cover = vFoam * uFoamAmount * 1.6 + shipFoam(vWorld.xz) + cargoFoam(vWorld.xz);
+  float cover = vFoam * uFoamAmount * 1.6 + cargoFoam(vWorld.xz);
   float foam = clamp(cover - (1.0 - smoothstep(0.25, 0.7, bubbles)) * 0.9, 0.0, 1.0);
+  // ship white water is broken up on a much larger, along-track scale, so it reads as streaky foam, not dots
+  vec2 rel = vWorld.xz - uShip.xy, along = vec2(sin(uShip.z), -cos(uShip.z));
+  vec2 shipUV = vec2(dot(rel, vec2(along.y, -along.x)) / 18.0, dot(rel, along) / 60.0);
+  float streaks = texture2D(uDetailMap, shipUV + vec2(0.0, uTime * 0.01)).a * 0.6 + texture2D(uDetailMap, shipUV * 2.3 + 0.5).a * 0.4;
+  foam = max(foam, clamp(shipFoam(vWorld.xz) * (0.25 + 0.95 * smoothstep(0.3, 0.8, streaks)), 0.0, 0.9));
   col = mix(col, vec3(0.8, 0.84, 0.86) * (0.6 + 0.4 * max(dot(vNormal, uSun), 0.0)) * mix(vec3(0.3, 0.36, 0.48), vec3(1.0), uDay), foam);
 
   col = mix(col, uFogColor, 1.0 - exp(-uFogDensity * uFogDensity * d * d));
