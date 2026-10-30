@@ -257,6 +257,10 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")  # pages and modules change often; never play a stale script
+        super().end_headers()
+
     def _json(self, value, status=200):
         body = json.dumps(value, default=str).encode()
         self.send_response(status)

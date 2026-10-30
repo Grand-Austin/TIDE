@@ -334,6 +334,18 @@ if (index) ui.scene.replaceChildren(
   ...(playable.length ? [group("Play a storm (you steer)", playable)] : []),
   group("Watch a storm replay (fixed demo orders)", replays),
   group("Recorded game", [new Option("Menorca 9 Sep 2026", "replay")]));
+// a replay while playable storms exist: say so, and offer to steer this storm (or the first playable one)
+if (!live && playable.length) {
+  const same = playable.find((o) => o.value === `live:${sceneId}`) ?? playable[0];
+  const link = Object.assign(document.createElement("a"), {
+    href: `?live=${same.value.slice(5)}`,
+    textContent: `This is a replay with fixed demo orders. ▶ Steer it yourself: ${same.text.replace("▶ Play: ", "")}`,
+  });
+  Object.assign(link.style, { position: "fixed", top: "12px", left: "50%", transform: "translateX(-50%)", zIndex: 8,
+    padding: "10px 16px", borderRadius: "8px", background: "#f2a93b", color: "#0b1622", fontWeight: 600, textDecoration: "none",
+    maxWidth: "calc(100% - 420px)" });
+  document.body.append(link);
+}
 // opened through game/live.py without a choice: go straight to the first playable storm
 if (!location.search && playable.length) location.search = `?live=${playable[0].value.slice(5)}`;
 ui.scene.value = live ? `live:${liveId}` : sceneId ?? "replay";
