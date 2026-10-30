@@ -23,6 +23,10 @@
           51.541666666666664
         ],
         [
+          -10.291666666666677,
+          51.791666666666664
+        ],
+        [
           -10.37500000000002,
           51.87499999999998
         ]
@@ -46,6 +50,10 @@
         [
           -10.12500000000002,
           51.541666666666664
+        ],
+        [
+          -10.291666666666677,
+          51.791666666666664
         ],
         [
           -10.37500000000002,
@@ -73,6 +81,10 @@
           51.541666666666664
         ],
         [
+          -10.291666666666677,
+          51.791666666666664
+        ],
+        [
           -10.37500000000002,
           51.87499999999998
         ]
@@ -96,6 +108,10 @@
         [
           -10.12500000000002,
           51.541666666666664
+        ],
+        [
+          -10.291666666666677,
+          51.791666666666664
         ],
         [
           -10.37500000000002,
@@ -123,6 +139,10 @@
           51.541666666666664
         ],
         [
+          -10.291666666666677,
+          51.791666666666664
+        ],
+        [
           -10.37500000000002,
           51.87499999999998
         ]
@@ -148,6 +168,10 @@
           51.541666666666664
         ],
         [
+          -10.291666666666677,
+          51.791666666666664
+        ],
+        [
           -10.37500000000002,
           51.87499999999998
         ]
@@ -171,6 +195,10 @@
         [
           -10.12500000000002,
           51.541666666666664
+        ],
+        [
+          -10.291666666666677,
+          51.791666666666664
         ],
         [
           -10.37500000000002,
@@ -3037,10 +3065,10 @@
         0
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3049,7 +3077,7 @@
       ],
       "wind_range_mps": [
         10.0,
-        15.0
+        12.5
       ],
       "wave_from_deg": 270,
       "wave_period_s": 18,
@@ -3064,10 +3092,10 @@
         1
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3076,7 +3104,7 @@
       ],
       "wind_range_mps": [
         10.0,
-        15.0
+        12.5
       ],
       "wave_from_deg": 270,
       "wave_period_s": 18,
@@ -3091,10 +3119,10 @@
         2
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3103,7 +3131,7 @@
       ],
       "wind_range_mps": [
         10.0,
-        15.0
+        12.5
       ],
       "wave_from_deg": 270,
       "wave_period_s": 18,
@@ -3118,14 +3146,14 @@
         0
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
-        7.5,
+        8.0,
         8.5
       ],
       "wind_range_mps": [
@@ -3133,7 +3161,7 @@
         12.5
       ],
       "wave_from_deg": 270,
-      "wave_period_s": 18,
+      "wave_period_s": 19,
       "trend": "steady",
       "important": false,
       "reason": "Forecast wave height at least 4 m"
@@ -3145,14 +3173,14 @@
         1
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
-        7.5,
+        8.0,
         8.5
       ],
       "wind_range_mps": [
@@ -3172,14 +3200,14 @@
         2
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
-        7.5,
+        8.0,
         8.5
       ],
       "wind_range_mps": [
@@ -3199,10 +3227,10 @@
         0
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3210,11 +3238,11 @@
         8.0
       ],
       "wind_range_mps": [
-        10.0,
+        7.5,
         12.5
       ],
       "wave_from_deg": 270,
-      "wave_period_s": 18,
+      "wave_period_s": 19,
       "trend": "steady",
       "important": false,
       "reason": "Forecast wave height at least 4 m"
@@ -3226,10 +3254,10 @@
         1
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3241,7 +3269,7 @@
         12.5
       ],
       "wave_from_deg": 270,
-      "wave_period_s": 18,
+      "wave_period_s": 19,
       "trend": "steady",
       "important": false,
       "reason": "Forecast wave height at least 4 m"
@@ -3253,10 +3281,10 @@
         2
       ],
       "issued_s": 0,
-      "issued_at": "2025-12-18T11:40:00+00:00",
+      "issued_at": "2025-12-18T10:40:00+00:00",
       "valid_to_s": 3600,
-      "valid_from": "2025-12-18T11:40:00+00:00",
-      "valid_to": "2025-12-18T12:40:00+00:00",
+      "valid_from": "2025-12-18T10:40:00+00:00",
+      "valid_to": "2025-12-18T11:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3264,11 +3292,11 @@
         8.0
       ],
       "wind_range_mps": [
-        10.0,
+        7.5,
         12.5
       ],
       "wave_from_deg": 270,
-      "wave_period_s": 18,
+      "wave_period_s": 19,
       "trend": "steady",
       "important": false,
       "reason": "Forecast wave height at least 4 m"
@@ -3280,18 +3308,18 @@
         0
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
-        7.5,
+        8.0,
         8.5
       ],
       "wind_range_mps": [
-        12.5,
+        10.0,
         15.0
       ],
       "wave_from_deg": 270,
@@ -3307,18 +3335,18 @@
         1
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
-        7.5,
+        8.0,
         8.5
       ],
       "wind_range_mps": [
-        12.5,
+        10.0,
         15.0
       ],
       "wave_from_deg": 270,
@@ -3334,10 +3362,10 @@
         2
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3345,7 +3373,7 @@
         8.5
       ],
       "wind_range_mps": [
-        12.5,
+        10.0,
         15.0
       ],
       "wave_from_deg": 270,
@@ -3361,15 +3389,15 @@
         0
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
         7.5,
-        8.0
+        8.5
       ],
       "wind_range_mps": [
         10.0,
@@ -3388,19 +3416,19 @@
         1
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
         7.5,
-        8.0
+        8.5
       ],
       "wind_range_mps": [
         10.0,
-        15.0
+        12.5
       ],
       "wave_from_deg": 270,
       "wave_period_s": 18,
@@ -3415,15 +3443,15 @@
         2
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
         7.5,
-        8.0
+        8.5
       ],
       "wind_range_mps": [
         10.0,
@@ -3442,19 +3470,19 @@
         0
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
-        7.0,
+        7.5,
         8.0
       ],
       "wind_range_mps": [
         10.0,
-        15.0
+        12.5
       ],
       "wave_from_deg": 270,
       "wave_period_s": 18,
@@ -3469,10 +3497,10 @@
         1
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3481,7 +3509,7 @@
       ],
       "wind_range_mps": [
         10.0,
-        15.0
+        12.5
       ],
       "wave_from_deg": 270,
       "wave_period_s": 18,
@@ -3496,10 +3524,10 @@
         2
       ],
       "issued_s": 3600,
-      "issued_at": "2025-12-18T12:40:00+00:00",
+      "issued_at": "2025-12-18T11:40:00+00:00",
       "valid_to_s": 7200,
-      "valid_from": "2025-12-18T12:40:00+00:00",
-      "valid_to": "2025-12-18T13:40:00+00:00",
+      "valid_from": "2025-12-18T11:40:00+00:00",
+      "valid_to": "2025-12-18T12:40:00+00:00",
       "label": "game_simulated_forecast",
       "provenance": "Offline historical reconstruction; not an official historical forecast",
       "hs_range_m": [
@@ -3518,12 +3546,9 @@
     }
   ],
   "cargo": {
-    "threshold_g": 0.14,
-    "damage_time_s": 60.0,
-    "multipliers": [
-      1.0,
-      1.15,
-      1.3
-    ]
+    "median_g": 0.5,
+    "sigma": 0.35,
+    "exposure_s": 1.0,
+    "strength": 1.0
   }
 }

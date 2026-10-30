@@ -2,20 +2,20 @@
   "schema_version": 1,
   "id": "biscay-20251218-03",
   "title": "Escape the Celtic Sea storm, 2025-12-18",
-  "start": "2025-12-18T11:40:00Z",
-  "end": "2025-12-18T13:40:00Z",
+  "start": "2025-12-18T10:40:00Z",
+  "end": "2025-12-18T12:40:00Z",
   "seed": 1,
   "initial": {
-    "lon": -11.6585,
-    "lat": 51.5,
-    "heading_deg": 271.2,
+    "lon": -10.4937,
+    "lat": 51.7429,
+    "heading_deg": 269.9,
     "speed_mps": 5.0
   },
   "mission": {
     "budget_s": 7200,
     "target_lon_lat": [
-      -11.875,
-      51.5
+      -10.2917,
+      51.7917
     ],
     "radius_m": 1000,
     "review_interval_s": 300
@@ -37,8 +37,7 @@
     "speed_time_constant_s": 60.0,
     "yaw_natural_frequency": 0.04,
     "roll_exposure_deg": 10.0,
-    "lateral_exposure_mps2": 0.9810000000000001,
-    "max_attitude_deg": 30.0
+    "lateral_exposure_mps2": 0.9810000000000001
   },
   "wind_parameters": {
     "loa_m": 175.0,
@@ -65,7 +64,7 @@
   ],
   "gameplay_settings": {
     "region_hs_m": 7.0,
-    "start_inside_km": 15.0,
+    "start_inside_km": 14.9,
     "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
   },
   "collection": {
@@ -111,6 +110,6 @@
   },
   "gameplay": {
     "path": "scenarios/biscay-20251218-03/gameplay.json",
-    "sha256": "06157dd806dadb21ea3df230ce1a77b8026a6901b7dbae817bf12c2dd1218e13"
+    "sha256": "cc4766839c497051ab68c8531cf84da716e111e44c81206dea0e56eb5843ba47"
   }
 }

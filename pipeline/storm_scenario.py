@@ -82,7 +82,7 @@ def depth_inside(polygon, lon, lat, bbox=None, sea=None):
     return best
 
 
-def build(storm_id: str) -> Path:
+def build(storm_id: str, start_km: float = START_KM) -> Path:
     region_name = storm_id.split("-")[0]
     storm = next(s for s in json.loads((STORMS / f"{region_name}.json").read_text())["storms"] if s["id"] == storm_id)
     # start where and when pipeline.export_scene would: the peak cell, in the storm's best daylight window
@@ -108,8 +108,8 @@ def build(storm_id: str) -> Path:
     found = depth_inside(polygon, lon, lat, bbox, sea)
     if found is None:
         raise SystemExit(f"{storm_id}: the start is not inside the Hs >= {threshold:g} m region")
-    if found[0] > INSIDE_KM[1]:
-        f = (found[0] - START_KM) / found[0]
+    if found[0] > max(INSIDE_KM[1], start_km):
+        f = (found[0] - start_km) / found[0]
         lon, lat = lon + (found[1][0] - lon) * f, lat + (found[1][1] - lat) * f
         found = depth_inside(polygon, lon, lat, bbox, sea)
         if found is None or not sea(lon, lat):
@@ -243,9 +243,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("storms", nargs="+")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--start-km", type=float, default=START_KM,
+                        help="how far inside the region the start sits; lower it when no strategy escapes")
     args = parser.parse_args()
     for storm_id in args.storms:
-        path = build(storm_id)
+        path = build(storm_id, args.start_km)
         if args.check:
             results = [check(path, strategy, ROOT / "data/runs" / f"check-{storm_id}") for strategy in ("exit", "avoid_beam")]
             for r in results:

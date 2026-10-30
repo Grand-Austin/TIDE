@@ -8,7 +8,7 @@
   "initial": {
     "lon": -5.4601,
     "lat": 49.7926,
-    "heading_deg": 264.8,
+    "heading_deg": 259.6,
     "speed_mps": 5.0
   },
   "mission": {
@@ -37,8 +37,7 @@
     "speed_time_constant_s": 60.0,
     "yaw_natural_frequency": 0.04,
     "roll_exposure_deg": 10.0,
-    "lateral_exposure_mps2": 0.9810000000000001,
-    "max_attitude_deg": 30.0
+    "lateral_exposure_mps2": 0.9810000000000001
   },
   "wind_parameters": {
     "loa_m": 175.0,
@@ -111,6 +110,6 @@
   },
   "gameplay": {
     "path": "scenarios/biscay-20260108-18/gameplay.json",
-    "sha256": "a50944d6caddf7b1a038e9e81b956226b64cce05d3730ef8454a240bc40a5276"
+    "sha256": "8819f7609efe0b3ab717b85c3f4219a08ba492c23a77d6d68225856a981a5fa6"
   }
 }
