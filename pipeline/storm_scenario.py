@@ -39,7 +39,10 @@ INSIDE_KM = (10.0, 25.0)
 START_KM = 15.0
 # dt 0.1 s and wave forces every 0.2 s run about 2.5x faster than 0.05/0.1 with the same roll and damage
 # (checked at the 23 Jan 2026 peak: max roll 15.0 vs 15.1 deg, deck damage within 3 %)
-SETTINGS = dict(STORM_SETTINGS, dt_s=0.1, wave_period_s=0.2)
+# The autopilot answers twice as fast (natural frequency 0.08 rad/s, reference turn rate up to 1 deg/s): with the
+# defaults a storm turn at 10 kn ran at about 5 deg/min, which players read as an ignored order. Measured at the
+# 8 Jan 2026 start: 9.4 deg/min, roll unchanged. The hull's own yaw response limits further gains.
+SETTINGS = dict(STORM_SETTINGS, dt_s=0.1, wave_period_s=0.2, yaw_natural_frequency=0.08, max_reference_yaw_rate=math.radians(1.0))
 
 
 def km(lon, lat, lon0, lat0):

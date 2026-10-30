@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { spectrumWaves, waveUniforms, detailMap, heightAt, OCEAN_VERTEX, OCEAN_FRAGMENT, SPRAY_VERTEX, SPRAY_FRAGMENT } from "./ocean.js";
+import { spectrumWaves, waveUniforms, detailMap, heightAt, N_WAVES, OCEAN_VERTEX, OCEAN_FRAGMENT, SPRAY_VERTEX, SPRAY_FRAGMENT } from "./ocean.js";
 import { BowSpray } from "./bow-spray.js";
 import { CargoFallView } from "./cargo-fall-view.js";
 import { createPanel } from "./panel.js";
@@ -32,9 +32,12 @@ const duration = live ? live.brief.budget_s : replay.t.at(-1);
 // Never shown to players as data.
 const dev = ["hs", "tp", "from", "hour"].some((k) => q.has(k));
 const sea = { hs: +(q.get("hs") ?? start.hs), tp: +(q.get("tp") ?? start.tp), fromDeg: +(q.get("from") ?? start.wave_from) };
-// shortcut: wave periods and directions stay at the replay's first sample and only Hs follows the data;
-// rebuild the spectrum with a cross-fade once a storm scenario changes Tp or direction a lot
-const waves = spectrumWaves(sea);
+// Hs scales the sea every frame (uAmp). When the data's Tp or direction drifts from the wave set in use, a new set is
+// built and cross-faded in over FADE_S of scene time (followSea below); all sets share the reference Hs sea.hs.
+let current = spectrumWaves(sea), next = null, fadeStart = 0, fadeSeed = 1;
+let waves = current; // what heightAt and the GPU use: one set, or both weighted during a fade
+const seaNow = { tp: sea.tp, fromDeg: sea.fromDeg };
+const FADE_S = 20, DIR_STEP = 15, TP_STEP = 1.5;
 
 const HORIZON = new THREE.Color("#8d99a2"), FOG_DENSITY = 0.00042;
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -132,8 +135,9 @@ const detailTexture = new THREE.DataTexture(detail.data, detail.size, detail.siz
 Object.assign(detailTexture, { wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, generateMipmaps: true,
   minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, anisotropy: renderer.capabilities.getMaxAnisotropy(), needsUpdate: true });
 const oceanUniforms = {
-  uA: { value: wu.a.map((v) => new THREE.Vector4(...v)) },
-  uB: { value: wu.b.map((v) => new THREE.Vector4(...v)) },
+  uA: { value: Array.from({ length: 2 * N_WAVES }, (_, i) => new THREE.Vector4(...(wu.a[i] ?? [0, 0, 0, 0]))) },
+  uB: { value: Array.from({ length: 2 * N_WAVES }, (_, i) => new THREE.Vector4(...(wu.b[i] ?? [0, 0, 0, 1]))) },
+  uCount: { value: N_WAVES },
   uDetailMap: { value: detailTexture },
   uShip: { value: new THREE.Vector4() },
   uSplash: { value: [] },
@@ -164,7 +168,7 @@ const sprayGeometry = new THREE.BufferGeometry();
 sprayGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(SPRAY * 3), 3));
 sprayGeometry.setAttribute("seed", new THREE.BufferAttribute(spraySeeds, 3));
 const sprayUniforms = {
-  uA: oceanUniforms.uA, uB: oceanUniforms.uB, uAmp: oceanUniforms.uAmp, uTime: oceanUniforms.uTime, uCenter: oceanUniforms.uCenter,
+  uA: oceanUniforms.uA, uB: oceanUniforms.uB, uAmp: oceanUniforms.uAmp, uCount: oceanUniforms.uCount, uTime: oceanUniforms.uTime, uCenter: oceanUniforms.uCenter,
   uWind: { value: new THREE.Vector2() }, uStorm: { value: 0 }, uRadius: { value: 350 }, uWindSpeed: { value: 0 }, uPixels: { value: 900 }, uLight: { value: 1 },
 };
 const crestSpray = new THREE.Points(sprayGeometry, new THREE.ShaderMaterial({ vertexShader: SPRAY_VERTEX, fragmentShader: SPRAY_FRAGMENT,
@@ -285,6 +289,27 @@ const rain = new THREE.LineSegments(rainGeometry, new THREE.ShaderMaterial({
 }));
 rain.frustumCulled = false;
 scene.add(rain);
+
+function pushWaves(list) {
+  const u = waveUniforms(list);
+  u.a.forEach((v, i) => oceanUniforms.uA.value[i].set(...v));
+  u.b.forEach((v, i) => oceanUniforms.uB.value[i].set(...v));
+  oceanUniforms.uCount.value = list.length;
+}
+// Follow the data's peak period and wave direction: start a cross-fade when they drift past DIR_STEP or TP_STEP.
+function followSea(s, t) {
+  if (dev) return;
+  if (!next) {
+    const turn = Math.abs((((s.wave_from - seaNow.fromDeg) % 360) + 540) % 360 - 180);
+    if (turn < DIR_STEP && Math.abs(s.tp - seaNow.tp) < TP_STEP) return;
+    next = spectrumWaves({ hs: sea.hs, tp: s.tp, fromDeg: s.wave_from, seed: ++fadeSeed });
+    [fadeStart, seaNow.tp, seaNow.fromDeg] = [t, s.tp, s.wave_from];
+  }
+  const f = THREE.MathUtils.clamp((t - fadeStart) / FADE_S, 0, 1);
+  if (f >= 1) [current, next, waves] = [next, null, next];
+  else waves = [...current.map((v) => ({ ...v, a: v.a * (1 - f), h: v.h * (1 - f) })), ...next.map((v) => ({ ...v, a: v.a * f, h: v.h * f }))];
+  pushWaves(waves);
+}
 
 // Pose from the simulation: NED heave is positive down, FSD roll positive starboard down, pitch positive bow up.
 const RAD = Math.PI / 180;
@@ -425,6 +450,7 @@ renderer.setAnimationLoop((now) => {
   const storm = THREE.MathUtils.smoothstep(wind.length(), 7, 20); // whitecaps start near Beaufort 4
   oceanUniforms.uTime.value = simT;
   oceanUniforms.uAmp.value = dev ? 1 : s.hs / sea.hs;
+  followSea(s, simT);
   oceanUniforms.uCenter.value.set(ship.position.x, 0, ship.position.z);
   oceanUniforms.uWind.value.copy(wind).normalize();
   oceanUniforms.uFoamAmount.value = storm;

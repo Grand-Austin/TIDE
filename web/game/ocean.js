@@ -68,15 +68,17 @@ export function waveUniforms(waves) {
 
 // The same Gerstner sum as displace(), shared by the sea surface and the breaking-crest spray.
 const GERSTNER = /* glsl */ `
-#define N ${N_WAVES}
+#define N ${2 * N_WAVES}
 uniform vec4 uA[N];   // dir x, dir z, k, omega
 uniform vec4 uB[N];   // amplitude, horizontal amplitude, phase, wavelength
 uniform float uAmp;
+uniform int uCount;   // components in use: one wave set, or two while the sea cross-fades to a new Tp or direction
 vec3 gerstner(vec2 p0, float dist, float t, out vec3 n, out float jac) {
   vec3 P = vec3(p0.x, 0.0, p0.y);
   n = vec3(0.0, 1.0, 0.0);
   jac = 1.0;
   for (int i = 0; i < N; i++) {
+    if (i >= uCount) break;
     float fade = 1.0 - smoothstep(uB[i].w * 6.0, uB[i].w * 25.0, dist); // drop waves the far grid cannot resolve
     float a = uB[i].x * uAmp * fade, h = uB[i].y * min(uAmp, 1.0) * fade;
     float th = uA[i].z * dot(uA[i].xy, p0) - uA[i].w * t + uB[i].z;
