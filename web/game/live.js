@@ -7,6 +7,13 @@ const COLUMNS = ["lon", "lat", "heading", "roll", "pitch", "heave", "hs", "tp", 
 const KN = 1.94384;
 const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "South-east", "0,-1": "South",
   "-1,-1": "South-west", "-1,0": "West", "-1,1": "North-west", "0,0": "Your area" };
+const ENDINGS = {
+  timeout: "Time ran out inside the storm",
+  missing_environment: "Ran out of sea data close to the coast: the voyage ended there",
+  domain_boundary: "Left the area the scenario covers",
+  model_limit: "The ship's motion left the range the model covers",
+  numerical_failure: "The simulation could not continue",
+};
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
 
 // "Heading 250° → ordered 130°: turning to port, 120° to go, about 12 min at the current rate" (game time).
@@ -222,7 +229,7 @@ export function liveOverlay() {
         (cp.reason ? ` — “${cp.reason}”` : "") + "</li>").join("");
       render("Voyage result", `<div class="live-stars">${"★".repeat(s.stars)}${"☆".repeat(3 - s.stars)}</div>` +
         `<p><b>${s.ship_lost ? "Ship lost: the mission failed and all cargo went down with her"
-          : s.escaped ? "Escaped the storm" : `Did not escape (${s.outcome})`}</b></p>` +
+          : s.escaped ? "Escaped the storm" : ENDINGS[s.outcome] ?? `Did not escape (${s.outcome})`}</b></p>` +
         `<p>${(s.elapsed_s / 60).toFixed(0)} min · ${s.lost_teu} TEU lost (grade ${s.grade}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
         `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${s.total}/100</b></p><ul>${review}</ul>` +
         `<p class="live-status">Game scoring for training, not a professional assessment.</p>`);

@@ -2,8 +2,8 @@
 
 _Last updated: 2026-10-30_
 
-**Stage:** PLAN stages 1–4 done on `experiment` (command-line game). Stage 5 partly done; stage 6 (frontend, Copilot) not started.
-**Next:** agree the region and the frontend approach (see "Decisions needed"), then a playable storm scenario and the web frontend.
+**Stage:** storm game playable on `tide/storm-game`: 3D page (`web/game/`, Parke's Blender ship) with live play against `game/live.py` on validated Biscay storm scenarios; Copernicus sea state and ERA5 weather drive physics and visuals.
+**Next:** finish validating the four scenarios, play a full game in the browser, record the video. Run: `.venv-tide/bin/python -m game.live` (or `uv run python -m game.live`), open http://localhost:8000/game/.
 
 **Motion repair:** full MSS coupling is restored. Source-supported mean longitudinal wave drift and a logarithmic spectrum grid address the reproduced head-seas speed stop and resolution warning. All 196 tests pass; live GNU Octave comparisons, 17 initial and 27 high-speed synthetic pressure tests are recorded in [MOTION_VALIDATION.md](docs/MOTION_VALIDATION.md). Local uncommitted TUI work remains preserved. The temporary experiment review has been removed after its scope was resolved.
 **Cargo:** The selected C50=0.5g stack rule now runs in live sessions. Endpoint body angular terms, sorted-capacity interval tracking and compact JSON state replace the old category dose. Old implementations/tests retain their structure under `archive/`. The suite passes 220 active tests; the CLI and a 20-minute severe-sea Session passed. The optional historical matrix was stopped after 9/12 completed trials; completed results remain under `data/runs/stack-cargo-missions-current/partial-validation.json`. Numerical results remain under ignored `data/runs/`; [CARGO_DAMAGE_STUDY.md](docs/CARGO_DAMAGE_STUDY.md) keeps the comparison tables.

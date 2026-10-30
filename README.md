@@ -60,6 +60,18 @@ CI (`.github/workflows/ci.yml`) runs the same steps on a fresh clone for every p
 
 Copernicus Marine data needs a free account. Log in once with `copernicusmarine login`; credentials stay on your machine and must never be committed.
 
+## Play the storm game
+
+```bash
+uv run python -m game.live        # then open http://localhost:8000/game/
+```
+
+The page opens the first validated storm scenario (`scenarios/biscay-*`, see
+[docs/STORM_SCENARIOS.md](docs/STORM_SCENARIOS.md)): leave the storm's hidden adverse-weather area within two hours
+and lose as little cargo as you can. Arrow keys change the ordered heading and speed, Space pauses; decision points
+ask what you see and why. The scene list also offers 34 storm replays with fixed demonstration orders.
+See [web/game/README.md](web/game/README.md) for what is data and what is not.
+
 ## Copernicus Marine products
 
 Committed subsets for the Mallorca–Menorca channel, 1 July to 30 September 2026. Details, variables and caveats are in [`data/copernicus/README.md`](data/copernicus/README.md).

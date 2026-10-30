@@ -36,7 +36,9 @@ OUT = ROOT / "web" / "game" / "scenes"
 REFERENCE = json.loads((ROOT / "scenarios/menorca-20260909/scenario.json").read_text())
 SPEED_MPS = 5.0  # about 10 kn: enough flow past the rudder to turn in 10–12 m seas (see STATUS.md)
 # Storm scenes need more thrust than the calm Menorca scenario to hold that speed.
-STORM_SETTINGS = dict(REFERENCE["settings"], max_thrust_n=1_500_000.0)
+STORM_SETTINGS = dict(REFERENCE["settings"], max_thrust_n=1_500_000.0,
+                      # the storm autopilot of pipeline.storm_scenario, so replays turn like the game
+                      yaw_natural_frequency=0.08, max_reference_yaw_rate=math.radians(1.0))
 LEAD_S = 1200  # start this long before the peak
 PLAN = [(0, 0), (480, 90), (1380, 135)]  # (from s, heading relative to the waves' origin)
 DURATION_S = 1800
