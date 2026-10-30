@@ -8,6 +8,10 @@ import { cargoFall, shipToWorld } from "./cargo-fall.js";
 import { turnInfo, turnNote, turnRateText, shipLossNote, beaufort, seaState, bulletin } from "./live.js";
 import { forecastField } from "./weather-layer.js";
 import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, plannedRoute } from "./minimap.js";
+import { OCEAN_TRACK, LE_HAVRE, HALIFAX, routeLengthNm, routeBounds, routeFeature } from "./ocean-route.js";
+import { nearbyPorts, rangeRing, portPopup } from "./port-guide.js";
+import { DEEPWATER_PORTS } from "./deepwater-ports.js";
+import { haversineNm } from "./geo.js";
 
 // Small Jest/Bun-style surface over node:assert, so the existing expectations still read naturally under node --test.
 function expect(actual) {
@@ -22,6 +26,7 @@ function expect(actual) {
     toBeLessThan: (expected) => assert.ok(actual < expected, `expected ${actual} < ${expected}`),
     toBeGreaterThan: (expected) => assert.ok(actual > expected, `expected ${actual} > ${expected}`),
     toBeLessThanOrEqual: (expected) => assert.ok(actual <= expected, `expected ${actual} <= ${expected}`),
+    toBeGreaterThanOrEqual: (expected) => assert.ok(actual >= expected, `expected ${actual} >= ${expected}`),
     toBeUndefined: () => assert.strictEqual(actual, undefined),
     toContain: (expected) => assert.ok(actual.includes(expected), `expected ${JSON.stringify(actual)} to contain ${JSON.stringify(expected)}`),
   };
@@ -346,4 +351,87 @@ test("sea crests keep the data's direction with a storm-swell spread", () => {
     expect(Math.abs(mean * (180 / Math.PI))).toBeLessThan(3);
     expect(rms * (180 / Math.PI)).toBeLessThan(15);
   }
+});
+
+test("the ocean track runs from Le Havre to Halifax on a great circle", () => {
+  const [first, last] = [OCEAN_TRACK[0], OCEAN_TRACK.at(-1)];
+  expect(first[0]).toBeCloseTo(LE_HAVRE.lon, 2);
+  expect(first[1]).toBeCloseTo(LE_HAVRE.lat, 2);
+  expect(last[0]).toBeCloseTo(HALIFAX.lon, 2);
+  expect(last[1]).toBeCloseTo(HALIFAX.lat, 2);
+  const nm = routeLengthNm();
+  expect(nm).toBeGreaterThan(2450); // about 2543 nm: the short way round, not the rhumb line
+  expect(nm).toBeLessThan(2650);
+  const mid = OCEAN_TRACK[Math.floor(OCEAN_TRACK.length / 2)];
+  expect(mid[1]).toBeGreaterThan(51); // the great circle bulges north of 51°N in mid-Atlantic
+  const [w, s, e, n] = routeBounds();
+  expect(w).toBeCloseTo(HALIFAX.lon, 2);
+  expect(e).toBeCloseTo(LE_HAVRE.lon, 2);
+  expect(s).toBeLessThan(45);
+  expect(n).toBeGreaterThan(52);
+  // the track crosses the Biscay storm area, so the player can see it at the game's own zoom
+  const inArea = OCEAN_TRACK.filter(([lon, lat]) => lon >= -7.35 && lon <= -3.73 && lat >= 47.733 && lat <= 51.35);
+  expect(inArea.length).toBeGreaterThan(3);
+});
+
+test("the ocean track maps as one line and two named ends", () => {
+  const f = routeFeature();
+  expect(f.features.length).toBe(3);
+  const [line, from, to] = f.features;
+  expect(line.geometry.type).toBe("LineString");
+  expect(line.geometry.coordinates.length).toBe(OCEAN_TRACK.length);
+  expect(from.properties.label).toBe("Le Havre · France");
+  expect(from.geometry.coordinates).toEqual(OCEAN_TRACK[0]);
+  expect(to.properties.label).toBe("Halifax · Canada");
+  expect(to.geometry.coordinates).toEqual(OCEAN_TRACK.at(-1));
+});
+
+test("the port guide shows the nearest few ports within 200 nm only", () => {
+  const ship = [-5.4601, 49.7926]; // the 2026-01-08 scenario start, west of Cornwall
+  const near = nearbyPorts(ship);
+  expect(near.length).toBe(6);
+  expect(near[0].name).toBe("Falmouth");
+  expect(near[0].distance_nm).toBeCloseTo(27, 0);
+  expect(near[0].bearing_deg).toBeCloseTo(36, 0); // north-east, over the channel
+  for (let i = 1; i < near.length; i++) expect(near[i].distance_nm).toBeGreaterThanOrEqual(near[i - 1].distance_nm);
+  for (const p of near) expect(p.distance_nm).toBeLessThanOrEqual(200);
+  expect(near.some((p) => p.name === "Leixões")).toBe(false); // 500 nm away: off the list
+  const none = nearbyPorts(ship, [{ name: "Leixões", country: "Portugal", lon: -8.7, lat: 41.183 }]);
+  expect(none.length).toBe(0);
+  const capped = nearbyPorts(ship, DEEPWATER_PORTS, { limit: 2 });
+  expect(capped.map((p) => p.name)).toEqual(["Falmouth", "Plymouth"]);
+});
+
+test("the 200 nm ring is a closed circle at the stated range", () => {
+  const ring = rangeRing([0, 0], 200).geometry.coordinates;
+  expect(ring.length).toBe(97);
+  expect(ring.at(-1)).toEqual(ring[0]);
+  for (const v of ring) expect(haversineNm([0, 0], v)).toBeCloseTo(200, 0); // within half a mile
+  expect(ring.every(([, lat]) => Math.abs(lat) < 4)).toBe(true); // at the equator 200 nm is about 3.3°
+});
+
+test("a port card says which port, how far, on which bearing, and that the range is guidance", () => {
+  const html = portPopup({ name: "Brest", country: "France", distance_nm: 93.4, bearing_deg: 155.6 });
+  expect(html).toContain("Brest");
+  expect(html).toContain("France");
+  expect(html).toContain("93 nm");
+  expect(html).toContain("bearing 156°");
+  expect(html).toContain("not a route");
+  const threeDigits = portPopup({ name: "Milford Haven", country: "United Kingdom", distance_nm: 116, bearing_deg: 8.2 });
+  expect(threeDigits).toContain("bearing 008°"); // a bearing keeps three digits, as on a compass
+});
+
+test("the global port list is worldwide and free of duplicates", () => {
+  expect(DEEPWATER_PORTS.length).toBeGreaterThan(200);
+  expect(new Set(DEEPWATER_PORTS.map((p) => p.name)).size).toBe(DEEPWATER_PORTS.length);
+  for (const p of DEEPWATER_PORTS) {
+    expect(p.lon).toBeGreaterThanOrEqual(-180);
+    expect(p.lon).toBeLessThanOrEqual(180);
+    expect(p.lat).toBeGreaterThanOrEqual(-90);
+    expect(p.lat).toBeLessThanOrEqual(90);
+    expect(typeof p.country).toBe("string");
+    expect(p.country.length).toBeGreaterThan(0);
+  }
+  for (const name of ["Leixões", "Halifax", "Busan", "Santos", "Durban", "Fremantle"])
+    expect(DEEPWATER_PORTS.some((p) => p.name === name)).toBe(true);
 });

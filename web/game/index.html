@@ -11,7 +11,7 @@
           --text: #d6e2ee; --muted: #a9bccd; --accent: #5cc8e8; --order: #f2a93b; --radius: 14px;
           --shadow: 0 10px 30px rgba(3, 9, 16, 0.35); --side: 342px; --credit-h: 34px;
           /* the small passage map scales with the window; the left column and the dock make room for it */
-          --map-w: clamp(250px, 25vw, 360px); --map-h: clamp(110px, calc(100vh - 560px), 220px); }
+          --map-w: clamp(250px, 25vw, 360px); --map-h: clamp(110px, calc(100vh - 590px), 220px); }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #8d99a2; font-family: system-ui, sans-serif; color: var(--text); }
   canvas { display: block; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -69,7 +69,7 @@
   /* bottom left: where the ship is */
   .map { position: fixed; left: 12px; bottom: calc(var(--credit-h) + 4px); width: 300px; margin: 0; padding: 10px; box-sizing: border-box;
          display: flex; flex-direction: column; gap: 8px; }
-  .map .row { padding: 0 2px; }
+  .map .row { padding: 0 2px; flex-wrap: wrap; row-gap: 6px; }
   #map { height: 190px; border-radius: 9px; overflow: hidden; background: var(--panel-solid); }
   #map .maplibregl-ctrl-attrib { font-size: 10px; }
   .ship-mark { width: 18px; height: 18px; }
@@ -89,6 +89,8 @@
   .sw { display: inline-block; width: 16px; height: 0; border-top: 3px solid var(--accent); }
   .sw.ahead { border-top: 2px dashed var(--order); }
   .sw.route { border-top: 2px dashed #e6eef6; }
+  .sw.ocean { border-top: 2px dashed #8fa6ff; }
+  .sw.port { width: 8px; height: 8px; border: 0; border-radius: 50%; background: #6ee7b7; }
   .sw.hs { height: 9px; border: 0; border-radius: 2px; background: linear-gradient(90deg, #4caf7d, #e6c84f, #f0954a, #b8324a); }
   #map-settle { flex-basis: 100%; color: var(--order); }
   .legend .sw.field { width: 34px; height: 9px; border: 0; border-radius: 2px; }
@@ -247,11 +249,14 @@
 
 <figure class="map glass" aria-labelledby="map-title">
   <div class="row"><h2 id="map-title">Passage</h2><span class="muted mono" id="map-progress"></span>
+    <button type="button" class="expand text" id="map-ports" aria-pressed="true" title="Container ports within 200 nm">Ports</button>
+    <button type="button" class="expand text" id="map-ocean" title="Fit the Le Havre–Halifax ocean track">Ocean</button>
     <button type="button" class="expand text" id="map-wind" aria-pressed="false" title="Show the wind (Copernicus)">Wind</button>
     <button type="button" class="expand" id="map-locate" aria-pressed="false" aria-label="Centre on the ship and follow it" title="Follow the ship">◎</button>
     <button type="button" class="expand" id="map-expand" aria-pressed="false" aria-label="Enlarge the map" title="Enlarge the map">⤢</button></div>
-  <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas and the predicted track"></div>
+  <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas, the ocean track, the nearest container ports and the predicted track"></div>
   <div class="legend" id="map-legend"><span><i class="sw sailed"></i>sailed</span><span class="live-only"><i class="sw ahead"></i>your order</span><span class="live-only" id="map-route" hidden><i class="sw route"></i>planned route</span>
+    <span><i class="sw ocean"></i>Le Havre–Halifax track</span><span><i class="sw port"></i>container port ≤ 200 nm</span>
     <span class="live-only"><i class="sw hs"></i>forecast Hs 0–10 m · wave direction</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
 </figure>
 

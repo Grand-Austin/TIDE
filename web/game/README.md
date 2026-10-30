@@ -15,8 +15,8 @@ uv run python -m http.server 8000 --bind 127.0.0.1 --directory web/game
 Open http://127.0.0.1:8000/ (or `?replay=./replays/my-run.json`). `?hs=8&tp=12&from=270` freezes a test sea and
 labels it DEV OVERRIDE; it is not scenario data. three.js 0.170 loads from jsDelivr, so the page needs network access.
 
-`bun test` in this directory checks the wave spectrum, height queries, replay interpolation, sun position and deck
-stowage. CI does not run it yet.
+`node --test game.test.js` (or `bun test`) checks the wave spectrum, height queries, replay interpolation, sun
+position, deck stowage, the ocean track and the 200 nm port rule. CI does not run it yet.
 
 ## Files
 
@@ -36,7 +36,32 @@ stowage. CI does not run it yet.
 | `scenes/` | 34 Biscay storm scenes from `pipeline.export_scene` (`index.json` lists them) |
 | `fields/` | each storm's Copernicus Hs and wind grid from `pipeline.export_fields`, drawn on the passage map in replays (not in live play: it would show the hidden escape region) |
 | `weather-layer.js` | the passage map's Hs colour field and wind streamlines |
+| `geo.js` | spherical helpers: distances in nm, great-circle tracks, 200 nm rings, bounds |
+| `ocean-route.js` | the map's one ocean track, Le Havre to Halifax, and its end labels |
+| `port-guide.js` | which global container ports the map draws: the nearest six within 200 nm, plus the range ring |
+| `deepwater-ports.js` | the global port list behind that layer: name, country, longitude, latitude |
 | `classic.html` | Earlier single-file storm page; still hosts live play (`?live`) until it moves into `main.js` |
+
+## Map guidance: the ocean track and the ports
+
+Two layers give the map a wider reference than the storm area.
+
+- **Ocean track.** A great-circle line from Le Havre (France) to Halifax (Canada), about 2543 nm, sampled every
+  40 nm. It crosses the Bay of Biscay about 50 nm north of the 2026-01-08 scenario start. Press **Ocean** to fit
+  the whole track; it enlarges the map first. This is a reference crossing for the North Atlantic, not any
+  scenario's `voyage.json` plan: each scenario keeps its own authored from/to ports and course, drawn as the
+  shorter "planned route" line. A Portugal–Halifax crossing was the other candidate, but its great circle passes
+  about 380 nm south of the Biscay operating area.
+- **Ports.** The ship's 200 nm range is the rule. **Ports** shows or hides the ring and the markers. The map draws
+  at most the six nearest ports from the global list. A click gives the name, country, straight-line distance and
+  bearing.
+
+The list in `deepwater-ports.js` holds 223 container ports worldwide. Coordinates come from the NGA World Port
+Index (Pub. 150, CSV downloaded 2026-10-30) where that source has the port; the rest are placed by hand. A port
+stays on the list when it has a container terminal that ocean-going ships call at. Around the Bay of Biscay the
+list keeps smaller regional ports on purpose, because those are the realistic ports to put in at. Depth is not a
+filter: the World Port Index records it unevenly. The list and the 200 nm range are game guidance. They are not a
+survey, not a route and not for navigation.
 
 ## Storm scenes
 

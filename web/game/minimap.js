@@ -3,11 +3,17 @@
 // forecast areas (coloured by forecast Hs), the scenario's operating area and the helm preview: where the current
 // order takes the ship, from game.live's run of the ship model. Released information only: no escape region.
 // Positions are the simulation's, at the storm's real location.
+//
+// Two guidance layers cross the whole ocean: the Le Havre–Halifax track (the Atlantic leg of a container voyage)
+// and the world's container ports, of which only the nearest few within 200 nm of the ship are drawn.
 
 import { toLocal, sampleAt, latest } from "./replay.js";
 import { relativeSea, GRADE_COLORS } from "./panel.js";
 import { addWeather, forecastField, HS_GRADIENT } from "./weather-layer.js";
 import { beaufort } from "./live.js";
+import { nearbyPorts, portFeature, rangeRing, portPopup, PORT_RANGE_NM } from "./port-guide.js";
+import { routeFeature, routeBounds } from "./ocean-route.js";
+import { haversineNm } from "./geo.js";
 
 const LOSS_GROUP_S = 60; // cargo losses this close in time share one marker
 const PEAK_ROLL_S = 30; // a marker reports the largest roll in this time before the first loss
@@ -124,6 +130,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
   const legend = document.getElementById("map-legend"), settle = document.getElementById("map-settle");
   let map = null, marker = null, placed = false, ready = false, follow = false, ship = [replay.lon[0], replay.lat[0]], drawnAt = -1, geo = null, count = -1;
   let reportsKey = "", shownPreview = null, lossKey = -1, setWeather = null, windOn = false;
+  let portsOn = true, portShip = null; // the port layer redraws only after the ship has moved
   const startMs = Date.parse(replay.start_utc);
   if (maplibre) {
     let bounds;
@@ -146,6 +153,14 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.addLayer({ id: "forecast-label", type: "symbol", source: "forecast", layout: { "text-field": ["get", "label"],
         "text-font": ["Noto Sans Regular"], "text-size": 11 }, paint: { "text-color": "#d6e2ee", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
       map.addLayer({ id: "area", type: "line", source: "area", paint: { "line-color": "#a9bccd", "line-dasharray": [4, 3] } });
+      // the ocean track: a reference line across the whole Atlantic, under the local track and the preview
+      map.addSource("ocean", { type: "geojson", data: routeFeature() });
+      map.addLayer({ id: "ocean", type: "line", source: "ocean", paint: { "line-color": "#8fa6ff", "line-width": 1.4,
+        "line-dasharray": [5, 4], "line-opacity": 0.7 } });
+      map.addLayer({ id: "ocean-label", type: "symbol", source: "ocean", filter: ["==", ["geometry-type"], "Point"],
+        layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Regular"], "text-size": 11,
+          "text-anchor": ["get", "anchor"] },
+        paint: { "text-color": "#a9baff", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
       // the voyage plan the storm interrupts: a long-dashed line with the destination at its far end
       map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#e6eef6", "line-width": 1.5, "line-dasharray": [6, 3], "line-opacity": 0.75 } });
       map.addLayer({ id: "route-label", type: "symbol", source: "route", filter: ["==", ["geometry-type"], "Point"],
@@ -167,6 +182,21 @@ export function createMinimap(container, { replay, duration, live, field }) {
           { type: "Feature", geometry: { type: "Point", coordinates: near },
             properties: { label: `Planned route to ${voyage.to}`, anchor: to[1] > from[1] ? "top" : "bottom" } }] });
       }
+      // guidance ports: the nearest few container ports within PORT_RANGE_NM of the ship, and that range as a ring
+      map.addSource("port-range", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "port-range", type: "line", source: "port-range", paint: { "line-color": "#6ee7b7",
+        "line-width": 1, "line-dasharray": [2, 4], "line-opacity": 0.55 } });
+      map.addSource("ports", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "ports", type: "circle", source: "ports", paint: { "circle-color": "#6ee7b7", "circle-radius": 4,
+        "circle-stroke-color": "#0b1622", "circle-stroke-width": 1.2 } });
+      map.addLayer({ id: "port-label", type: "symbol", source: "ports", layout: { "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Regular"], "text-size": 10, "text-anchor": "top", "text-offset": [0, 0.5] },
+        paint: { "text-color": "#bfeee0", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
+      const portCard = new maplibre.Popup({ className: "loss-popup", maxWidth: "240px" });
+      map.on("click", "ports", (e) => portCard.setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(portPopup(e.features[0].properties)).addTo(map));
+      map.on("mouseenter", "ports", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "ports", () => (map.getCanvas().style.cursor = ""));
       map.addSource("losses", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "losses", type: "circle", source: "losses", paint: { "circle-color": ["get", "color"],
         "circle-radius": ["interpolate", ["linear"], ["get", "boxes"], 5, 7, 50, 13], "circle-stroke-color": "#0b1622", "circle-stroke-width": 1.5 } });
@@ -177,6 +207,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.on("mouseenter", "losses", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "losses", () => (map.getCanvas().style.cursor = ""));
       ready = true;
+      if (!portsOn) setPorts(false); // the layer may have been switched off while the style was loading
       // a replay flies in to the ship; live play stays on the whole area, where every released forecast area shows
       if (!live) setTimeout(() => locate(INTRO_MS), INTRO_DELAY_MS);
     });
@@ -212,6 +243,25 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.flyTo({ center: ship, zoom: live ? map.getZoom() : Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
     };
     locateButton.onclick = () => (follow ? setFollow(false) : locate());
+    // Ocean: fit the whole Le Havre–Halifax track, and enlarge the map so the line is not a thumbnail
+    document.getElementById("map-ocean").onclick = () => {
+      setFollow(false);
+      if (!figure.classList.contains("big")) expand.onclick();
+      const [w, s, e, n] = routeBounds();
+      map.fitBounds([[w, s], [e, n]], { padding: 24, duration: 900 });
+    };
+    // Ports: the guidance layer switches off as a whole, ring and labels included
+    const portsButton = document.getElementById("map-ports");
+    const setPorts = (on) => {
+      portsOn = on;
+      portsButton.setAttribute("aria-pressed", String(on));
+      for (const id of ["ports", "port-label", "port-range"])
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+      portShip = null; // redraw the ring and the ports on the next frame
+    };
+    portsButton.onclick = () => setPorts(!portsOn);
+    setPorts(portsOn);
+    portsButton.title = `Container ports within ${PORT_RANGE_NM} nm`;
     // Streamlines off by default: replays draw the Copernicus wind, live play the released forecast wave direction.
     const windButton = document.getElementById("map-wind");
     windButton.hidden = !field && !live;
@@ -241,6 +291,12 @@ export function createMinimap(container, { replay, duration, live, field }) {
         marker.addTo(map);
         placed = true;
       }
+    }
+    if (ready && portsOn && (portShip === null || haversineNm(portShip, ship) > 2)) {
+      portShip = ship.slice();
+      const near = nearbyPorts(ship);
+      map.getSource("ports").setData(portFeature(near));
+      map.getSource("port-range").setData({ type: "FeatureCollection", features: [rangeRing(ship)] });
     }
     setWeather?.(startMs + t * 1000);
     if (ready && Math.abs(t - drawnAt) >= 2) { // a line redraw per 2 s of scene time is plenty at this scale
