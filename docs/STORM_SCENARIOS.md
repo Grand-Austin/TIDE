@@ -15,7 +15,14 @@ if its validation report shows at least one way out.
   was deeper than 25 km. Edges along the data box and edges with land just beyond them are not exits.
 - **Mission.** Two hours, 5 m/s initial speed, head seas initially. Storm settings: dt 0.1 s, wave forces every
   0.2 s, 1.5 MN thrust.
+- **Steering.** The PID autopilot retains the quicker storm reference settings. The prepared vessel damping
+  stays unchanged, and the yaw-moment limit is fixed at 30 MN m at every speed. The former 30 s yaw-decay
+  override and speed-squared moment multiplier have been removed; earlier turn measurements do not apply.
 - **Weather.** Hourly ERA5 cloud cover and precipitation at the start point (Open-Meteo) in `weather.json`.
+
+Changing these motion settings requires new strategy runs and validation reports; do not update report hashes
+without rerunning the strategies. Frozen scene replays in `web/game/scenes/` retain their recorded motion and
+must be regenerated before using them as evidence for the restored settings.
 
 ## Validation report: `scenarios/<id>/validation.json`
 

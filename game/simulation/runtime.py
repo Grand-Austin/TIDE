@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import math
 from typing import Callable
@@ -34,17 +34,10 @@ class Settings:
     record_period_s: float = 1.0
     max_thrust_n: float = 300_000.0
     max_yaw_moment_nm: float = 30_000_000.0
-    # Rudder lift grows with the square of the flow past it. Above this speed through water the
-    # yaw limit grows as (speed / reference)²; below it the limit stays at max_yaw_moment_nm.
-    yaw_reference_speed_mps: float = 3.0
     max_reference_yaw_rate: float = math.radians(0.5)
     max_reference_accel: float = 0.02
     speed_time_constant_s: float = 60.0
     yaw_natural_frequency: float = 0.04
-    # Floor on the yaw decay time M66/D66. The prepared S175 damping is a wave-frequency equivalent with a yaw decay
-    # of about 2 s, which holds the ship to about 7 deg/min under full rudder; manoeuvring yaw damping is much lower.
-    # A longer floor lowers only D66. The default (1 s) leaves the prepared vessel unchanged.
-    yaw_decay_time_s: float = 1.0
     roll_exposure_deg: float = 10.0
     lateral_exposure_mps2: float = 0.1 * 9.81
 
@@ -176,10 +169,6 @@ class Simulation:
     def __init__(self, vessel: Vessel, environment, *, seed: int = 1, settings: Settings | None = None,
                  wind_parameters: WindParameters | None = WindParameters()):
         self.settings = settings or Settings()
-        if vessel.M[5, 5] / vessel.D[5, 5] < self.settings.yaw_decay_time_s:
-            damping = vessel.D.copy()
-            damping[5, 5] = vessel.M[5, 5] / self.settings.yaw_decay_time_s
-            vessel = replace(vessel, D=damping)
         self.vessel = vessel
         self.environment = environment
         self.waves = WaveModel(vessel, seed=seed)
@@ -242,7 +231,7 @@ class Simulation:
         w = cfg.yaw_natural_frequency
         ki = v.M[5, 5] * w**3 / 5
         yaw = v.M[5, 5] * (w**2 * heading_error - 2 * w * state.x[5]) + ki * c.heading_integral
-        yaw_limit = cfg.max_yaw_moment_nm * max(1.0, (water_body[0] / cfg.yaw_reference_speed_mps) ** 2)
+        yaw_limit = cfg.max_yaw_moment_nm
         # integrate only near the ordered heading: during a long turn the error is large for minutes and
         # would wind the integral up to the rudder limit, which then carries the ship 15–40° past the order
         settled = abs(_wrap(math.radians(command.heading_deg) - c.heading_ref)) < 1e-9 and abs(heading_error) < math.radians(10)

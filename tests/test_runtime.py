@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -196,6 +197,51 @@ def test_turn_uses_short_angle_and_controls_are_bounded(vessel):
     assert abs(force[0]) <= sim.settings.max_thrust_n
     assert abs(force[5]) <= sim.settings.max_yaw_moment_nm
     np.testing.assert_array_equal(force[1:5], 0)
+
+
+@pytest.mark.parametrize("speed_mps", [1, 5, 10])
+@pytest.mark.parametrize("heading_deg", [-90, 90])
+def test_yaw_moment_limit_is_fixed_at_every_speed(vessel, speed_mps, heading_deg):
+    settings = Settings(max_yaw_moment_nm=10_000)
+    sim = Simulation(vessel, ConstantEnvironment(), settings=settings)
+    state = sim.initial_state(START, 3.5, 40, speed_mps=speed_mps)
+    state.control.heading_ref = np.deg2rad(heading_deg)
+
+    force = sim._control(state, Command(heading_deg, speed_mps), SeaState(0, 8, 0))
+
+    assert force[5] == pytest.approx(np.copysign(settings.max_yaw_moment_nm, heading_deg))
+
+
+def test_heading_integral_accumulates_only_near_the_order(vessel):
+    sim = Simulation(vessel, ConstantEnvironment())
+    state = sim.initial_state(START, 3.5, 40)
+    state.control.heading_ref = np.deg2rad(5)
+    sim._control(state, Command(5, 0), SeaState(0, 8, 0))
+    integral = state.control.heading_integral
+    assert integral > 0
+
+    state.control.heading_ref = np.deg2rad(30)
+    sim._control(state, Command(30, 0), SeaState(0, 8, 0))
+    assert state.control.heading_integral == integral
+
+
+def test_storm_settings_preserve_s175_damping_and_dissipate_energy():
+    from game.simulation.dynamics import derivative
+    from game.simulation.vessel import load_s175
+
+    vessel = load_s175()
+    state = np.zeros(12)
+    # This coupled roll/yaw motion gained energy under the former D66 override.
+    state[3], state[5] = 0.001, 0.0004347365205377971
+    paths = sorted(Path("scenarios").glob("biscay-*/scenario.json"))
+    assert paths
+    for path in paths:
+        settings = Settings(**json.loads(path.read_text())["settings"])
+        sim = Simulation(vessel, ConstantEnvironment(), settings=settings, wind_parameters=None)
+        np.testing.assert_array_equal(sim.vessel.D, vessel.D)
+        assert np.linalg.eigvalsh(sim.vessel.D).min() >= 0
+        acceleration = derivative(state, np.zeros(6), sim.vessel, (0, 0))[:6]
+        assert state[:6] @ sim.vessel.M @ acceleration < 0
 
 
 def test_step_halving_converges(vessel):

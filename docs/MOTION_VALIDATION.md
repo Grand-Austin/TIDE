@@ -1,5 +1,31 @@
 # S175 motion repair and MSS comparison — 29 October 2026
 
+## Steering restoration — 30 October 2026
+
+The storm branch's later yaw-damping override has been removed. Simulation uses the prepared vessel's full
+`D` matrix unchanged. The yaw actuator again has the original fixed 30 MN m limit, without a speed-squared
+multiplier. The PID heading integral, anti-windup and quicker storm reference settings remain in place.
+
+The removed override changed `D66` from 4.2165e10 to 2.6308e9, reducing it to 6.24% of its prepared value,
+while retaining the off-diagonal coupling. The resulting full damping matrix had a negative eigenvalue
+(-2.7435e8). The pinned MSS `computeManeuveringModel` rejects a 30 s yaw time constant for these equivalent
+matrices: it would require negative added viscous damping, whereas the admissible upper time constant is
+about 1.97 s. These bounds apply to this data and equivalent-matrix construction, not every possible S175 model.
+
+A no-input check at zero displacement, without wind, waves or current, uses roll rate 0.001 rad/s and yaw rate
+0.0004347365205377971 rad/s. Including full Coriolis and cross-flow drag, the prepared vessel loses 7181.55 W
+of kinetic energy at that instant; the former override gains 290.29 W. Python and the pinned MSS executed in
+Octave agree on these values. A regression test checks that every committed storm configuration preserves the
+prepared damping and dissipates energy for this state. Other tests check the fixed yaw bound in both turn
+directions at multiple speeds, and that the PID integral still operates near the ordered heading.
+
+The fixed 30 MN m limit is the original TIDE teaching actuator bound, not an experimentally calibrated MSS
+rudder model. Restoring it preserves the model boundary; it does not establish real-ship turning accuracy.
+Scenario validation must be rerun after these settings change. Existing scene JSON records remain historical
+outputs of their recorded motion configurations until they are regenerated.
+
+## Original motion repair
+
 The runtime retains the full pinned MSS Coriolis coupling. The horizontal-only
 replacement from `4880170` has been removed. No mass, restoring, damping,
 actuator limit was increased to obtain completion. The TIDE-only 30-degree
