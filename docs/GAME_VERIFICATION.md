@@ -1,5 +1,7 @@
 # Game prototype verification — 30 October 2026
 
+> **Removed 2026-10-30:** the GNU Octave comparison scripts (`pipeline/validate_*.py`), reference fixtures (`tests/fixtures/mss/`, `tests/reference/`) and their tests are no longer in the repository. Octave stays a local reference on Xuan's machine; the comparisons below are a historical record.
+
 PLAN stages 3 and 4 are implemented. The terminal supports Director and pure local modes. This report distinguishes deterministic mission verification from live model observations.
 
 ## Automated checks

@@ -1,5 +1,7 @@
 # S175 manoeuvring and seakeeping — 30 October 2026
 
+> **Removed 2026-10-30:** the GNU Octave comparison scripts (`pipeline/validate_*.py`), reference fixtures (`tests/fixtures/mss/`, `tests/reference/`) and their tests are no longer in the repository. Octave stays a local reference on Xuan's machine; the comparisons below are a historical record.
+
 The Biscay scenarios select `Settings(actuator_model="s175_maneuvering")`.
 The algorithm identifier is `s175_two_timescale_mmg_seakeeping_v1`.
 The independent original `container.m` reproduction and the intermediate

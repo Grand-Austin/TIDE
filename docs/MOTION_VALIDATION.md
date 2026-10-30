@@ -1,5 +1,7 @@
 # S175 motion repair and MSS comparison — 29 October 2026
 
+> **Removed 2026-10-30:** the GNU Octave comparison scripts (`pipeline/validate_*.py`), reference fixtures (`tests/fixtures/mss/`, `tests/reference/`) and their tests are no longer in the repository. Octave stays a local reference on Xuan's machine; the comparisons below are a historical record.
+
 ## Subsequent manoeuvring upgrade — 30 October 2026
 
 The four Biscay missions now select `s175_maneuvering`, separating native

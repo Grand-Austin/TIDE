@@ -1,5 +1,7 @@
 # S175 hull with Son–Nomoto actuators
 
+> **Removed 2026-10-30:** the GNU Octave comparison scripts (`pipeline/validate_*.py`), reference fixtures (`tests/fixtures/mss/`, `tests/reference/`) and their tests are no longer in the repository. Octave stays a local reference on Xuan's machine; the comparisons below are a historical record.
+
 This document records the first actuator-only integration (`son_nomoto`) and
 its slow-turning limitation. The four Biscay scenarios now use the subsequent
 `s175_maneuvering` model described in [TURNING_MODEL.md](TURNING_MODEL.md).

@@ -1,5 +1,7 @@
 # Foundational Simulation Toolkit
 
+> **Removed 2026-10-30:** the GNU Octave comparison scripts (`pipeline/validate_*.py`), reference fixtures (`tests/fixtures/mss/`, `tests/reference/`) and their tests are no longer in the repository. Octave stays a local reference on Xuan's machine; the comparisons below are a historical record.
+
 This toolkit advances one S175 design-waterline vessel in historical marine
 fields. It uses Python, NumPy, SciPy and xarray. MATLAB and Octave are not runtime
 dependencies.
