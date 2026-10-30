@@ -31,6 +31,8 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-30 | Each cargo loss gets a banner with where the waves met the ship, the peak roll in the half minute before, and a heading tip; grades say what share of cargo they mean; a lost ship's result names the cause (`game/ship.py`) and the sea at that moment | Players could not tell why boxes went or why a game ended at grade 5. All numbers are released ones; no thresholds are shown | User (Yan) |
+| 2026-10-30 | The MSS container fixture compares generated inputs (orders, initial states) within 1e-12 instead of exactly | CI runners round 20 of 1,600 order values 1 ulp from the Octave fixture (1.4e-14); model outputs keep their own `compare` tolerances. Needs Xuan's review | User (Yan) |
 | 2026-10-30 | The 3D sea spreads its 24 components with cos-2s (Mitsuyasu, s_max 50) in mirrored pairs, instead of uniform ±35° | Crests read as one direction (energy spread about 11° instead of 20°, mean within 2° of the data's wave_from); looks only, the motion model is unchanged | Parke |
 | 2026-10-30 | Live map colours each released forecast sector by its own Hs on a grid that lands on the sector edges; only the wave-direction streaks blend between sectors | The blended field ran colours across the drawn sector lines and stopped short of the outer edges | Parke |
 | 2026-10-30 | Restore the prepared S175 damping and original fixed yaw-moment bound; retain PID. Remove the yaw-decay override and speed-based moment multiplier | The single-entry damping override breaks positive semidefiniteness and can add energy with no external input. Retain the MSS-consistent vessel matrices and revalidate the scenarios | User |

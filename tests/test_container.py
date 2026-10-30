@@ -14,6 +14,9 @@ from game.simulation.container import (
 from pipeline.validate_container import compare, prepare
 
 FIXTURE = Path("tests/fixtures/mss/container-reference.json")
+# Generated inputs are compared to the Octave run within last-bit rounding: NumPy and Octave round a few of
+# them 1 ulp apart (1.4e-14 on CI runners), which is not a difference in the model.
+INPUT_ATOL = 1e-12
 
 
 def _reference():
@@ -28,30 +31,30 @@ def test_port_matches_executed_octave_fixture(tmp_path):
         expected["derivative_states"],
         reference["derivative_states"],
         rtol=0,
-        atol=0,
+        atol=INPUT_ATOL,
     )
     np.testing.assert_allclose(
         expected["derivative_orders"],
         reference["derivative_orders"],
         rtol=0,
-        atol=0,
+        atol=INPUT_ATOL,
     )
     np.testing.assert_allclose(
-        expected["short_x0"], reference["short_x0"], rtol=0, atol=0
+        expected["short_x0"], reference["short_x0"], rtol=0, atol=INPUT_ATOL
     )
     np.testing.assert_allclose(
-        expected["short_orders"], reference["short_orders"], rtol=0, atol=0
+        expected["short_orders"], reference["short_orders"], rtol=0, atol=INPUT_ATOL
     )
     assert expected["short_h"] == reference["short_h"]
     assert expected["sustained_h"] == reference["sustained_h"]
     np.testing.assert_allclose(
-        expected["sustained_x0"], reference["sustained_x0"], rtol=0, atol=0
+        expected["sustained_x0"], reference["sustained_x0"], rtol=0, atol=INPUT_ATOL
     )
     np.testing.assert_allclose(
         expected["sustained_orders"][0],
         reference["sustained_command"],
         rtol=0,
-        atol=0,
+        atol=INPUT_ATOL,
     )
 
     indices = np.asarray(reference["sustained_indices"])
