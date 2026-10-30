@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "id": "biscay-20251218-03",
+  "title": "Escape the Celtic Sea storm, 2025-12-18",
+  "start": "2025-12-18T11:40:00Z",
+  "end": "2025-12-18T13:40:00Z",
+  "seed": 1,
+  "initial": {
+    "lon": -11.6585,
+    "lat": 51.5,
+    "heading_deg": 271.2,
+    "speed_mps": 5.0
+  },
+  "mission": {
+    "budget_s": 7200,
+    "target_lon_lat": [
+      -11.875,
+      51.5
+    ],
+    "radius_m": 1000,
+    "review_interval_s": 300
+  },
+  "vessel": {
+    "path": "data/processed/s175",
+    "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+    "loading_condition": "Design waterline",
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad"
+  },
+  "settings": {
+    "dt_s": 0.1,
+    "wave_period_s": 0.2,
+    "record_period_s": 1.0,
+    "max_thrust_n": 1500000.0,
+    "max_yaw_moment_nm": 30000000.0,
+    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_accel": 0.02,
+    "speed_time_constant_s": 60.0,
+    "yaw_natural_frequency": 0.04,
+    "roll_exposure_deg": 10.0,
+    "lateral_exposure_mps2": 0.9810000000000001,
+    "max_attitude_deg": 30.0
+  },
+  "wind_parameters": {
+    "loa_m": 175.0,
+    "breadth_m": 25.4,
+    "lateral_area_m2": 2000.0,
+    "frontal_area_m2": 100.0,
+    "superstructure_area_m2": 200.0,
+    "perimeter_m": 130.0,
+    "centroid_from_bow_m": 30.0,
+    "mast_groups": 0,
+    "air_density_kg_m3": 1.224
+  },
+  "reports": {
+    "historical_bulletin": "unavailable",
+    "historical_warnings": "not_fetched",
+    "archive_directory": "data/raw/aemet"
+  },
+  "trials": {},
+  "area_bbox": [
+    -11.85,
+    -10.15,
+    50.15,
+    51.85
+  ],
+  "gameplay_settings": {
+    "region_hs_m": 7.0,
+    "start_inside_km": 15.0,
+    "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
+  },
+  "collection": {
+    "source": "data/storms/biscay/biscay-20251218-03",
+    "storm": {
+      "id": "biscay-20251218-03",
+      "start": "2025-12-17T21:00Z",
+      "end": "2025-12-19T18:00Z",
+      "hours": 48,
+      "peak": "2025-12-18T03:00Z",
+      "area": "Celtic Sea",
+      "lon": -12.0,
+      "lat": 52.0,
+      "hs_m": 9.2,
+      "tp_s": 19.2,
+      "wave_from_deg": 270.0,
+      "wind_sea_m": 2.8,
+      "swell_m": 8.7,
+      "swell_from_deg": 275.0,
+      "rise_24h_m": 4.5,
+      "max_wind_kn": 31.0
+    }
+  },
+  "environment": {
+    "waves": {
+      "path": "data/storms/biscay/biscay-20251218-03/waves.nc",
+      "sha256": "c2539ab80cf4f806f06de173ab8d80f6920fa28dcd447b8bb1d47334c0cf4d67",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "currents": {
+      "path": "data/storms/biscay/biscay-20251218-03/currents.nc",
+      "sha256": "2770a7dd151e63cf7ffe22004cc43dc19ca1eb0237359217e94652bc3246c346",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "wind": {
+      "path": "data/storms/biscay/biscay-20251218-03/wind.nc",
+      "sha256": "c9c62fd53464b18f270793f431db9c07282902c1baca9116d3c9a5174eeaacaa",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    }
+  },
+  "gameplay": {
+    "path": "scenarios/biscay-20251218-03/gameplay.json",
+    "sha256": "06157dd806dadb21ea3df230ce1a77b8026a6901b7dbae817bf12c2dd1218e13"
+  }
+}

@@ -34,6 +34,9 @@ class Settings:
     record_period_s: float = 1.0
     max_thrust_n: float = 300_000.0
     max_yaw_moment_nm: float = 30_000_000.0
+    # Rudder lift grows with the square of the flow past it. Above this speed through water the
+    # yaw limit grows as (speed / reference)²; below it the limit stays at max_yaw_moment_nm.
+    yaw_reference_speed_mps: float = 3.0
     max_reference_yaw_rate: float = math.radians(0.5)
     max_reference_accel: float = 0.02
     speed_time_constant_s: float = 60.0
@@ -55,6 +58,7 @@ class ControlState:
     heading_ref: float
     speed_ref: float
     speed_integral: float = 0.0
+    heading_integral: float = 0.0
 
 
 @dataclass
@@ -211,10 +215,21 @@ class Simulation:
         thrust = surge_drag(c.speed_ref, v) + kp * error + ki * c.speed_integral
         if abs(thrust) < cfg.max_thrust_n or thrust * error < 0:
             c.speed_integral += error * cfg.dt_s
-        yaw = v.M[5, 5] * (cfg.yaw_natural_frequency**2 * _wrap(c.heading_ref - state.x[11])
-                            - 2 * cfg.yaw_natural_frequency * state.x[5])
+        # PID autopilot. The integral removes the steady heading error that a constant wind and wave
+        # yaw moment leaves under PD control. It accumulates only once the reference has reached the
+        # ordered heading and the rudder is not saturated, and it can ask for at most the rudder limit,
+        # so a long rate-limited turn does not wind it up into an overshoot.
+        heading_error = _wrap(c.heading_ref - state.x[11])
+        w = cfg.yaw_natural_frequency
+        ki = v.M[5, 5] * w**3 / 5
+        yaw = v.M[5, 5] * (w**2 * heading_error - 2 * w * state.x[5]) + ki * c.heading_integral
+        yaw_limit = cfg.max_yaw_moment_nm * max(1.0, (water_body[0] / cfg.yaw_reference_speed_mps) ** 2)
+        settled = abs(_wrap(math.radians(command.heading_deg) - c.heading_ref)) < 1e-9
+        if settled and (abs(yaw) < yaw_limit or yaw * heading_error < 0):
+            c.heading_integral = float(np.clip(c.heading_integral + heading_error * cfg.dt_s,
+                                               -yaw_limit / ki, yaw_limit / ki))
         return np.array([np.clip(thrust, -cfg.max_thrust_n, cfg.max_thrust_n), 0, 0, 0, 0,
-                         np.clip(yaw, -cfg.max_yaw_moment_nm, cfg.max_yaw_moment_nm)], dtype=float)
+                         np.clip(yaw, -yaw_limit, yaw_limit)], dtype=float)
 
     def _sample(self, state: State, sea: SeaState, acceleration: float) -> Sample:
         x = state.x

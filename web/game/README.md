@@ -33,6 +33,33 @@ stowage. CI does not run it yet.
 | `bow-spray.js` | Spray where the bow drops into the sea; a look only |
 | `assets/` | `s175.glb` and `containers.glb`, exported from `assets/blender/s175.blend` |
 | `replays/` | Replays written by `pipeline.export_replay` |
-| `scenes/` | Storm scenes copied unchanged from `web/3d-scene` (`pipeline.export_scene`) |
+| `scenes/` | 34 Biscay storm scenes from `pipeline.export_scene` (`index.json` lists them) |
+| `classic.html` | Earlier single-file storm page; still hosts live play (`?live`) until it moves into `main.js` |
 
-The existing `web/prototype/`, `web/map-spike/`, and `web/public/` remain available as reference experiments and exports.
+## Storm scenes
+
+```bash
+uv run python -m pipeline.fetch_region biscay              # once: a year of waves, wind, currents (~0.8 GB, git-ignored)
+uv run python -m pipeline.storms biscay --subsets          # data/storms/biscay.json and committed per-storm subsets
+uv run python -m pipeline.export_scene biscay-20260123-06  # web/game/scenes/<id>.json; uses the subsets, about 7 min
+```
+
+What is data and what is not:
+- Sea state, wind and current at the ship: Copernicus Marine (products listed in each scene file).
+- Cloud cover and precipitation: ERA5 (Copernicus Climate Change Service) via the Open-Meteo historical
+  weather API, hourly at the scene's start point. ERA5 appears about five days after real time.
+- Light: computed sun position for the scene time and place. Whitecap cover: wind speed
+  (Monahan & O'Muircheartaigh 1980).
+- Roll, pitch, heading and cargo loss: TIDE simulation with the game cargo model.
+- The rendered sea surface is synthesised from Hs, Tp and direction; individual crests are not data.
+- Scene orders are a fixed demonstration plan at 5 m/s, not a player's game.
+
+## Live play
+
+```bash
+uv run python -m game.live        # open http://localhost:8000/game/classic.html?live
+```
+
+`game/live.py` serves `web/` and wraps `game.session.Session` for one storm scenario
+(`pipeline.storm_scenario`): keyboard orders, released game forecasts, judgement checkpoints graded on
+what the player could see, and a score in three parts.

@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "id": "biscay-20261022-21",
+  "title": "Escape the Ushant storm, 2026-10-22",
+  "start": "2026-10-22T20:40:00Z",
+  "end": "2026-10-22T22:40:00Z",
+  "seed": 1,
+  "initial": {
+    "lon": -10.6203,
+    "lat": 48.7165,
+    "heading_deg": 286.7,
+    "speed_mps": 5.0
+  },
+  "mission": {
+    "budget_s": 7200,
+    "target_lon_lat": [
+      -10.5443,
+      48.8424
+    ],
+    "radius_m": 1000,
+    "review_interval_s": 300
+  },
+  "vessel": {
+    "path": "data/processed/s175",
+    "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+    "loading_condition": "Design waterline",
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad"
+  },
+  "settings": {
+    "dt_s": 0.1,
+    "wave_period_s": 0.2,
+    "record_period_s": 1.0,
+    "max_thrust_n": 1500000.0,
+    "max_yaw_moment_nm": 30000000.0,
+    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_accel": 0.02,
+    "speed_time_constant_s": 60.0,
+    "yaw_natural_frequency": 0.04,
+    "roll_exposure_deg": 10.0,
+    "lateral_exposure_mps2": 0.9810000000000001,
+    "max_attitude_deg": 30.0
+  },
+  "wind_parameters": {
+    "loa_m": 175.0,
+    "breadth_m": 25.4,
+    "lateral_area_m2": 2000.0,
+    "frontal_area_m2": 100.0,
+    "superstructure_area_m2": 200.0,
+    "perimeter_m": 130.0,
+    "centroid_from_bow_m": 30.0,
+    "mast_groups": 0,
+    "air_density_kg_m3": 1.224
+  },
+  "reports": {
+    "historical_bulletin": "unavailable",
+    "historical_warnings": "not_fetched",
+    "archive_directory": "data/raw/aemet"
+  },
+  "trials": {},
+  "area_bbox": [
+    -11.85,
+    -8.9,
+    46.65,
+    50.35
+  ],
+  "gameplay_settings": {
+    "region_hs_m": 11.0,
+    "start_inside_km": 15.0,
+    "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
+  },
+  "collection": {
+    "source": "data/storms/biscay/biscay-20261022-21",
+    "storm": {
+      "id": "biscay-20261022-21",
+      "start": "2026-10-22T21:00Z",
+      "end": "2026-10-23T18:00Z",
+      "hours": 24,
+      "peak": "2026-10-22T21:00Z",
+      "area": "Ushant",
+      "lon": -10.75,
+      "lat": 48.5,
+      "hs_m": 12.2,
+      "tp_s": 14.4,
+      "wave_from_deg": 289.0,
+      "wind_sea_m": 11.9,
+      "swell_m": 2.6,
+      "swell_from_deg": 218.0,
+      "rise_24h_m": 7.7,
+      "max_wind_kn": 65.0
+    }
+  },
+  "environment": {
+    "waves": {
+      "path": "data/storms/biscay/biscay-20261022-21/waves.nc",
+      "sha256": "e0217d0ad3a04f2905f71fa0551b6dfdea002d4e65591b368066e0df0a8a40a7",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "currents": {
+      "path": "data/storms/biscay/biscay-20261022-21/currents.nc",
+      "sha256": "3c6469d8e59a351a070548a9c36190655646522a7ad34444fe70b327af2ac829",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "wind": {
+      "path": "data/storms/biscay/biscay-20261022-21/wind.nc",
+      "sha256": "ccc74a2206524eb304a059dce857e46ff1660a1448d71e773b550876416c258f",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    }
+  },
+  "gameplay": {
+    "path": "scenarios/biscay-20261022-21/gameplay.json",
+    "sha256": "f1915378a72189e074e9dea66ce292e923e736deab5ec2dfffd3ec5f489cd619"
+  }
+}

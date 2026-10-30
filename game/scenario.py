@@ -97,8 +97,9 @@ def load_scenario(path, *, root=ROOT):
     d = json.loads(Path(path).read_text())
     if d["schema_version"] != 1:
         raise ValueError("Unsupported scenario version")
-    if set(d["environment"]) != {"waves", "currents", "wind", "temperature"}:
-        raise ValueError("Scenario requires all four environmental sources")
+    # sea temperature is display evidence only, so storm scenarios may leave it out
+    if not {"waves", "currents", "wind"} <= set(d["environment"]) <= {"waves", "currents", "wind", "temperature"}:
+        raise ValueError("Scenario requires waves, currents and wind (temperature is optional)")
     start, end = utc(d["start"]), utc(d["end"])
     if end <= start or d["mission"]["budget_s"] != (end - start).total_seconds():
         raise ValueError("Scenario time budget must match its window")

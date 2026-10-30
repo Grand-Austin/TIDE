@@ -1,0 +1,26 @@
+{
+  "source": "https://archive-api.open-meteo.com/v1/archive",
+  "model": "era5",
+  "point_lat_lon": [
+    51.5,
+    -11.658544565351182
+  ],
+  "credit": "Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, Copernicus Climate Change Service (C3S)",
+  "hourly": [
+    {
+      "t_s": 0,
+      "cloud": 87,
+      "precip": 0.0
+    },
+    {
+      "t_s": 3600,
+      "cloud": 87,
+      "precip": 0.0
+    },
+    {
+      "t_s": 7200,
+      "cloud": 87,
+      "precip": 0.0
+    }
+  ]
+}

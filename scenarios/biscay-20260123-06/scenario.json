@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "id": "biscay-20260123-06",
+  "title": "Escape the Biscay storm, 2026-01-23",
+  "start": "2026-01-23T11:40:00Z",
+  "end": "2026-01-23T13:40:00Z",
+  "seed": 1,
+  "initial": {
+    "lon": -8.6732,
+    "lat": 47.5747,
+    "heading_deg": 267.8,
+    "speed_mps": 5.0
+  },
+  "mission": {
+    "budget_s": 7200,
+    "target_lon_lat": [
+      -8.7023,
+      47.7089
+    ],
+    "radius_m": 1000,
+    "review_interval_s": 300
+  },
+  "vessel": {
+    "path": "data/processed/s175",
+    "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+    "loading_condition": "Design waterline",
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad"
+  },
+  "settings": {
+    "dt_s": 0.1,
+    "wave_period_s": 0.2,
+    "record_period_s": 1.0,
+    "max_thrust_n": 1500000.0,
+    "max_yaw_moment_nm": 30000000.0,
+    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_accel": 0.02,
+    "speed_time_constant_s": 60.0,
+    "yaw_natural_frequency": 0.04,
+    "roll_exposure_deg": 10.0,
+    "lateral_exposure_mps2": 0.9810000000000001,
+    "max_attitude_deg": 30.0
+  },
+  "wind_parameters": {
+    "loa_m": 175.0,
+    "breadth_m": 25.4,
+    "lateral_area_m2": 2000.0,
+    "frontal_area_m2": 100.0,
+    "superstructure_area_m2": 200.0,
+    "perimeter_m": 130.0,
+    "centroid_from_bow_m": 30.0,
+    "mast_groups": 0,
+    "air_density_kg_m3": 1.224
+  },
+  "reports": {
+    "historical_bulletin": "unavailable",
+    "historical_warnings": "not_fetched",
+    "archive_directory": "data/raw/aemet"
+  },
+  "trials": {},
+  "area_bbox": [
+    -10.35,
+    -6.65,
+    44.9,
+    48.6
+  ],
+  "gameplay_settings": {
+    "region_hs_m": 9.0,
+    "start_inside_km": 15.0,
+    "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
+  },
+  "collection": {
+    "source": "data/storms/biscay/biscay-20260123-06",
+    "storm": {
+      "id": "biscay-20260123-06",
+      "start": "2026-01-21T12:00Z",
+      "end": "2026-01-26T03:00Z",
+      "hours": 114,
+      "peak": "2026-01-23T06:00Z",
+      "area": "Biscay",
+      "lon": -8.5,
+      "lat": 46.75,
+      "hs_m": 11.0,
+      "tp_s": 14.5,
+      "wave_from_deg": 264.0,
+      "wind_sea_m": 10.9,
+      "swell_m": 0.8,
+      "swell_from_deg": 183.0,
+      "rise_24h_m": 4.3,
+      "max_wind_kn": 51.0
+    }
+  },
+  "environment": {
+    "waves": {
+      "path": "data/storms/biscay/biscay-20260123-06/waves.nc",
+      "sha256": "e84942929af3f9da9e873cbcf72bd0f8587dcef0bb04f5dfe02f15af29cb9b26",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "currents": {
+      "path": "data/storms/biscay/biscay-20260123-06/currents.nc",
+      "sha256": "230912d44ccf55fe79c773da55ab4444bc90b38e603b8e76de97a3b352cbbab8",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "wind": {
+      "path": "data/storms/biscay/biscay-20260123-06/wind.nc",
+      "sha256": "83c6e3094d04d019a52de1025433376c624d8d6638723cc41afb0f81ae24c627",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    }
+  },
+  "gameplay": {
+    "path": "scenarios/biscay-20260123-06/gameplay.json",
+    "sha256": "a903ad8b4955e0cfebbe5a716ee7d514f7365f41016a3f93ce6201b1317f1d60"
+  }
+}
