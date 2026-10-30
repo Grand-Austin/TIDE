@@ -25,6 +25,7 @@ Newest first. Proposed decisions move here once the team agrees.
 
 | Date | Decision | Why | Decided by |
 | --- | --- | --- | --- |
+| 2026-10-30 | Deck cargo stays at `game/cargo.py`'s 64 stacks of five tiers; the 3D deck (`web/game/cargo-layout.js`) stands each stack's five boxes on top of each other, so a failed stack leaves as one column. The Blender loaded preview still shows the earlier three-tier rule and is only a picture | Keeps the cargo model unchanged and the 3D losses true to it | Team (Yan, Xuan) |
 | 2026-10-30 | A storm scenario is published only if its validation report shows at least one strategy that escapes without losing the ship. Reports follow `docs/STORM_SCENARIOS.md` (`scenarios/<id>/validation.json`, with each strategy's orders) | A scenario no player can win teaches nothing; the reference strategy also feeds the debrief | Team |
 | 2026-10-30 | Xuan writes the pathfinding solver (for example isochrone weather routing) and the Builder Agent; they add strategies to `validation.json`. Hints drawn from solutions cost judgement points | Solvers see hidden fields; players see only released reports | Team (Yan, Xuan) |
 | 2026-10-30 | `tide/storm-game` joins `experiment`, Parke's `blender/3d-demo` and Yan's `web/3d-scene`. Parke's page is the 3D frontend; live play runs in it (`?live=<scenario>`); the deck layout follows the 64 five-tier cargo stacks | One line for the video; the Blender ship, splashes and live play together | Team (Yan) |
