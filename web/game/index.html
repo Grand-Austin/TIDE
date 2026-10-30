@@ -132,6 +132,7 @@
   .sources .credit p { margin: 0 0 6px; } .sources .credit p:last-child { margin: 0; color: var(--order); }
   #fps { position: fixed; right: calc(var(--side) + 8px); top: 12px; color: #0b1622; font: 11px ui-monospace, monospace; }
 
+  body.film > :not(canvas) { display: none !important; } /* ?film: the 3D scene alone, for screen recording */
   @media (max-width: 1440px) { .toggle span { display: none; } .toggle { padding: 0 8px; } } /* the slow-motion box keeps its title */
   @media (max-width: 1180px) { .map { display: none; } .left { max-height: calc(100vh - 240px); } .dock-wrap { left: 12px; } .views { top: auto; bottom: 150px; } }
   @media (max-width: 900px) {
