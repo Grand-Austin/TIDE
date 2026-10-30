@@ -8,9 +8,10 @@ import { cargoFall, shipToWorld } from "./cargo-fall.js";
 import { turnInfo, turnNote, turnRateText, shipLossNote, beaufort, seaState, bulletin } from "./live.js";
 import { forecastField } from "./weather-layer.js";
 import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, waveArrows } from "./minimap.js";
-import { OCEAN_TRACK, LE_HAVRE, HALIFAX, routeLengthNm, routeFeature } from "./ocean-route.js";
+import { routeLengthNm, routeFeature } from "./ocean-route.js";
 import { nearbyPorts, rangeRing, portPopup } from "./port-guide.js";
 import { DEEPWATER_PORTS } from "./deepwater-ports.js";
+import PORTS from "./ports.json" with { type: "json" };
 import { haversineNm } from "./geo.js";
 
 // Small Jest/Bun-style surface over node:assert, so the existing expectations still read naturally under node --test.
@@ -272,6 +273,14 @@ test("the forecast reads as a marine bulletin: own area first, Beaufort force an
   expect(bulletin([], [1, 1])).toContain("None released yet");
 });
 
+test("a wider forecast field names the areas two rows out", () => {
+  const report = (sector) => ({ sector, hs_range_m: [4, 4.5], wind_range_mps: [10, 12], wave_from_deg: 270, wave_period_s: 10,
+    trend: "steady", issued_at: "2026-01-08T18:40:00+00:00", valid_to: "2026-01-08T19:40:00+00:00" });
+  const html = bulletin([report([2, 0]), report([0, 0])], [0, 0]);
+  expect(html).toContain("<b>Your area</b>");
+  expect(html).toContain("East, 2 areas out"); // the label stays clear when the field reaches two rows
+});
+
 test("helm gauge turns the short way round and times the turn", () => {
   const replay = { t: Array.from({ length: 61 }, (_, i) => i), heading: Array.from({ length: 61 }, (_, i) => 350 + i / 6) }; // 10°/min
   const k = turnInfo(replay, 30); // 360 -> 30 across north
@@ -356,34 +365,70 @@ test("sea crests keep the data's direction with a storm-swell spread", () => {
   }
 });
 
-test("the ocean track follows the sea lane from Le Havre to Halifax, clear of Cornwall", () => {
-  const [first, last] = [OCEAN_TRACK[0], OCEAN_TRACK.at(-1)];
-  expect(first[0]).toBeCloseTo(LE_HAVRE.lon, 2);
-  expect(first[1]).toBeCloseTo(LE_HAVRE.lat, 2);
-  expect(last[0]).toBeCloseTo(HALIFAX.lon, 2);
-  expect(last[1]).toBeCloseTo(HALIFAX.lat, 2);
-  const nm = routeLengthNm();
-  expect(nm).toBeGreaterThan(2550); // about 2592 nm along the lane, longer than the 2543 nm great circle
-  expect(nm).toBeLessThan(2650);
-  // down the Channel and south of the Lizard (49.96°N) and the Scilly Isles, not over Cornwall
-  const channel = OCEAN_TRACK.filter(([lon]) => lon > -6.7 && lon < -4); // Plymouth to the Scilly Isles
-  expect(channel.length).toBeGreaterThan(3);
-  expect(Math.max(...channel.map(([, lat]) => lat))).toBeLessThan(49.95);
-  // the track crosses the Biscay storm area, so the player can see it at the game's own zoom
-  const inArea = OCEAN_TRACK.filter(([lon, lat]) => lon >= -7.35 && lon <= -3.73 && lat >= 47.733 && lat <= 51.35);
-  expect(inArea.length).toBeGreaterThan(3);
-});
+const PLANNED_VOYAGE = {
+  version: 1,
+  origin: { name: "Brest", country: "France", lon: -4.5, lat: 48.383 },
+  destination: { name: "A Coruña", country: "Spain", lon: -8.4, lat: 43.367 },
+  track: [[-4.5, 48.383], [-6.2, 47.4], [-8.4, 43.367]],
+  distance_nm: 321.4,
+};
 
-test("the ocean track maps as one line and two named ends", () => {
-  const f = routeFeature();
+test("the map draws the scenario's planned voyage with its own ports and length", () => {
+  const f = routeFeature(PLANNED_VOYAGE);
   expect(f.features.length).toBe(3);
   const [line, from, to] = f.features;
   expect(line.geometry.type).toBe("LineString");
-  expect(line.geometry.coordinates.length).toBe(OCEAN_TRACK.length);
-  expect(from.properties.label).toBe("Le Havre · France");
-  expect(from.geometry.coordinates).toEqual(OCEAN_TRACK[0]);
-  expect(to.properties.label).toBe("Halifax · Canada");
-  expect(to.geometry.coordinates).toEqual(OCEAN_TRACK.at(-1));
+  expect(line.geometry.coordinates).toEqual(PLANNED_VOYAGE.track);
+  expect(from.properties.label).toBe("Brest · France");
+  expect(from.geometry.coordinates).toEqual([-4.5, 48.383]);
+  expect(to.properties.label).toBe("A Coruña · Spain");
+  expect(to.geometry.coordinates).toEqual([-8.4, 43.367]);
+  // the plan length comes from the authored track, not from the fixed lane the old map carried
+  const alongTrack = haversineNm(PLANNED_VOYAGE.track[0], PLANNED_VOYAGE.track[1]) +
+    haversineNm(PLANNED_VOYAGE.track[1], PLANNED_VOYAGE.track[2]);
+  expect(routeLengthNm(PLANNED_VOYAGE)).toBeCloseTo(alongTrack, 6);
+  expect(routeLengthNm(PLANNED_VOYAGE.track)).toBeCloseTo(alongTrack, 6);
+});
+
+test("another port pair and track replace the planned voyage", () => {
+  const other = {
+    version: 1,
+    origin: { name: "Halifax", country: "Canada", lon: -63.583, lat: 44.65 },
+    destination: { name: "Montreal", country: "Canada", lon: -73.55, lat: 45.517 },
+    track: [[-63.583, 44.65], [-66.0, 45.0], [-73.55, 45.517]],
+    distance_nm: 410,
+  };
+  const f = routeFeature(other);
+  expect(f.features[1].properties.label).toBe("Halifax · Canada");
+  expect(f.features[2].properties.label).toBe("Montreal · Canada");
+  expect(f.features[1].geometry.coordinates).toEqual([-63.583, 44.65]);
+  expect(f.features[2].geometry.coordinates).toEqual([-73.55, 45.517]);
+  assert.notStrictEqual(routeLengthNm(other), routeLengthNm(PLANNED_VOYAGE));
+  assert.notDeepStrictEqual(routeFeature(other).features[1].geometry.coordinates, [-4.5, 48.383]);
+});
+
+test("no authored voyage draws no planned route", () => {
+  for (const voyage of [undefined, null, {}, { origin: { name: "A" }, destination: { name: "B" } }, { track: [[1, 2]] }]) {
+    expect(routeFeature(voyage).features.length).toBe(0);
+    expect(routeLengthNm(voyage)).toBe(0);
+  }
+});
+
+test("a planned track and its labels wrap across the dateline", () => {
+  const voyage = {
+    version: 1,
+    origin: { name: "East", country: "A", lon: 179.5, lat: 10 },
+    destination: { name: "West", country: "B", lon: -179.5, lat: 10 },
+    track: [[179.5, 10], [-179.5, 10]],
+    distance_nm: 59.1,
+  };
+  const nm = routeLengthNm(voyage);
+  expect(nm).toBeCloseTo(haversineNm([179.5, 10], [-179.5, 10]), 6);
+  expect(nm).toBeGreaterThan(50);
+  expect(nm).toBeLessThan(70); // one degree of longitude at 10°N, not most of the world
+  const f = routeFeature(voyage);
+  expect(f.features[1].properties.anchor).toBe("left"); // the destination lies east across the dateline
+  expect(f.features[2].properties.anchor).toBe("right");
 });
 
 test("the port guide shows the nearest few ports within 200 nm only", () => {
@@ -421,8 +466,12 @@ test("a port card says which port, how far, on which bearing, and that the range
   expect(threeDigits).toContain("bearing 008°"); // a bearing keeps three digits, as on a compass
 });
 
-test("the global port list is worldwide and free of duplicates", () => {
+test("the port module reads the one canonical catalogue", () => {
+  expect(DEEPWATER_PORTS).toBe(PORTS); // the module imports ports.json; it keeps no second list
   expect(DEEPWATER_PORTS.length).toBeGreaterThan(200);
+  expect(DEEPWATER_PORTS.length).toBe(PORTS.length);
+  expect(DEEPWATER_PORTS.map((p) => [p.name, p.country, p.lon, p.lat]))
+    .toEqual(PORTS.map((p) => [p.name, p.country, p.lon, p.lat]));
   expect(new Set(DEEPWATER_PORTS.map((p) => p.name)).size).toBe(DEEPWATER_PORTS.length);
   for (const p of DEEPWATER_PORTS) {
     expect(p.lon).toBeGreaterThanOrEqual(-180);

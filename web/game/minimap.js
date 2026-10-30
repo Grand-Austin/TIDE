@@ -4,8 +4,9 @@
 // order takes the ship, from game.live's run of the ship model. Released information only: no escape region.
 // Positions are the simulation's, at the storm's real location.
 //
-// Two guidance layers cross the whole ocean: the Le Havre–Halifax track (the Atlantic leg of a container voyage)
-// and the world's container ports, of which only the nearest few within 200 nm of the ship are drawn.
+// Two guidance layers cross the whole ocean: the scenario's authored planned voyage, when its briefing carries
+// one, and the world's container ports, of which only the nearest few within 200 nm of the ship are drawn.
+// A replay or legacy scenario without an authored voyage draws no planned line.
 
 import { toLocal, sampleAt, latest } from "./replay.js";
 import { relativeSea, GRADE_COLORS } from "./panel.js";
@@ -146,7 +147,8 @@ export function createMinimap(container, { replay, duration, live, field }) {
   if (maplibre) {
     let bounds;
     if (live) {
-      const [w, e, s, n] = live.brief.area_bbox; // the scenario's operating area: leaving it ends the voyage
+      // the forecast field is wider than the operating area, so its edge gives nothing away
+      const [w, e, s, n] = live.brief.field_bbox ?? live.brief.area_bbox;
       bounds = [[w, s], [e, n]];
     } else {
       const lons = replay.lon.filter(Number.isFinite), lats = replay.lat.filter(Number.isFinite);
@@ -166,8 +168,8 @@ export function createMinimap(container, { replay, duration, live, field }) {
       map.addLayer({ id: "forecast-arrow", type: "line", source: "forecast-arrow", layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#d6e2ee", "line-width": 2, "line-opacity": 0.85 } }); // where the forecast waves run
       map.addLayer({ id: "area", type: "line", source: "area", paint: { "line-color": "#a9bccd", "line-dasharray": [4, 3] } });
-      // the ocean track: a reference line across the whole Atlantic, under the local track and the preview
-      map.addSource("ocean", { type: "geojson", data: routeFeature() });
+      // the scenario's planned voyage, under the local track and the preview; empty without an authored voyage
+      map.addSource("ocean", { type: "geojson", data: routeFeature(live?.brief?.voyage) });
       map.addLayer({ id: "ocean", type: "line", source: "ocean", paint: { "line-color": "#8fa6ff", "line-width": 1.4,
         "line-dasharray": [5, 4], "line-opacity": 0.7 } });
       map.addLayer({ id: "ocean-label", type: "symbol", source: "ocean", filter: ["==", ["geometry-type"], "Point"],

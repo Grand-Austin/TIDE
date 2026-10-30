@@ -9,8 +9,16 @@ import { relativeSea, GRADES } from "./panel.js";
 const COLUMNS = ["lon", "lat", "heading", "turn_rate", "roll", "pitch", "heave", "hs", "tp", "wave_from", "wind_e", "wind_n", "cloud", "precip"];
 const KN = 1.94384;
 const PREVIEW_EVERY_S = 20; // game seconds between helm preview refreshes while the ship sails
-const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "South-east", "0,-1": "South",
-  "-1,-1": "South-west", "-1,0": "West", "-1,1": "North-west", "0,0": "Your area" };
+// Forecast areas are named by direction from the ship's own area. A wider field can hold areas two rows out,
+// so the ring number appears when the label would otherwise repeat.
+const SECTOR_DIRS = ["North", "North-east", "East", "South-east", "South", "South-west", "West", "North-west"];
+const sectorOffset = (r, [sx, sy]) => [r.sector[0] - sx, r.sector[1] - sy];
+const sectorBearing = ([dx, dy]) => (dx || dy ? ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360 : -1);
+function sectorLabel([dx, dy]) {
+  if (!dx && !dy) return "Your area";
+  const name = SECTOR_DIRS[Math.round(sectorBearing([dx, dy]) / 45) % 8], ring = Math.max(Math.abs(dx), Math.abs(dy));
+  return ring > 1 ? `${name}, ${ring} areas out` : name;
+}
 const ENDINGS = {
   timeout: "Time ran out inside the storm",
   missing_environment: "Ran out of sea data close to the coast: the voyage ended there",
@@ -49,6 +57,10 @@ const SEA_STATES = [[0.1, "calm"], [0.5, "smooth"], [1.25, "slight"], [2.5, "mod
 export const beaufort = (mps) => BEAUFORT_MPS.filter((b) => mps > b).length;
 export const seaState = (hs) => SEA_STATES.find(([top]) => hs <= top)[1];
 const hhmm = (iso) => iso.slice(11, 16);
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const portLabel = (port) => [port?.name, port?.country].filter((s) => typeof s === "string" && s).join(" · ");
+
 // How to read the bulletin and the map: method only, the way out stays the trainee's call.
 const READING = `<details class="reading"><summary>How to read it</summary><ol>` +
   `<li>Compare your area with its neighbours: a lower Hs is a calmer sea.</li>` +
@@ -59,15 +71,13 @@ const READING = `<details class="reading"><summary>How to read it</summary><ol>`
 // own area first and the rest in compass order (no ranking, so the bulletin does not pick the way out).
 export function bulletin(reports, shipSector) {
   if (!reports.length) return `<h2>Weather bulletin</h2><p class="live-status">None released yet.</p>`;
-  const [sx, sy] = shipSector, order = Object.keys(DIRS);
-  const where = (r) => `${r.sector[0] - sx},${r.sector[1] - sy}`;
-  const lines = [...reports].sort((a, b) => ((order.indexOf(where(a)) + 1) % 9) - ((order.indexOf(where(b)) + 1) % 9)).map((r) => {
+  const lines = [...reports].sort((a, b) => sectorBearing(sectorOffset(a, shipSector)) - sectorBearing(sectorOffset(b, shipSector))).map((r) => {
     const [w0, w1] = r.wind_range_mps.map(beaufort), [h0, h1] = r.hs_range_m;
     const force = w0 === w1 ? `${w0}` : `${w0} to ${w1}`, sea = seaState(h0) === seaState(h1) ? seaState(h1) : `${seaState(h0)} to ${seaState(h1)}`;
     // wind_from_deg and wind_shift arrive with forecasts built since 30 Oct; older reports give the force alone
     const from = Number.isFinite(r.wind_from_deg) ? `from ${compass(r.wind_from_deg)} ` : "";
     const shift = r.wind_shift && r.wind_shift !== "steady" ? `, ${r.wind_shift}` : "";
-    return `<li><b>${DIRS[where(r)] ?? "Further away"}</b>: wind ${from}force ${force}${shift} (${(r.wind_range_mps[0] * KN).toFixed(0)}–` +
+    return `<li><b>${sectorLabel(sectorOffset(r, shipSector))}</b>: wind ${from}force ${force}${shift} (${(r.wind_range_mps[0] * KN).toFixed(0)}–` +
       `${(r.wind_range_mps[1] * KN).toFixed(0)} kn). Sea ${sea}, ${h0}–${h1} m${r.trend === "increasing" ? ", rising" : ""}. ` +
       `Waves from ${compass(r.wave_from_deg)}, ${r.wave_period_s} s.</li>`;
   });
