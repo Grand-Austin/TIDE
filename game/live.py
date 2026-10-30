@@ -290,7 +290,9 @@ class Game:
         d = self.scenario.definition
         storm = d["collection"]["storm"]
         return {"id": d["id"], "title": d["title"], "start": d["start"], "budget_s": d["mission"]["budget_s"],
-                "initial": d["initial"], "area_bbox": d["area_bbox"], "storm": {k: storm[k] for k in ("peak", "area", "hs_m", "max_wind_kn")},
+                "initial": d["initial"], "area_bbox": d["area_bbox"],
+                "field_bbox": list(self.session.rules.report_bbox), "voyage": d.get("voyage"),
+                "storm": {k: storm[k] for k in ("peak", "area", "hs_m", "max_wind_kn")},
                 "fields": FIELDS, "cargo": {"deck_units": 320, "total_teu": 1200,
                 "units": [{"id": unit, "teu": 1 + stack % 2, "stack": stack, "tier": tier}
                           for stack in range(STACKS) for tier, unit in enumerate(stack_unit_ids(stack))]},

@@ -1,0 +1,805 @@
+{
+  "version": 1,
+  "scenario": "sole-20261022-21",
+  "definition_sha256": "fc3c667a361de4b4e830b627c68d395eaf30e2d372cf270fc79cff3d43c57aad",
+  "gameplay_sha256": "f31250c4fe3f9e395c491a5b0da8e3fdbeb4e5dae81a269b2c885e8bf0f92e68",
+  "passed": true,
+  "status": "user_approved",
+  "reference": "visir2-01-w-7.29kt",
+  "rule": "User-approved playable demonstration: qualifying final-budget escape evidence exists. All selected reference routes are retained; remaining route reruns were stopped by the user. Per-route scope and actual cargo losses are preserved.",
+  "strategies": [
+    {
+      "name": "expert-port",
+      "candidate_id": 17,
+      "solver": "builder.expert:port",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 58.3,
+          "speed_knots": 9.72
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 1522.4,
+      "lost_teu": 75,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": false,
+      "metrics_valid": true,
+      "final_validation": false,
+      "validation_scope": "original_120min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/trials/d2440533f4f047178bb3fd4b58085340",
+      "trial_id": "d2440533f4f047178bb3fd4b58085340",
+      "evidence_fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147"
+    },
+    {
+      "name": "expert-direct",
+      "candidate_id": 16,
+      "solver": "builder.expert:direct_bearing",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 19.05,
+          "speed_knots": 9.0
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 1560.0,
+      "lost_teu": 225,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": false,
+      "metrics_valid": true,
+      "final_validation": false,
+      "validation_scope": "original_120min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/trials/26e3dbb8ecc94f7389dd8aafe8e317ca",
+      "trial_id": "26e3dbb8ecc94f7389dd8aafe8e317ca",
+      "evidence_fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147"
+    },
+    {
+      "name": "visir2-02-e-9.72kt",
+      "candidate_id": 10,
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 85.9,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 1430.6,
+          "heading_deg": 85.7,
+          "speed_knots": 9.72
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 1715.1,
+      "lost_teu": 25,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": false,
+      "metrics_valid": true,
+      "final_validation": true,
+      "validation_scope": "final_75min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/13c4965879844c03adb7b1ff51b7dac2",
+      "trial_id": "13c4965879844c03adb7b1ff51b7dac2",
+      "evidence_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde"
+    },
+    {
+      "name": "visir2-04-nw-9.72kt",
+      "candidate_id": 12,
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 330.0,
+          "speed_knots": 9.72
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 1740.0,
+      "lost_teu": 120,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": false,
+      "metrics_valid": true,
+      "final_validation": true,
+      "validation_scope": "final_75min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/a89bbf4906be4ee1b4dfe23c5ef1b7ed",
+      "trial_id": "a89bbf4906be4ee1b4dfe23c5ef1b7ed",
+      "evidence_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde"
+    },
+    {
+      "name": "visir2-01-w-7.29kt",
+      "candidate_id": 9,
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 278.5,
+          "speed_knots": 7.29
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 2940.0,
+      "lost_teu": 5,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": true,
+      "metrics_valid": true,
+      "final_validation": true,
+      "validation_scope": "final_75min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/3eb0d3ae5e444668bb3ef00a7c7538fb",
+      "trial_id": "3eb0d3ae5e444668bb3ef00a7c7538fb",
+      "evidence_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde"
+    },
+    {
+      "name": "visir2-05-w-11.66kt",
+      "candidate_id": 13,
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 275.2,
+          "speed_knots": 11.66
+        },
+        {
+          "t": 1787.0,
+          "heading_deg": 275.7,
+          "speed_knots": 11.66
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 2940.0,
+      "lost_teu": 5,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": true,
+      "metrics_valid": true,
+      "final_validation": true,
+      "validation_scope": "final_75min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/6eb5cb75ef484022a71bafece165ac94",
+      "trial_id": "6eb5cb75ef484022a71bafece165ac94",
+      "evidence_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde"
+    },
+    {
+      "name": "visir2-06-se-9.72kt",
+      "candidate_id": 14,
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 85.9,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 1430.6,
+          "heading_deg": 143.4,
+          "speed_knots": 9.72
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 3480.0,
+      "lost_teu": 90,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": false,
+      "metrics_valid": true,
+      "final_validation": false,
+      "validation_scope": "original_120min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/trials/952e6281e8314437a3c73879674ff58e",
+      "trial_id": "952e6281e8314437a3c73879674ff58e",
+      "evidence_fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147"
+    },
+    {
+      "name": "simroute-06-sw-7.29kt",
+      "candidate_id": 6,
+      "solver": "simroute:astar_aertssen",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 213.5,
+          "speed_knots": 7.29
+        }
+      ],
+      "outcome": "escaped",
+      "elapsed_s": 3540.0,
+      "lost_teu": 210,
+      "total_teu": 1200,
+      "ship_lost": false,
+      "qualified": false,
+      "metrics_valid": true,
+      "final_validation": true,
+      "validation_scope": "final_75min_scenario",
+      "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/f1baa5e75c1d4cc28294e1b68a482998",
+      "trial_id": "f1baa5e75c1d4cc28294e1b68a482998",
+      "evidence_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde"
+    }
+  ],
+  "metadata": {
+    "manual_approval": {
+      "approved_by": "user",
+      "approved_at_utc": "2026-10-30T20:55:38.118053+00:00",
+      "candidate_ids": [
+        6,
+        9,
+        10,
+        12,
+        13,
+        14,
+        16,
+        17
+      ],
+      "candidate_names": [
+        "simroute-06-sw-7.29kt",
+        "visir2-01-w-7.29kt",
+        "visir2-02-e-9.72kt",
+        "visir2-04-nw-9.72kt",
+        "visir2-05-w-11.66kt",
+        "visir2-06-se-9.72kt",
+        "expert-direct",
+        "expert-port"
+      ],
+      "source_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+      "comparison_fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147",
+      "budget_s": 4500,
+      "selection_rule": "Keep 9 and 13, then minimum TEU loss per north/east/east-to-southeast/northeast/northwest/southwest; ties choose faster escape.",
+      "request": "9 13 保留但是9 13都是往西的，往北 往东 往东→东南 往东北 往西北 往西南，各自保留一条货损最低的，都加solutions，然后时间预算75min",
+      "revalidation": {
+        "status": "remaining_runs_stopped_by_user",
+        "completed_at_75min_candidate_ids": [
+          6,
+          9,
+          10,
+          12,
+          13
+        ],
+        "original_120min_evidence_candidate_ids": [
+          14,
+          16,
+          17
+        ],
+        "instruction": "停止复验，不需要了，结束构建",
+        "recorded_at_utc": "2026-10-30T21:00:29.346598+00:00"
+      }
+    },
+    "automatic_qualified_candidate_ids": [
+      9,
+      13
+    ],
+    "evidence_fingerprint": {
+      "version": 1,
+      "scenario": {
+        "schema_version": 1,
+        "id": "sole-20261022-21",
+        "title": "Escape the Sole storm, 2026-10-22",
+        "start": "2026-10-22T21:00:00Z",
+        "end": "2026-10-22T22:15:00Z",
+        "seed": 1,
+        "initial": {
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_mps": 5.0
+        },
+        "mission": {
+          "budget_s": 4500,
+          "target_lon_lat": [
+            -10.5476,
+            48.8892
+          ],
+          "radius_m": 1000,
+          "review_interval_s": 300
+        },
+        "vessel": {
+          "path": "data/processed/s175",
+          "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+          "loading_condition": "Design waterline",
+          "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad"
+        },
+        "settings": {
+          "dt_s": 0.1,
+          "wave_period_s": 0.2,
+          "record_period_s": 1.0,
+          "max_thrust_n": 1500000.0,
+          "max_yaw_moment_nm": 30000000.0,
+          "max_reference_yaw_rate": 0.017453292519943295,
+          "max_reference_accel": 0.02,
+          "speed_time_constant_s": 60.0,
+          "yaw_natural_frequency": 0.08,
+          "roll_exposure_deg": 10.0,
+          "lateral_exposure_mps2": 0.9810000000000001,
+          "actuator_model": "s175_maneuvering"
+        },
+        "wind_parameters": {
+          "loa_m": 175.0,
+          "breadth_m": 25.4,
+          "lateral_area_m2": 2000.0,
+          "frontal_area_m2": 100.0,
+          "superstructure_area_m2": 200.0,
+          "perimeter_m": 130.0,
+          "centroid_from_bow_m": 30.0,
+          "mast_groups": 0,
+          "air_density_kg_m3": 1.224
+        },
+        "reports": {
+          "historical_bulletin": "unavailable",
+          "historical_warnings": "not_fetched",
+          "archive_directory": "data/raw/aemet"
+        },
+        "trials": {},
+        "area_bbox": [
+          -11.85,
+          -8.9,
+          46.65,
+          50.35
+        ],
+        "gameplay_settings": {
+          "region_hs_m": 11.0,
+          "start_inside_km": 15.0,
+          "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
+        },
+        "collection": {
+          "source": "data/storms/biscay/biscay-20261022-21",
+          "storm": {
+            "id": "biscay-20261022-21",
+            "start": "2026-10-22T21:00Z",
+            "end": "2026-10-23T18:00Z",
+            "hours": 24,
+            "peak": "2026-10-22T21:00Z",
+            "area": "Ushant",
+            "lon": -10.75,
+            "lat": 48.5,
+            "hs_m": 12.2,
+            "tp_s": 14.4,
+            "wave_from_deg": 289.0,
+            "wind_sea_m": 11.9,
+            "swell_m": 2.6,
+            "swell_from_deg": 218.0,
+            "rise_24h_m": 7.7,
+            "max_wind_kn": 65.0
+          },
+          "start_selection": "storm_peak",
+          "demonstration": {
+            "annual_peak_hs_m": 12.19999972730875,
+            "peak_lon_lat": [
+              -10.75,
+              48.5
+            ],
+            "budget_source": "explicit_user_request",
+            "selected_candidate_ids": [
+              6,
+              9,
+              10,
+              12,
+              13,
+              14,
+              16,
+              17
+            ]
+          }
+        },
+        "environment": {
+          "waves": {
+            "path": "data/storms/biscay/biscay-20261022-21/waves.nc",
+            "sha256": "e0217d0ad3a04f2905f71fa0551b6dfdea002d4e65591b368066e0df0a8a40a7",
+            "role": "historical_reconstruction",
+            "available_to_player": false
+          },
+          "currents": {
+            "path": "data/storms/biscay/biscay-20261022-21/currents.nc",
+            "sha256": "3c6469d8e59a351a070548a9c36190655646522a7ad34444fe70b327af2ac829",
+            "role": "historical_reconstruction",
+            "available_to_player": false
+          },
+          "wind": {
+            "path": "data/storms/biscay/biscay-20261022-21/wind.nc",
+            "sha256": "ccc74a2206524eb304a059dce857e46ff1660a1448d71e773b550876416c258f",
+            "role": "historical_reconstruction",
+            "available_to_player": false
+          }
+        },
+        "voyage": {
+          "version": 1,
+          "origin": {
+            "name": "Brest",
+            "country": "France",
+            "lon": -4.5,
+            "lat": 48.383
+          },
+          "destination": {
+            "name": "Las Palmas",
+            "country": "Spain",
+            "lon": -15.417,
+            "lat": 28.15
+          },
+          "track": [
+            [
+              -4.5,
+              48.383
+            ],
+            [
+              -4.54189,
+              48.34733
+            ],
+            [
+              -4.780599,
+              48.299559
+            ],
+            [
+              -4.899391,
+              48.509285
+            ],
+            [
+              -5.003463,
+              48.693021
+            ],
+            [
+              -5.5,
+              48.6667
+            ],
+            [
+              -5.661424,
+              48.681543
+            ],
+            [
+              -5.952971,
+              48.708351
+            ],
+            [
+              -6.510489,
+              48.759616
+            ],
+            [
+              -7.193705,
+              48.822439
+            ],
+            [
+              -10.632436,
+              49.138636
+            ],
+            [
+              -10.630839,
+              49.118042
+            ],
+            [
+              -10.602881310764015,
+              48.76150044577309
+            ],
+            [
+              -10.558668,
+              48.187125
+            ],
+            [
+              -10.462429,
+              46.945761
+            ],
+            [
+              -10.404053,
+              46.192784
+            ],
+            [
+              -10.194961,
+              43.495763
+            ],
+            [
+              -10.176425,
+              43.256675
+            ],
+            [
+              -10.167909,
+              43.146826
+            ],
+            [
+              -10.289669,
+              42.796988
+            ],
+            [
+              -11.070622,
+              40.553191
+            ],
+            [
+              -11.158374,
+              40.301066
+            ],
+            [
+              -11.664545,
+              38.84676
+            ],
+            [
+              -11.81009,
+              38.428587
+            ],
+            [
+              -12.057515,
+              37.717697
+            ],
+            [
+              -12.131862,
+              37.504085
+            ],
+            [
+              -12.262448,
+              37.128892
+            ],
+            [
+              -12.32612,
+              36.945951
+            ],
+            [
+              -12.493983,
+              36.463656
+            ],
+            [
+              -12.608538,
+              36.134522
+            ],
+            [
+              -12.761203,
+              35.695892
+            ],
+            [
+              -12.839781,
+              35.470126
+            ],
+            [
+              -13.114888,
+              34.6797
+            ],
+            [
+              -13.32875,
+              34.065242
+            ],
+            [
+              -13.9051,
+              32.4093
+            ],
+            [
+              -15.172119,
+              29.337503
+            ],
+            [
+              -15.145809,
+              28.538331
+            ],
+            [
+              -15.128174,
+              27.999252
+            ],
+            [
+              -15.417,
+              28.15
+            ]
+          ],
+          "distance_nm": 1584.844490722498,
+          "snapped_position": [
+            -10.602881310764015,
+            48.76150044577309
+          ],
+          "snap_distance_nm": 0.4683837540433036,
+          "provenance": {
+            "method": "weighted_dijkstra_through_snapped_network_position",
+            "generation_method": "weighted_dijkstra_through_snapped_network_position",
+            "authored": true,
+            "source": "searoute embedded Eurostat SeaRoute MARNET (searoute/data/marnet_searoute.geojson)",
+            "searoute_version": "1.6.0",
+            "graph_source": "searoute embedded Eurostat SeaRoute MARNET (searoute/data/marnet_searoute.geojson)",
+            "graph_nodes": 9708,
+            "graph_edges": 15970,
+            "graph_weight_unit": "km",
+            "weight_to_nm": 0.5399568034557235,
+            "distance_unit": "nm",
+            "catalogue_path": "web/game/ports.json",
+            "catalogue_provenance": "Extracted with Node from web/game/deepwater-ports.js on 2026-10-30; NGA World Port Index (Pub. 150) coordinates where available, otherwise hand-placed; container ports with ocean-going calls, not a depth survey.",
+            "catalogue_ports": 223,
+            "catalogue_sha256": "f795808c60922104e2b72b3372b10ba0c294d5c9aea33ca94fb86c17b3ea29d3",
+            "coordinates": "WGS84 lon/lat",
+            "snap_method": "nearest_edge_projection",
+            "snap_fallback_from": null,
+            "snap_edge": [
+              [
+                -10.630839,
+                49.118042
+              ],
+              [
+                -10.558668,
+                48.187125
+              ]
+            ],
+            "initial": {
+              "lon": -10.6147,
+              "lat": 48.7611,
+              "heading_deg": 279.9,
+              "time": "2026-10-22T21:00:00Z",
+              "speed_mps": 5.0
+            },
+            "origin_port_bearing_deg": 93.06084258372866,
+            "destination_port_bearing_deg": 191.94787265622492,
+            "origin_departure_bearing_deg": 357.06205898392824,
+            "destination_departure_bearing_deg": 177.06205898393614,
+            "branch_separation_deg": 179.9999999999921,
+            "network_distance_nm": 1584.748606867221,
+            "score": 348.0574302068227,
+            "dateline_crossings": 0,
+            "dateline_crossing_indices": []
+          },
+          "authored": true
+        },
+        "gameplay": {
+          "path": "scenarios/sole-20261022-21/gameplay.json",
+          "sha256": "a215e0b61364fee014bac79db9cb74967f659b1c2c5005eabe4e176ef004dc39"
+        }
+      },
+      "gameplay_sha256": "a215e0b61364fee014bac79db9cb74967f659b1c2c5005eabe4e176ef004dc39",
+      "algorithms": {
+        "game/simulation/runtime.py": "5aa7466b3a9c0011395bc6b5281b06cae8fa606fe43c451b54aa279d26757707",
+        "game/simulation/two_timescale.py": "6db8dd31f93e18b19fb7842c9a8a265a3ccf45d1a9562ac3691a57a7778ced21",
+        "game/simulation/environment.py": "83235f8f8308e8a7c85347289b2e9e14dbd14a28510e1ff9cb168854bd82920f",
+        "game/simulation/dynamics.py": "84a33b333ecf19fbb56e460e4be50ac90aa0e5f651f4d7d7bb75ddebb003f5cb",
+        "game/simulation/actuators.py": "b9a7170762bf609865102feb764f343b126078fcd34f85c38fb8c15036c954f8",
+        "game/simulation/maneuvering.py": "33704f0918afe7752da48d3fb3a0c7c25732b9797037a3426664435cb5099935",
+        "game/simulation/turn_rate.py": "0bbe2216cebce67c1dad6310000f1c5d765c49beef781989e951f87bc13d3618",
+        "game/simulation/waves.py": "c9d428da407f6259a72eea565a5b1014b03e659c14268abe05f49533ad1c7108",
+        "game/simulation/wind.py": "c5b9503c6a71ccc99812be767bb18d926284ae565b1149fb132df78555cce696",
+        "game/simulation/vessel.py": "ab011c6b417d0a85984d8094fa870a39ad2d7eb7bcd46f3b976e7ce15e6445c0",
+        "game/simulation/container.py": "fcae91ec27df0d8a7b90f719ec267ae07003fb14091142e2f88926d725a3cb91",
+        "game/session.py": "1b03839a89c08e794132530385e01a5a9e81204c13f2c42ec24f51e5edb08440",
+        "game/cargo.py": "0a31f30cc9194859bc470b6c65902d8ee34bc545f3b9ca033e062313603c0360",
+        "game/ship.py": "c439c0569448bea179f44303f7231bad6b725e0baa3e0d5e6768686349b91fbd",
+        "game/rules/mission.py": "08d5134d52aa2455178581800afd1ccb9f7a569c568d93ee57e181c0c555439b",
+        "pipeline/gameplay.py": "c4bf6cfc74d9bbf5b19cf8783d2537d588f9934d83d97ac78b3903553ddddc4b",
+        "agent/routing.py": "cf1fccc6135e21e3cf913dea03bf43f40fafc1fe303a7cd7a313c2dc9d3a16e3",
+        "agent/simulator.py": "e91fac252e13a94595ec6fa1168356a0e699d3edcbe422d283461eb8ea5fb661",
+        "agent/builder.py": "4ab537cf9953894ef4d5f040a38969e319601c669529541292a64020e8fd8294",
+        "agent/harness.py": "a0928ddfac30ab517e0aaf1cb02f164029d477450878eb56648511199131d136",
+        "agent/solutions.py": "057dd45bc82fe7e2af8bcf9ce92e97b5c52bc3f5fa2922792c931000897ad979",
+        "agent/models.py": "f5391f203931c29c1518f03a2f8f9e6ac809ff41a5dc1a3c8daeb64cda39bd1b",
+        "agent/voyage.py": "7906dac5723542fc5a731227134bd9d82cf2dea776caa518781eee3625a5eb9d",
+        "agent/builder_harness/tools.json": "1ec5b98ceccc669915e5f0ef52c2b7f5876d9c2950fa5afb38b5cf38bbd207f1",
+        "agent/builder_harness/INSTRUCTIONS.md": "85fe273bcb8fc764dca9f8fd2cc7c5723188df2f2337a0316b4d837711d5b0bc",
+        "game/navigation.py": "43bde25d09b09a5f9997ae223df6dc710d480993877d41565ed0a4210eab361b",
+        "web/game/ports.json": "f795808c60922104e2b72b3372b10ba0c294d5c9aea33ca94fb86c17b3ea29d3",
+        "data/navigation/manifest.json": "d33e53783c6ada1b4b2eb8d967e0403eea9100954256427803130e242188198f"
+      },
+      "vessel": {
+        "declared": {
+          "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+          "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+          "loading_condition": "Design waterline"
+        },
+        "files": {
+          "vessel.npz": "df146915fd31e8dddbfc98524610182c59d4dec7214d5bf1a6b41664b52c733e",
+          "provenance.json": "d89afdd8ad56da963f7a5110134dc4d3b73b07233a50590ced2dda8504fc5b42"
+        }
+      },
+      "environment": {
+        "currents": {
+          "path": "data/storms/biscay/biscay-20261022-21/currents.nc",
+          "declared_sha256": "3c6469d8e59a351a070548a9c36190655646522a7ad34444fe70b327af2ac829",
+          "actual_sha256": "3c6469d8e59a351a070548a9c36190655646522a7ad34444fe70b327af2ac829",
+          "matches_declared": true
+        },
+        "waves": {
+          "path": "data/storms/biscay/biscay-20261022-21/waves.nc",
+          "declared_sha256": "e0217d0ad3a04f2905f71fa0551b6dfdea002d4e65591b368066e0df0a8a40a7",
+          "actual_sha256": "e0217d0ad3a04f2905f71fa0551b6dfdea002d4e65591b368066e0df0a8a40a7",
+          "matches_declared": true
+        },
+        "wind": {
+          "path": "data/storms/biscay/biscay-20261022-21/wind.nc",
+          "declared_sha256": "ccc74a2206524eb304a059dce857e46ff1660a1448d71e773b550876416c258f",
+          "actual_sha256": "ccc74a2206524eb304a059dce857e46ff1660a1448d71e773b550876416c258f",
+          "matches_declared": true
+        }
+      },
+      "voyage": {
+        "present": true,
+        "sha256": "2a9debe492501c2197d18c41cdf504112422c11130c8fb5632636f25e880f902",
+        "authored": true,
+        "catalogue_sha256": "f795808c60922104e2b72b3372b10ba0c294d5c9aea33ca94fb86c17b3ea29d3",
+        "searoute_version": "1.6.0",
+        "snap_distance_nm": 0.4683837540433036
+      },
+      "navigation": {
+        "dataset": "Natural Earth 10m land",
+        "version": "5.1.1",
+        "source": "https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_land.zip",
+        "checksum": "e547d749445eaa0964aba76738090ec88f5e63c4585122170f98c67a7ea922dc",
+        "license": "Public domain",
+        "clearance": {
+          "nm": 5.0,
+          "m": 9260.0
+        },
+        "clearance_nm": 5.0,
+        "clearance_m": 9260.0,
+        "units": {
+          "coordinates": "WGS84 longitude and latitude in decimal degrees",
+          "projection": "local azimuthal equidistant metres",
+          "clearance": "nautical miles; geometry buffer in metres"
+        },
+        "bbox": [
+          -11.85,
+          -8.9,
+          46.65,
+          50.35
+        ],
+        "fixture": false,
+        "resolution": "1:10m Natural Earth map resolution",
+        "limitations": "Natural Earth 1:10m land polygons are a small-scale map product, not a hydrographic chart or a calibrated navigation surface."
+      },
+      "fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+      "algorithm_root": "/Users/austin/Documents/Project/TIDE"
+    },
+    "coverage": {
+      "ok": true,
+      "errors": [],
+      "layers": {
+        "currents": {
+          "path": "data/storms/biscay/biscay-20261022-21/currents.nc",
+          "sha256": "3c6469d8e59a351a070548a9c36190655646522a7ad34444fe70b327af2ac829",
+          "time": [
+            "2026-10-22T00:00:00.000000000",
+            "2026-10-23T18:00:00.000000000"
+          ],
+          "longitude": [
+            -12.0,
+            -8.75
+          ],
+          "latitude": [
+            46.5,
+            50.5
+          ]
+        },
+        "waves": {
+          "path": "data/storms/biscay/biscay-20261022-21/waves.nc",
+          "sha256": "e0217d0ad3a04f2905f71fa0551b6dfdea002d4e65591b368066e0df0a8a40a7",
+          "time": [
+            "2026-10-21T21:00:00.000000000",
+            "2026-10-23T21:00:00.000000000"
+          ],
+          "longitude": [
+            -12.0,
+            -8.75
+          ],
+          "latitude": [
+            46.5,
+            50.5
+          ]
+        },
+        "wind": {
+          "path": "data/storms/biscay/biscay-20261022-21/wind.nc",
+          "sha256": "ccc74a2206524eb304a059dce857e46ff1660a1448d71e773b550876416c258f",
+          "time": [
+            "2026-10-21T21:00:00.000000000",
+            "2026-10-23T21:00:00.000000000"
+          ],
+          "longitude": [
+            -11.9375,
+            -8.8125
+          ],
+          "latitude": [
+            46.5625,
+            50.4375
+          ]
+        }
+      },
+      "start": "2026-10-22T21:00:00Z",
+      "end": "2026-10-22T22:15:00Z",
+      "budget_s": 4500,
+      "intersection": "all historical environment layers"
+    },
+    "completed_count": 5,
+    "required_count": 8,
+    "budget_source": "explicit_user_request",
+    "global_automatic_rules_changed": false,
+    "retained_count": 8,
+    "revalidation_stopped_by_user": true,
+    "original_budget_only_candidate_ids": [
+      14,
+      16,
+      17
+    ],
+    "automatic_builder_minimum_met": false
+  },
+  "final_validation_complete": false
+}

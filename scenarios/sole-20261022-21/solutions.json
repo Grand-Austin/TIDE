@@ -1,0 +1,1012 @@
+{
+  "version": 1,
+  "kind": "solution_routes",
+  "status": "ready",
+  "summary": "8 \u6761\u4eba\u5de5\u6279\u51c6\u7684\u53c2\u8003\u8def\u7ebf\uff0c75 \u5206\u949f\u9884\u7b97\u30025 \u6761\u5df2\u6309\u65b0\u9884\u7b97\u590d\u9a8c\uff0c3 \u6761\u6cbf\u7528\u539f\u59cb\u5b8c\u6574\u8bd5\u822a\u8bb0\u5f55\uff1b\u5269\u4f59\u590d\u9a8c\u6309\u7528\u6237\u6307\u4ee4\u505c\u6b62\u3002",
+  "reading_guide": "Read each route from its timed orders. Order times are seconds from the scenario start; headings are degrees and speeds are knots. The track contains actual sampled positions when available. An endpoints_only track contains only the initial and final positions. Use a route only for the stated initial state and budget.",
+  "source_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+  "governing_rule": "User-approved reference set. Actual losses and per-route validation scope remain explicit. Remaining final-budget reruns were waived by the user.",
+  "automatic_qualification_rule": "escape in a full session, keep the ship afloat, and lose at most 1 % of the initial TEU",
+  "manual_approval": {
+    "approved_by": "user",
+    "approved_at_utc": "2026-10-30T20:55:38.118053+00:00",
+    "candidate_ids": [
+      6,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17
+    ],
+    "candidate_names": [
+      "simroute-06-sw-7.29kt",
+      "visir2-01-w-7.29kt",
+      "visir2-02-e-9.72kt",
+      "visir2-04-nw-9.72kt",
+      "visir2-05-w-11.66kt",
+      "visir2-06-se-9.72kt",
+      "expert-direct",
+      "expert-port"
+    ],
+    "source_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+    "comparison_fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147",
+    "budget_s": 4500,
+    "selection_rule": "Keep 9 and 13, then minimum TEU loss per north/east/east-to-southeast/northeast/northwest/southwest; ties choose faster escape.",
+    "request": "9 13 \u4fdd\u7559\u4f46\u662f9 13\u90fd\u662f\u5f80\u897f\u7684\uff0c\u5f80\u5317 \u5f80\u4e1c \u5f80\u4e1c\u2192\u4e1c\u5357 \u5f80\u4e1c\u5317 \u5f80\u897f\u5317 \u5f80\u897f\u5357\uff0c\u5404\u81ea\u4fdd\u7559\u4e00\u6761\u8d27\u635f\u6700\u4f4e\u7684\uff0c\u90fd\u52a0solutions\uff0c\u7136\u540e\u65f6\u95f4\u9884\u7b9775min",
+    "revalidation": {
+      "status": "remaining_runs_stopped_by_user",
+      "completed_at_75min_candidate_ids": [
+        6,
+        9,
+        10,
+        12,
+        13
+      ],
+      "original_120min_evidence_candidate_ids": [
+        14,
+        16,
+        17
+      ],
+      "instruction": "\u505c\u6b62\u590d\u9a8c\uff0c\u4e0d\u9700\u8981\u4e86\uff0c\u7ed3\u675f\u6784\u5efa",
+      "recorded_at_utc": "2026-10-30T21:00:29.346598+00:00"
+    }
+  },
+  "initial_state": {
+    "lon": -10.6147,
+    "lat": 48.7611,
+    "heading_deg": 279.9,
+    "speed_mps": 5.0,
+    "start": "2026-10-22T21:00:00Z",
+    "seed": 1
+  },
+  "budget_s": 4500,
+  "required_minimum": 8,
+  "solution_count": 8,
+  "solutions": [
+    {
+      "id": "route-af593a1e1668",
+      "name": "expert-port",
+      "solver": "builder.expert:port",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 58.3,
+          "speed_knots": 9.72
+        }
+      ],
+      "elapsed_s": 1522.4,
+      "lost_teu": 75,
+      "total_teu": 1200,
+      "loss_fraction": 0.0625,
+      "ship_lost": false,
+      "automatic_qualified": false,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.628,
+          "speed_knots": 10.876
+        },
+        {
+          "t": 307.8,
+          "lon": -10.610038,
+          "lat": 48.76655,
+          "heading_deg": 61.501,
+          "speed_knots": 11.997
+        },
+        {
+          "t": 607.8,
+          "lon": -10.587211,
+          "lat": 48.774432,
+          "heading_deg": 64.796,
+          "speed_knots": 15.211
+        },
+        {
+          "t": 909.8,
+          "lon": -10.561888,
+          "lat": 48.782939,
+          "heading_deg": 79.113,
+          "speed_knots": 11.589
+        },
+        {
+          "t": 1209.8,
+          "lon": -10.534928,
+          "lat": 48.791752,
+          "heading_deg": 84.914,
+          "speed_knots": 13.894
+        },
+        {
+          "t": 1509.8,
+          "lon": -10.507287,
+          "lat": 48.800841,
+          "heading_deg": 85.506,
+          "speed_knots": 15.25
+        },
+        {
+          "t": 1522.4,
+          "lon": -10.506172,
+          "lat": 48.801238,
+          "heading_deg": 85.748,
+          "speed_knots": 14.775
+        }
+      ],
+      "track_status": "sampled",
+      "final_validation": false,
+      "validation_scope": "original_120min_scenario",
+      "provenance": {
+        "trial_id": "d2440533f4f047178bb3fd4b58085340",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/trials/d2440533f4f047178bb3fd4b58085340",
+        "fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147",
+        "final_validation": false,
+        "scenario_path": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/work/scenario.json",
+        "actual_run_budget_s": 7200
+      },
+      "candidate_id": 17,
+      "candidate_route_id": "candidate-17",
+      "direction": "\u4e1c\u5317",
+      "within_current_budget_by_recorded_elapsed": true,
+      "summary": "\u5019\u9009 17\uff0c\u4e1c\u5317\uff0c\u5b9e\u6d4b\u9003\u79bb 25.37 \u5206\u949f\uff0c\u635f\u5931 75/1200 TEU\u3002\u6cbf\u7528\u539f 120 \u5206\u949f\u573a\u666f\u7684\u5b8c\u6574\u8bd5\u822a\uff1b\u7528\u6237\u5df2\u505c\u6b62\u65b0\u9884\u7b97\u590d\u9a8c\u3002"
+    },
+    {
+      "id": "route-6043d1bc5696",
+      "name": "expert-direct",
+      "solver": "builder.expert:direct_bearing",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 19.05,
+          "speed_knots": 9.0
+        }
+      ],
+      "elapsed_s": 1560.0,
+      "lost_teu": 225,
+      "total_teu": 1200,
+      "loss_fraction": 0.1875,
+      "ship_lost": false,
+      "automatic_qualified": false,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.627,
+          "speed_knots": 10.874
+        },
+        {
+          "t": 307.0,
+          "lon": -10.615835,
+          "lat": 48.767705,
+          "heading_deg": 25.891,
+          "speed_knots": 9.131
+        },
+        {
+          "t": 607.0,
+          "lon": -10.606668,
+          "lat": 48.778928,
+          "heading_deg": 33.463,
+          "speed_knots": 10.197
+        },
+        {
+          "t": 909.0,
+          "lon": -10.597007,
+          "lat": 48.789818,
+          "heading_deg": 39.958,
+          "speed_knots": 9.357
+        },
+        {
+          "t": 1209.0,
+          "lon": -10.587645,
+          "lat": 48.800278,
+          "heading_deg": 45.365,
+          "speed_knots": 9.19
+        },
+        {
+          "t": 1509.0,
+          "lon": -10.578239,
+          "lat": 48.810589,
+          "heading_deg": 48.88,
+          "speed_knots": 10.16
+        },
+        {
+          "t": 1560.0,
+          "lon": -10.576602,
+          "lat": 48.812444,
+          "heading_deg": 52.668,
+          "speed_knots": 10.108
+        }
+      ],
+      "track_status": "sampled",
+      "final_validation": false,
+      "validation_scope": "original_120min_scenario",
+      "provenance": {
+        "trial_id": "26e3dbb8ecc94f7389dd8aafe8e317ca",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/trials/26e3dbb8ecc94f7389dd8aafe8e317ca",
+        "fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147",
+        "final_validation": false,
+        "scenario_path": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/work/scenario.json",
+        "actual_run_budget_s": 7200
+      },
+      "candidate_id": 16,
+      "candidate_route_id": "candidate-16",
+      "direction": "\u5317",
+      "within_current_budget_by_recorded_elapsed": true,
+      "summary": "\u5019\u9009 16\uff0c\u5317\uff0c\u5b9e\u6d4b\u9003\u79bb 26.00 \u5206\u949f\uff0c\u635f\u5931 225/1200 TEU\u3002\u6cbf\u7528\u539f 120 \u5206\u949f\u573a\u666f\u7684\u5b8c\u6574\u8bd5\u822a\uff1b\u7528\u6237\u5df2\u505c\u6b62\u65b0\u9884\u7b97\u590d\u9a8c\u3002"
+    },
+    {
+      "id": "route-4088256a5786",
+      "name": "visir2-02-e-9.72kt",
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "summary": "\u5019\u9009 10\uff0c\u4e1c\uff0c\u5b9e\u6d4b\u9003\u79bb 28.58 \u5206\u949f\uff0c\u635f\u5931 25/1200 TEU\u3002\u5df2\u5b8c\u6210 75 \u5206\u949f\u573a\u666f\u590d\u9a8c\u3002",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 85.9,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 1430.6,
+          "heading_deg": 85.7,
+          "speed_knots": 9.72
+        }
+      ],
+      "elapsed_s": 1715.1,
+      "lost_teu": 25,
+      "total_teu": 1200,
+      "loss_fraction": 0.020833,
+      "ship_lost": false,
+      "automatic_qualified": false,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.628,
+          "speed_knots": 10.876
+        },
+        {
+          "t": 307.8,
+          "lon": -10.609444,
+          "lat": 48.764292,
+          "heading_deg": 87.915,
+          "speed_knots": 10.957
+        },
+        {
+          "t": 607.8,
+          "lon": -10.578144,
+          "lat": 48.765116,
+          "heading_deg": 88.096,
+          "speed_knots": 15.839
+        },
+        {
+          "t": 907.8,
+          "lon": -10.533974,
+          "lat": 48.765566,
+          "heading_deg": 94.842,
+          "speed_knots": 22.856
+        },
+        {
+          "t": 1207.8,
+          "lon": -10.482691,
+          "lat": 48.766372,
+          "heading_deg": 99.586,
+          "speed_knots": 26.402
+        },
+        {
+          "t": 1430.6,
+          "lon": -10.44411,
+          "lat": 48.767185,
+          "heading_deg": 106.634,
+          "speed_knots": 26.976
+        },
+        {
+          "t": 1510.6,
+          "lon": -10.430547,
+          "lat": 48.767539,
+          "heading_deg": 105.896,
+          "speed_knots": 22.859
+        },
+        {
+          "t": 1715.1,
+          "lon": -10.395338,
+          "lat": 48.76841,
+          "heading_deg": 102.486,
+          "speed_knots": 22.924
+        }
+      ],
+      "track_status": "sampled",
+      "provenance": {
+        "trial_id": "13c4965879844c03adb7b1ff51b7dac2",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/13c4965879844c03adb7b1ff51b7dac2",
+        "fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+        "final_validation": true,
+        "scenario_path": "scenarios/sole-20261022-21/scenario.json",
+        "actual_run_budget_s": 4500
+      },
+      "candidate_id": 10,
+      "candidate_route_id": "candidate-10",
+      "direction": "\u4e1c",
+      "validation_scope": "final_75min_scenario",
+      "final_validation": true,
+      "within_current_budget_by_recorded_elapsed": true
+    },
+    {
+      "id": "route-d5b0f27f1d0e",
+      "name": "visir2-04-nw-9.72kt",
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "summary": "\u5019\u9009 12\uff0c\u897f\u5317\uff0c\u5b9e\u6d4b\u9003\u79bb 29.00 \u5206\u949f\uff0c\u635f\u5931 120/1200 TEU\u3002\u5df2\u5b8c\u6210 75 \u5206\u949f\u573a\u666f\u590d\u9a8c\u3002",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 330.0,
+          "speed_knots": 9.72
+        }
+      ],
+      "elapsed_s": 1740.0,
+      "lost_teu": 120,
+      "total_teu": 1200,
+      "loss_fraction": 0.1,
+      "ship_lost": false,
+      "automatic_qualified": false,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.628,
+          "speed_knots": 10.876
+        },
+        {
+          "t": 309.2,
+          "lon": -10.625342,
+          "lat": 48.768173,
+          "heading_deg": 335.095,
+          "speed_knots": 7.937
+        },
+        {
+          "t": 609.2,
+          "lon": -10.634601,
+          "lat": 48.779223,
+          "heading_deg": 340.778,
+          "speed_knots": 10.166
+        },
+        {
+          "t": 909.2,
+          "lon": -10.644074,
+          "lat": 48.790577,
+          "heading_deg": 346.18,
+          "speed_knots": 9.211
+        },
+        {
+          "t": 1209.2,
+          "lon": -10.653704,
+          "lat": 48.802,
+          "heading_deg": 353.652,
+          "speed_knots": 10.044
+        },
+        {
+          "t": 1509.2,
+          "lon": -10.663463,
+          "lat": 48.813586,
+          "heading_deg": 5.824,
+          "speed_knots": 9.838
+        },
+        {
+          "t": 1740.0,
+          "lon": -10.670805,
+          "lat": 48.82224,
+          "heading_deg": 7.951,
+          "speed_knots": 10.393
+        }
+      ],
+      "track_status": "sampled",
+      "provenance": {
+        "trial_id": "a89bbf4906be4ee1b4dfe23c5ef1b7ed",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/a89bbf4906be4ee1b4dfe23c5ef1b7ed",
+        "fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+        "final_validation": true,
+        "scenario_path": "scenarios/sole-20261022-21/scenario.json",
+        "actual_run_budget_s": 4500
+      },
+      "candidate_id": 12,
+      "candidate_route_id": "candidate-12",
+      "direction": "\u897f\u5317",
+      "validation_scope": "final_75min_scenario",
+      "final_validation": true,
+      "within_current_budget_by_recorded_elapsed": true
+    },
+    {
+      "id": "route-aa01dea201e6",
+      "name": "visir2-01-w-7.29kt",
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "summary": "\u5019\u9009 9\uff0c\u897f\uff0c\u5b9e\u6d4b\u9003\u79bb 49.00 \u5206\u949f\uff0c\u635f\u5931 5/1200 TEU\u3002\u5df2\u5b8c\u6210 75 \u5206\u949f\u573a\u666f\u590d\u9a8c\u3002",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 278.5,
+          "speed_knots": 7.29
+        }
+      ],
+      "elapsed_s": 2940.0,
+      "lost_teu": 5,
+      "total_teu": 1200,
+      "loss_fraction": 0.004167,
+      "ship_lost": false,
+      "automatic_qualified": true,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.489,
+          "speed_knots": 10.891
+        },
+        {
+          "t": 306.4,
+          "lon": -10.628244,
+          "lat": 48.758965,
+          "heading_deg": 277.362,
+          "speed_knots": 5.489
+        },
+        {
+          "t": 606.4,
+          "lon": -10.643049,
+          "lat": 48.757676,
+          "heading_deg": 276.0,
+          "speed_knots": 7.955
+        },
+        {
+          "t": 906.4,
+          "lon": -10.65895,
+          "lat": 48.756614,
+          "heading_deg": 273.31,
+          "speed_knots": 8.843
+        },
+        {
+          "t": 1206.4,
+          "lon": -10.674967,
+          "lat": 48.755573,
+          "heading_deg": 272.459,
+          "speed_knots": 7.488
+        },
+        {
+          "t": 1506.4,
+          "lon": -10.69114,
+          "lat": 48.754512,
+          "heading_deg": 278.9,
+          "speed_knots": 6.862
+        },
+        {
+          "t": 1806.4,
+          "lon": -10.707644,
+          "lat": 48.753479,
+          "heading_deg": 275.434,
+          "speed_knots": 6.535
+        },
+        {
+          "t": 2106.4,
+          "lon": -10.724563,
+          "lat": 48.75245,
+          "heading_deg": 268.534,
+          "speed_knots": 7.801
+        },
+        {
+          "t": 2406.4,
+          "lon": -10.741005,
+          "lat": 48.751343,
+          "heading_deg": 262.391,
+          "speed_knots": 9.395
+        },
+        {
+          "t": 2706.4,
+          "lon": -10.757281,
+          "lat": 48.750217,
+          "heading_deg": 259.753,
+          "speed_knots": 7.472
+        },
+        {
+          "t": 2940.0,
+          "lon": -10.770023,
+          "lat": 48.749372,
+          "heading_deg": 258.782,
+          "speed_knots": 9.527
+        }
+      ],
+      "track_status": "sampled",
+      "provenance": {
+        "trial_id": "3eb0d3ae5e444668bb3ef00a7c7538fb",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/3eb0d3ae5e444668bb3ef00a7c7538fb",
+        "fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+        "final_validation": true,
+        "scenario_path": "scenarios/sole-20261022-21/scenario.json",
+        "actual_run_budget_s": 4500
+      },
+      "candidate_id": 9,
+      "candidate_route_id": "candidate-09",
+      "direction": "\u897f",
+      "validation_scope": "final_75min_scenario",
+      "final_validation": true,
+      "within_current_budget_by_recorded_elapsed": true
+    },
+    {
+      "id": "route-68f232c22b33",
+      "name": "visir2-05-w-11.66kt",
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "summary": "\u5019\u9009 13\uff0c\u897f\uff0c\u5b9e\u6d4b\u9003\u79bb 49.00 \u5206\u949f\uff0c\u635f\u5931 5/1200 TEU\u3002\u5df2\u5b8c\u6210 75 \u5206\u949f\u573a\u666f\u590d\u9a8c\u3002",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 275.2,
+          "speed_knots": 11.66
+        },
+        {
+          "t": 1787.0,
+          "heading_deg": 275.7,
+          "speed_knots": 11.66
+        }
+      ],
+      "elapsed_s": 2940.0,
+      "lost_teu": 5,
+      "total_teu": 1200,
+      "loss_fraction": 0.004167,
+      "ship_lost": false,
+      "automatic_qualified": true,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.454,
+          "speed_knots": 10.894
+        },
+        {
+          "t": 306.4,
+          "lon": -10.635405,
+          "lat": 48.759746,
+          "heading_deg": 273.677,
+          "speed_knots": 11.686
+        },
+        {
+          "t": 606.4,
+          "lon": -10.659234,
+          "lat": 48.758756,
+          "heading_deg": 271.641,
+          "speed_knots": 11.76
+        },
+        {
+          "t": 906.4,
+          "lon": -10.684159,
+          "lat": 48.757807,
+          "heading_deg": 267.102,
+          "speed_knots": 12.435
+        },
+        {
+          "t": 1206.4,
+          "lon": -10.709242,
+          "lat": 48.756955,
+          "heading_deg": 268.624,
+          "speed_knots": 13.646
+        },
+        {
+          "t": 1506.4,
+          "lon": -10.73505,
+          "lat": 48.756068,
+          "heading_deg": 262.486,
+          "speed_knots": 11.799
+        },
+        {
+          "t": 1787.0,
+          "lon": -10.759111,
+          "lat": 48.755206,
+          "heading_deg": 258.809,
+          "speed_knots": 12.013
+        },
+        {
+          "t": 1807.0,
+          "lon": -10.76082,
+          "lat": 48.755162,
+          "heading_deg": 259.732,
+          "speed_knots": 11.807
+        },
+        {
+          "t": 2107.0,
+          "lon": -10.786142,
+          "lat": 48.754455,
+          "heading_deg": 257.189,
+          "speed_knots": 10.731
+        },
+        {
+          "t": 2407.0,
+          "lon": -10.812041,
+          "lat": 48.753711,
+          "heading_deg": 255.779,
+          "speed_knots": 10.62
+        },
+        {
+          "t": 2707.0,
+          "lon": -10.837651,
+          "lat": 48.752891,
+          "heading_deg": 252.958,
+          "speed_knots": 12.283
+        },
+        {
+          "t": 2940.0,
+          "lon": -10.857729,
+          "lat": 48.752223,
+          "heading_deg": 254.63,
+          "speed_knots": 11.685
+        }
+      ],
+      "track_status": "sampled",
+      "provenance": {
+        "trial_id": "6eb5cb75ef484022a71bafece165ac94",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/6eb5cb75ef484022a71bafece165ac94",
+        "fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+        "final_validation": true,
+        "scenario_path": "scenarios/sole-20261022-21/scenario.json",
+        "actual_run_budget_s": 4500
+      },
+      "candidate_id": 13,
+      "candidate_route_id": "candidate-13",
+      "direction": "\u897f",
+      "validation_scope": "final_75min_scenario",
+      "final_validation": true,
+      "within_current_budget_by_recorded_elapsed": true
+    },
+    {
+      "id": "route-2102b8a436bf",
+      "name": "visir2-06-se-9.72kt",
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 85.9,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 1430.6,
+          "heading_deg": 143.4,
+          "speed_knots": 9.72
+        }
+      ],
+      "elapsed_s": 3480.0,
+      "lost_teu": 90,
+      "total_teu": 1200,
+      "loss_fraction": 0.075,
+      "ship_lost": false,
+      "automatic_qualified": false,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.628,
+          "speed_knots": 10.876
+        },
+        {
+          "t": 307.8,
+          "lon": -10.609444,
+          "lat": 48.764292,
+          "heading_deg": 87.915,
+          "speed_knots": 10.957
+        },
+        {
+          "t": 607.8,
+          "lon": -10.578144,
+          "lat": 48.765116,
+          "heading_deg": 88.096,
+          "speed_knots": 15.839
+        },
+        {
+          "t": 907.8,
+          "lon": -10.533974,
+          "lat": 48.765566,
+          "heading_deg": 94.842,
+          "speed_knots": 22.856
+        },
+        {
+          "t": 1207.8,
+          "lon": -10.482691,
+          "lat": 48.766372,
+          "heading_deg": 99.586,
+          "speed_knots": 26.402
+        },
+        {
+          "t": 1430.6,
+          "lon": -10.44411,
+          "lat": 48.767185,
+          "heading_deg": 106.634,
+          "speed_knots": 26.976
+        },
+        {
+          "t": 1510.6,
+          "lon": -10.433404,
+          "lat": 48.763465,
+          "heading_deg": 165.71,
+          "speed_knots": 21.032
+        },
+        {
+          "t": 1810.6,
+          "lon": -10.40922,
+          "lat": 48.740465,
+          "heading_deg": 156.359,
+          "speed_knots": 19.861
+        },
+        {
+          "t": 2110.6,
+          "lon": -10.383628,
+          "lat": 48.716726,
+          "heading_deg": 150.724,
+          "speed_knots": 21.065
+        },
+        {
+          "t": 2410.6,
+          "lon": -10.357729,
+          "lat": 48.692817,
+          "heading_deg": 143.727,
+          "speed_knots": 19.835
+        },
+        {
+          "t": 2714.8,
+          "lon": -10.331485,
+          "lat": 48.668382,
+          "heading_deg": 132.047,
+          "speed_knots": 19.857
+        },
+        {
+          "t": 3014.8,
+          "lon": -10.305497,
+          "lat": 48.644273,
+          "heading_deg": 130.715,
+          "speed_knots": 21.097
+        },
+        {
+          "t": 3314.8,
+          "lon": -10.27956,
+          "lat": 48.620054,
+          "heading_deg": 121.137,
+          "speed_knots": 18.971
+        },
+        {
+          "t": 3480.0,
+          "lon": -10.265129,
+          "lat": 48.606734,
+          "heading_deg": 117.917,
+          "speed_knots": 19.795
+        }
+      ],
+      "track_status": "sampled",
+      "final_validation": false,
+      "validation_scope": "original_120min_scenario",
+      "provenance": {
+        "trial_id": "952e6281e8314437a3c73879674ff58e",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/trials/952e6281e8314437a3c73879674ff58e",
+        "fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147",
+        "final_validation": false,
+        "scenario_path": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/builder-ai/work/scenario.json",
+        "actual_run_budget_s": 7200
+      },
+      "candidate_id": 14,
+      "candidate_route_id": "candidate-14",
+      "direction": "\u4e1c\u2192\u4e1c\u5357",
+      "within_current_budget_by_recorded_elapsed": true,
+      "summary": "\u5019\u9009 14\uff0c\u4e1c\u2192\u4e1c\u5357\uff0c\u5b9e\u6d4b\u9003\u79bb 58.00 \u5206\u949f\uff0c\u635f\u5931 90/1200 TEU\u3002\u6cbf\u7528\u539f 120 \u5206\u949f\u573a\u666f\u7684\u5b8c\u6574\u8bd5\u822a\uff1b\u7528\u6237\u5df2\u505c\u6b62\u65b0\u9884\u7b97\u590d\u9a8c\u3002"
+    },
+    {
+      "id": "route-981f8d0b7efc",
+      "name": "simroute-06-sw-7.29kt",
+      "solver": "simroute:astar_aertssen",
+      "summary": "\u5019\u9009 6\uff0c\u897f\u5357\uff0c\u5b9e\u6d4b\u9003\u79bb 59.00 \u5206\u949f\uff0c\u635f\u5931 210/1200 TEU\u3002\u5df2\u5b8c\u6210 75 \u5206\u949f\u573a\u666f\u590d\u9a8c\u3002",
+      "orders": [
+        {
+          "t": 0.0,
+          "heading_deg": 213.5,
+          "speed_knots": 7.29
+        }
+      ],
+      "elapsed_s": 3540.0,
+      "lost_teu": 210,
+      "total_teu": 1200,
+      "loss_fraction": 0.175,
+      "ship_lost": false,
+      "automatic_qualified": false,
+      "selection_basis": "user_approved",
+      "track": [
+        {
+          "t": 0.0,
+          "lon": -10.6147,
+          "lat": 48.7611,
+          "heading_deg": 279.9,
+          "speed_knots": 9.719
+        },
+        {
+          "t": 5.0,
+          "lon": -10.615068,
+          "lat": 48.76113,
+          "heading_deg": 279.373,
+          "speed_knots": 10.878
+        },
+        {
+          "t": 308.6,
+          "lon": -10.623042,
+          "lat": 48.753395,
+          "heading_deg": 213.519,
+          "speed_knots": 7.506
+        },
+        {
+          "t": 608.6,
+          "lon": -10.629252,
+          "lat": 48.743548,
+          "heading_deg": 207.955,
+          "speed_knots": 6.688
+        },
+        {
+          "t": 908.6,
+          "lon": -10.635913,
+          "lat": 48.733366,
+          "heading_deg": 199.869,
+          "speed_knots": 8.976
+        },
+        {
+          "t": 1210.8,
+          "lon": -10.642894,
+          "lat": 48.722774,
+          "heading_deg": 188.626,
+          "speed_knots": 7.226
+        },
+        {
+          "t": 1510.8,
+          "lon": -10.649803,
+          "lat": 48.712003,
+          "heading_deg": 177.389,
+          "speed_knots": 8.205
+        },
+        {
+          "t": 1810.8,
+          "lon": -10.656694,
+          "lat": 48.701544,
+          "heading_deg": 172.122,
+          "speed_knots": 6.89
+        },
+        {
+          "t": 2110.8,
+          "lon": -10.663433,
+          "lat": 48.690566,
+          "heading_deg": 168.461,
+          "speed_knots": 5.88
+        },
+        {
+          "t": 2410.8,
+          "lon": -10.670204,
+          "lat": 48.679711,
+          "heading_deg": 161.771,
+          "speed_knots": 7.898
+        },
+        {
+          "t": 2710.8,
+          "lon": -10.677421,
+          "lat": 48.669198,
+          "heading_deg": 155.359,
+          "speed_knots": 8.687
+        },
+        {
+          "t": 3010.8,
+          "lon": -10.684412,
+          "lat": 48.658527,
+          "heading_deg": 143.69,
+          "speed_knots": 10.341
+        },
+        {
+          "t": 3310.8,
+          "lon": -10.690878,
+          "lat": 48.647447,
+          "heading_deg": 135.588,
+          "speed_knots": 5.901
+        },
+        {
+          "t": 3540.0,
+          "lon": -10.696085,
+          "lat": 48.639222,
+          "heading_deg": 130.887,
+          "speed_knots": 8.964
+        }
+      ],
+      "track_status": "sampled",
+      "provenance": {
+        "trial_id": "f1baa5e75c1d4cc28294e1b68a482998",
+        "session": "/Users/austin/Documents/Project/TIDE/data/runs/biscay-peak-demo/approved-75min/trials/f1baa5e75c1d4cc28294e1b68a482998",
+        "fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+        "final_validation": true,
+        "scenario_path": "scenarios/sole-20261022-21/scenario.json",
+        "actual_run_budget_s": 4500
+      },
+      "candidate_id": 6,
+      "candidate_route_id": "candidate-06",
+      "direction": "\u897f\u5357",
+      "validation_scope": "final_75min_scenario",
+      "final_validation": true,
+      "within_current_budget_by_recorded_elapsed": true
+    }
+  ],
+  "limitations": [
+    "A solution applies only to the stated initial state and mission budget.",
+    "A sampled track is not a full trajectory; an endpoints_only track has no intermediate positions.",
+    "The stored routes are distinct final-verified trials, not a complete enumeration of all possible routes.",
+    "User approval does not change actual losses or the automatic_qualified label.",
+    "Candidates 14,16,17 retain original 120-minute-scenario evidence; their final 75-minute-scenario reruns were stopped by user instruction."
+  ],
+  "reason": null,
+  "budget_source": "explicit_user_request",
+  "validation_status": "partial_revalidation_stopped_by_user",
+  "final_validation_complete": false,
+  "revalidated_candidate_ids": [
+    6,
+    9,
+    10,
+    12,
+    13
+  ],
+  "original_budget_only_candidate_ids": [
+    14,
+    16,
+    17
+  ]
+}

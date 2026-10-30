@@ -32,18 +32,47 @@ def _shift(samples):
     return "veering" if turn >= SHIFT_DEG else "backing" if turn <= -SHIFT_DEG else "steady"
 
 
+def scaled_bbox(area, bounds, scale):
+    """A bbox about the area, scaled up, clipped to the data, and kept at the scaled span where the data allows.
+
+    The west edge of the Biscay data stops the field short of the scaled area, so the missing span goes to the
+    east instead. The hazard region keeps the area; only the released forecast field grows.
+    """
+    w, e, s, n = area
+    bw, be, bs, bn = bounds
+    span_w, span_n = (e - w) * scale, (n - s) * scale
+    cx, cy = (w + e) / 2, (s + n) / 2
+    x0, x1 = max(cx - span_w / 2, bw), min(cx + span_w / 2, be)
+    y0, y1 = max(cy - span_n / 2, bs), min(cy + span_n / 2, bn)
+    if x1 - x0 < span_w:
+        if x0 <= bw + 1e-9:
+            x1 = min(be, x0 + span_w)
+        else:
+            x0 = max(bw, x1 - span_w)
+    if y1 - y0 < span_n:
+        if y0 <= bs + 1e-9:
+            y1 = min(bn, y0 + span_n)
+        else:
+            y0 = max(bs, y1 - span_n)
+    return [round(v, 6) for v in (x0, x1, y0, y1)]
+
+
+
 def build_gameplay(scenario):
     d = scenario.definition
     w, e, s, n = d["area_bbox"]
     start = utc(d["start"])
     budget = d["mission"]["budget_s"]
     region_hs = d.get("gameplay_settings", {}).get("region_hs_m", 3.0)
+    report_scale = float(d.get("gameplay_settings", {}).get("report_scale", 1.0))
     regions = []
     reports = []
     source = d["environment"]["waves"]
     if digest(scenario.root / source["path"]) != source["sha256"]:
         raise ValueError("Wave checksum mismatch")
     with xr.open_dataset(scenario.root / source["path"]) as ds:
+        bounds = [float(ds.longitude.min()), float(ds.longitude.max()),
+                  float(ds.latitude.min()), float(ds.latitude.max())]
         subset = ds.sel(longitude=slice(w, e), latitude=slice(s, n))
         lons, lats = subset.longitude.values, subset.latitude.values
         dx = float(np.diff(lons).mean()) / 2
@@ -65,13 +94,16 @@ def build_gameplay(scenario):
                 else []
             )
             regions.append({"time_s": t, "polygon": polygon})
+    # The forecast field reaches beyond the operating area, so its edge does not outline the hidden region.
+    report_bbox = scaled_bbox([w, e, s, n], bounds, report_scale) if report_scale > 1 else [w, e, s, n]
+    rw, re, rs, rn = report_bbox
     with scenario.environment() as env:
         for issued in range(0, budget, 3600):
             end = min(budget, issued + 3600)
             for x in range(3):
                 for y in range(3):
-                    lon = w + (x + 0.5) * (e - w) / 3
-                    lat = s + (y + 0.5) * (n - s) / 3
+                    lon = rw + (x + 0.5) * (re - rw) / 3
+                    lat = rs + (y + 0.5) * (rn - rs) / 3
                     samples = []
                     for t in (issued, end):
                         try:
@@ -124,6 +156,8 @@ def build_gameplay(scenario):
         "version": 1,
         "region_method": f"Hs>={region_hs:g}m convex cell-footprint envelope; held on one-minute schedule",
         "source_sha256": source["sha256"],
+        "report_bbox": report_bbox,
+        "report_scope": d.get("gameplay_settings", {}).get("report_scope", "nearby"),
         "regions": regions,
         "reports": reports,
         "cargo": CargoModel().config,

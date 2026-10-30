@@ -23,6 +23,10 @@ class MissionRules:
         if gameplay.get("version") != 1:
             raise ValueError("Unsupported gameplay version")
         self.gameplay, self.budget_s, self.bbox = gameplay, budget_s, bbox
+        # Forecast sectors may reach past the operating area; the domain boundary still uses bbox.
+        self.report_bbox = tuple(gameplay.get("report_bbox", bbox))
+        # "field" releases every forecast area of the field; "nearby" keeps the ship's 3x3 neighbourhood.
+        self.report_scope = gameplay.get("report_scope", "nearby")
         self.regions = gameplay["regions"]
         self.times = [r["time_s"] for r in self.regions]
         if (
@@ -37,14 +41,14 @@ class MissionRules:
         return inside(self.regions[index]["polygon"], lon, lat)
 
     def sector(self, lon, lat):
-        w, e, s, n = self.bbox
+        w, e, s, n = self.report_bbox
         return min(2, max(0, int((lon - w) / (e - w) * 3))), min(
             2, max(0, int((lat - s) / (n - s) * 3))
         )
 
     def visible_reports(self, elapsed_s, lon, lat):
         x, y = self.sector(lon, lat)
-        w, e, s, n = self.bbox
+        w, e, s, n = self.report_bbox
         return [
             dict(
                 r,
@@ -57,8 +61,8 @@ class MissionRules:
             )
             for r in self.gameplay["reports"]
             if r["issued_s"] <= elapsed_s < r["valid_to_s"]
-            and abs(r["sector"][0] - x) <= 1
-            and abs(r["sector"][1] - y) <= 1
+            and (self.report_scope == "field"
+                 or (abs(r["sector"][0] - x) <= 1 and abs(r["sector"][1] - y) <= 1))
         ]
 
     def evaluate(self, sample, consumed):

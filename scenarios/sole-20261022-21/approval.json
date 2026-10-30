@@ -1,0 +1,46 @@
+{
+  "approved_by": "user",
+  "approved_at_utc": "2026-10-30T20:55:38.118053+00:00",
+  "candidate_ids": [
+    6,
+    9,
+    10,
+    12,
+    13,
+    14,
+    16,
+    17
+  ],
+  "candidate_names": [
+    "simroute-06-sw-7.29kt",
+    "visir2-01-w-7.29kt",
+    "visir2-02-e-9.72kt",
+    "visir2-04-nw-9.72kt",
+    "visir2-05-w-11.66kt",
+    "visir2-06-se-9.72kt",
+    "expert-direct",
+    "expert-port"
+  ],
+  "source_fingerprint": "6a5435ac52006f105e223ffb6fb8a2e5d2e5e0ab9877a08f94f4538e3ea9efde",
+  "comparison_fingerprint": "9800854f54bb7c3d1cf2aecb13220e3d11930892113bd040b05becd4a8c89147",
+  "budget_s": 4500,
+  "selection_rule": "Keep 9 and 13, then minimum TEU loss per north/east/east-to-southeast/northeast/northwest/southwest; ties choose faster escape.",
+  "request": "9 13 \u4fdd\u7559\u4f46\u662f9 13\u90fd\u662f\u5f80\u897f\u7684\uff0c\u5f80\u5317 \u5f80\u4e1c \u5f80\u4e1c\u2192\u4e1c\u5357 \u5f80\u4e1c\u5317 \u5f80\u897f\u5317 \u5f80\u897f\u5357\uff0c\u5404\u81ea\u4fdd\u7559\u4e00\u6761\u8d27\u635f\u6700\u4f4e\u7684\uff0c\u90fd\u52a0solutions\uff0c\u7136\u540e\u65f6\u95f4\u9884\u7b9775min",
+  "revalidation": {
+    "status": "remaining_runs_stopped_by_user",
+    "completed_at_75min_candidate_ids": [
+      6,
+      9,
+      10,
+      12,
+      13
+    ],
+    "original_120min_evidence_candidate_ids": [
+      14,
+      16,
+      17
+    ],
+    "instruction": "\u505c\u6b62\u590d\u9a8c\uff0c\u4e0d\u9700\u8981\u4e86\uff0c\u7ed3\u675f\u6784\u5efa",
+    "recorded_at_utc": "2026-10-30T21:00:29.346598+00:00"
+  }
+}
