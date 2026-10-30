@@ -105,8 +105,13 @@ def crossflow(main, nu_relative):
                      positions @ heave, positions @ lateral])
 
 
-def derivative(x, tau, vessel, current_ne):
-    """Return [nu_dot, eta_dot]; nu is ground-relative body velocity."""
+def derivative(x, tau, vessel, current_ne, *, wave_frequency=False):
+    """Return [nu_dot, eta_dot]; nu is ground-relative body velocity.
+
+    wave_frequency: x is the two-timescale wave-frequency layer, whose surge velocity is a small oscillation, not
+    the ship's speed. Its surge damping stays the linear D11: the MSS fade to ITTC resistance is for forward speed,
+    and applied to the oscillation it removed the damping as the oscillation grew, so the layer drifted ahead.
+    """
     x = _vector(x, 12, 'state')
     tau = _vector(tau, 6, 'force')
     north, east = _vector(current_ne, 2, 'current')
@@ -117,7 +122,8 @@ def derivative(x, tau, vessel, current_ne):
     relative = nu - np.r_[current_body, np.zeros(3)]
     current_dot = np.r_[-skew(nu[3:]) @ current_body, np.zeros(3)]
     damping = vessel.D.copy()
-    damping[0,0] = vessel.D[0,0]*math.exp(-3*abs(relative[0])) + _ittc_coefficient(relative[0], vessel.main)*abs(relative[0])
+    if not wave_frequency:
+        damping[0,0] = vessel.D[0,0]*math.exp(-3*abs(relative[0])) + _ittc_coefficient(relative[0], vessel.main)*abs(relative[0])
     indices = np.arange(3,6)
     damping[indices,indices] = vessel.D[indices,indices] * (1+vessel.nonlinear_456*abs(nu[3:]))
     coriolis = rigid_coriolis(vessel.main, nu[3:]) + added_coriolis(vessel.MA, relative)

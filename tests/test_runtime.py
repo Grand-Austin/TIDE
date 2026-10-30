@@ -344,3 +344,26 @@ def test_pitch_at_euler_singularity_stops_without_committing_a_step(vessel):
     assert result.state.tick == original.tick
     np.testing.assert_array_equal(result.state.x, original.x)
     assert any("singular" in event.detail.lower() for event in result.events)
+
+
+def test_wave_frequency_surge_keeps_linear_damping(vessel):
+    # A wave-frequency surge oscillation of 3 m/s is damped by D11 alone; the forward-speed fade would leave ~0.
+    from game.simulation.dynamics import crossflow, derivative
+    state = np.zeros(12)
+    state[0] = 3.0
+    acceleration = derivative(state, np.zeros(6), vessel, (0, 0), wave_frequency=True)[:6]
+    expected = vessel.Minv @ (crossflow(vessel.main, state[:6]) - vessel.D[:, 0] * 3.0)
+    np.testing.assert_allclose(acceleration, expected, rtol=1e-9, atol=1e-9)
+
+
+def test_wave_frequency_layer_does_not_drift_the_ship_ahead():
+    # Regression: in a real head-sea storm the wave-frequency layer ran 164 m ahead in 3 min and kept accelerating.
+    from game.scenario import ROOT, load_scenario
+    scenario = load_scenario(ROOT / "scenarios/biscay-20260123-06/scenario.json")
+    with scenario.environment() as env:
+        sim = scenario.simulation(env)
+        start = scenario.definition["initial"]
+        result = sim.advance(scenario.initial_state(sim), Command(start["heading_deg"], start["speed_mps"]), 180.0)
+    assert result.stopping_reason == "duration_reached"
+    assert abs(result.state.wf[6]) < 50
+    assert abs(result.state.wf[0]) < 1.0

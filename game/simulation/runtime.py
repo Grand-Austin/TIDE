@@ -529,7 +529,7 @@ class Simulation:
                     external[0] += mean_surge
                     lf_dot = self._kernel.lf_derivative(
                         lf_z, external, self.vessel, current_ne=current)
-                    wf_dot = derivative(wf_z, wave_force, self.vessel, (0, 0))
+                    wf_dot = derivative(wf_z, wave_force, self.vessel, (0, 0), wave_frequency=True)
                     servo = maneuvering.servo_rates(
                         rudder, rpm, candidate.control.rudder_order_rad,
                         candidate.control.shaft_order_rpm)
