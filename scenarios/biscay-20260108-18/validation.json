@@ -1,11 +1,11 @@
 {
   "version": 1,
   "scenario": "biscay-20260108-18",
-  "definition_sha256": "f198abaec06871424c6befccec4f10a029c6e2a92d5941489788ad4073645371",
+  "definition_sha256": "9687d5fbf4795d7d4dae370218b99edad5e98d533748ccbd57517530a17de193",
   "gameplay_sha256": "8819f7609efe0b3ab717b85c3f4219a08ba492c23a77d6d68225856a981a5fa6",
   "rule": "passed when at least one strategy escapes without losing the ship",
   "passed": true,
-  "reference": "exit",
+  "reference": "avoid_beam",
   "strategies": [
     {
       "name": "exit",
@@ -23,96 +23,111 @@
         },
         {
           "t": 300.0,
-          "heading_deg": 25.2,
+          "heading_deg": 25.4,
           "speed_knots": 9.72
         },
         {
-          "t": 600.8000000000001,
-          "heading_deg": 30.0,
+          "t": 602.6,
+          "heading_deg": 30.4,
           "speed_knots": 9.72
         },
         {
-          "t": 900.8000000000001,
-          "heading_deg": 34.8,
+          "t": 904.2,
+          "heading_deg": 34.1,
           "speed_knots": 9.72
         },
         {
-          "t": 1205.8,
-          "heading_deg": 37.1,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1505.8000000000002,
-          "heading_deg": 36.7,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 1805.8000000000002,
-          "heading_deg": 35.4,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 2105.8,
-          "heading_deg": 34.2,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 2405.8,
-          "heading_deg": 34.3,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 2705.8,
-          "heading_deg": 34.8,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3005.8,
-          "heading_deg": 35.2,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3305.8,
-          "heading_deg": 35.0,
-          "speed_knots": 9.72
-        },
-        {
-          "t": 3605.8,
+          "t": 1204.2,
           "heading_deg": 34.0,
           "speed_knots": 9.72
         },
         {
-          "t": 3905.8,
-          "heading_deg": 214.8,
+          "t": 1504.2,
+          "heading_deg": 33.9,
           "speed_knots": 9.72
         },
         {
-          "t": 4205.8,
-          "heading_deg": 207.0,
+          "t": 1804.2,
+          "heading_deg": 33.8,
           "speed_knots": 9.72
         },
         {
-          "t": 4505.8,
-          "heading_deg": 197.2,
+          "t": 2104.2000000000003,
+          "heading_deg": 32.9,
           "speed_knots": 9.72
         },
         {
-          "t": 4805.8,
-          "heading_deg": 187.1,
+          "t": 2404.2000000000003,
+          "heading_deg": 32.8,
           "speed_knots": 9.72
         },
         {
-          "t": 5105.8,
-          "heading_deg": 175.4,
+          "t": 2704.2000000000003,
+          "heading_deg": 32.3,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3004.2000000000003,
+          "heading_deg": 32.2,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3304.2000000000003,
+          "heading_deg": 31.4,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3604.2000000000003,
+          "heading_deg": 24.7,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 3904.2000000000003,
+          "heading_deg": 207.8,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4209.2,
+          "heading_deg": 198.2,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4509.2,
+          "heading_deg": 187.4,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4809.2,
+          "heading_deg": 176.3,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5109.200000000001,
+          "heading_deg": 164.2,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5409.200000000001,
+          "heading_deg": 150.5,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5709.200000000001,
+          "heading_deg": 136.4,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 6009.200000000001,
+          "heading_deg": 125.4,
           "speed_knots": 9.72
         }
       ],
       "outcome": "escaped",
-      "elapsed_s": 5280.0,
-      "lost_teu": 25,
-      "grade": 3,
+      "elapsed_s": 6120.0,
+      "lost_teu": 90,
+      "grade": 4,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20260108-18/exit-20261030-063431"
+      "session": "data/runs/check-biscay-20260108-18/exit-20261030-071704"
     },
     {
       "name": "avoid_beam",
@@ -134,82 +149,92 @@
           "speed_knots": 9.72
         },
         {
-          "t": 600.8000000000001,
+          "t": 602.6,
           "heading_deg": 35,
           "speed_knots": 9.72
         },
         {
-          "t": 900.8000000000001,
+          "t": 904.2,
           "heading_deg": 34,
           "speed_knots": 9.72
         },
         {
-          "t": 1205.8,
-          "heading_deg": 36,
+          "t": 1204.2,
+          "heading_deg": 33,
           "speed_knots": 9.72
         },
         {
-          "t": 1505.8000000000002,
-          "heading_deg": 36,
+          "t": 1504.2,
+          "heading_deg": 33,
           "speed_knots": 9.72
         },
         {
-          "t": 1805.8000000000002,
-          "heading_deg": 35,
+          "t": 1804.2,
+          "heading_deg": 33,
           "speed_knots": 9.72
         },
         {
-          "t": 2105.8,
-          "heading_deg": 34,
+          "t": 2104.2000000000003,
+          "heading_deg": 33,
           "speed_knots": 9.72
         },
         {
-          "t": 2405.8,
-          "heading_deg": 34,
+          "t": 2404.2000000000003,
+          "heading_deg": 32,
           "speed_knots": 9.72
         },
         {
-          "t": 2705.8,
-          "heading_deg": 34,
+          "t": 2704.2000000000003,
+          "heading_deg": 32,
           "speed_knots": 9.72
         },
         {
-          "t": 3005.8,
-          "heading_deg": 35,
+          "t": 3004.2000000000003,
+          "heading_deg": 33,
           "speed_knots": 9.72
         },
         {
-          "t": 3305.8,
-          "heading_deg": 36,
+          "t": 3304.2000000000003,
+          "heading_deg": 32,
           "speed_knots": 9.72
         },
         {
-          "t": 3605.8,
-          "heading_deg": 36,
+          "t": 3604.2000000000003,
+          "heading_deg": 27,
           "speed_knots": 9.72
         },
         {
-          "t": 3905.8,
-          "heading_deg": 215,
+          "t": 3904.2000000000003,
+          "heading_deg": 208,
           "speed_knots": 9.72
         },
         {
-          "t": 4205.8,
-          "heading_deg": 225,
+          "t": 4209.2,
+          "heading_deg": 205,
           "speed_knots": 9.72
         },
         {
-          "t": 4505.8,
-          "heading_deg": 243,
+          "t": 4509.2,
+          "heading_deg": 204,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 4809.2,
+          "heading_deg": 203,
+          "speed_knots": 9.72
+        },
+        {
+          "t": 5109.200000000001,
+          "heading_deg": 205,
           "speed_knots": 9.72
         }
       ],
-      "outcome": "missing_environment",
-      "elapsed_s": 4667.7,
-      "lost_teu": 25,
-      "grade": 3,
+      "outcome": "escaped",
+      "elapsed_s": 5280.0,
+      "lost_teu": 90,
+      "grade": 4,
       "ship_lost": false,
-      "session": "data/runs/check-biscay-20260108-18/avoid_beam-20261030-063431"
+      "session": "data/runs/check-biscay-20260108-18/avoid_beam-20261030-073350"
     }
   ]
 }

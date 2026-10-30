@@ -32,10 +32,10 @@
     "record_period_s": 1.0,
     "max_thrust_n": 1500000.0,
     "max_yaw_moment_nm": 30000000.0,
-    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_yaw_rate": 0.017453292519943295,
     "max_reference_accel": 0.02,
     "speed_time_constant_s": 60.0,
-    "yaw_natural_frequency": 0.04,
+    "yaw_natural_frequency": 0.08,
     "roll_exposure_deg": 10.0,
     "lateral_exposure_mps2": 0.9810000000000001
   },

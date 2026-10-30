@@ -2,8 +2,8 @@
   "source": "https://archive-api.open-meteo.com/v1/archive",
   "model": "era5",
   "point_lat_lon": [
-    48.716513646939454,
-    -10.620336604814812
+    48.69077402269835,
+    -10.492940375107066
   ],
   "credit": "Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, Copernicus Climate Change Service (C3S)",
   "hourly": [

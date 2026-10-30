@@ -2,20 +2,20 @@
   "schema_version": 1,
   "id": "biscay-20260123-06",
   "title": "Escape the Biscay storm, 2026-01-23",
-  "start": "2026-01-23T11:40:00Z",
-  "end": "2026-01-23T13:40:00Z",
+  "start": "2026-01-23T09:40:00Z",
+  "end": "2026-01-23T11:40:00Z",
   "seed": 1,
   "initial": {
-    "lon": -8.6732,
-    "lat": 47.5747,
-    "heading_deg": 267.8,
+    "lon": -8.5848,
+    "lat": 47.3961,
+    "heading_deg": 258.5,
     "speed_mps": 5.0
   },
   "mission": {
     "budget_s": 7200,
     "target_lon_lat": [
-      -8.7023,
-      47.7089
+      -8.5969,
+      47.4861
     ],
     "radius_m": 1000,
     "review_interval_s": 300
@@ -32,13 +32,12 @@
     "record_period_s": 1.0,
     "max_thrust_n": 1500000.0,
     "max_yaw_moment_nm": 30000000.0,
-    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_yaw_rate": 0.017453292519943295,
     "max_reference_accel": 0.02,
     "speed_time_constant_s": 60.0,
-    "yaw_natural_frequency": 0.04,
+    "yaw_natural_frequency": 0.08,
     "roll_exposure_deg": 10.0,
-    "lateral_exposure_mps2": 0.9810000000000001,
-    "max_attitude_deg": 30.0
+    "lateral_exposure_mps2": 0.9810000000000001
   },
   "wind_parameters": {
     "loa_m": 175.0,
@@ -64,8 +63,8 @@
     48.6
   ],
   "gameplay_settings": {
-    "region_hs_m": 9.0,
-    "start_inside_km": 15.0,
+    "region_hs_m": 9.5,
+    "start_inside_km": 10.0,
     "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
   },
   "collection": {
@@ -111,6 +110,6 @@
   },
   "gameplay": {
     "path": "scenarios/biscay-20260123-06/gameplay.json",
-    "sha256": "a903ad8b4955e0cfebbe5a716ee7d514f7365f41016a3f93ce6201b1317f1d60"
+    "sha256": "669ec8a82e5f49276187b1a55afabd782df8a3c322b995a56479fe126f054751"
   }
 }

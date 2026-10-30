@@ -2,20 +2,20 @@
   "schema_version": 1,
   "id": "biscay-20261022-21",
   "title": "Escape the Ushant storm, 2026-10-22",
-  "start": "2026-10-22T20:40:00Z",
-  "end": "2026-10-22T22:40:00Z",
+  "start": "2026-10-22T16:00:00Z",
+  "end": "2026-10-22T18:00:00Z",
   "seed": 1,
   "initial": {
-    "lon": -10.6203,
-    "lat": 48.7165,
-    "heading_deg": 286.7,
+    "lon": -10.4929,
+    "lat": 48.6908,
+    "heading_deg": 246.5,
     "speed_mps": 5.0
   },
   "mission": {
     "budget_s": 7200,
     "target_lon_lat": [
-      -10.5443,
-      48.8424
+      -10.4019,
+      48.7578
     ],
     "radius_m": 1000,
     "review_interval_s": 300
@@ -32,13 +32,12 @@
     "record_period_s": 1.0,
     "max_thrust_n": 1500000.0,
     "max_yaw_moment_nm": 30000000.0,
-    "max_reference_yaw_rate": 0.008726646259971648,
+    "max_reference_yaw_rate": 0.017453292519943295,
     "max_reference_accel": 0.02,
     "speed_time_constant_s": 60.0,
-    "yaw_natural_frequency": 0.04,
+    "yaw_natural_frequency": 0.08,
     "roll_exposure_deg": 10.0,
-    "lateral_exposure_mps2": 0.9810000000000001,
-    "max_attitude_deg": 30.0
+    "lateral_exposure_mps2": 0.9810000000000001
   },
   "wind_parameters": {
     "loa_m": 175.0,
@@ -64,8 +63,8 @@
     50.35
   ],
   "gameplay_settings": {
-    "region_hs_m": 11.0,
-    "start_inside_km": 15.0,
+    "region_hs_m": 7.0,
+    "start_inside_km": 10.0,
     "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm"
   },
   "collection": {
@@ -111,6 +110,6 @@
   },
   "gameplay": {
     "path": "scenarios/biscay-20261022-21/gameplay.json",
-    "sha256": "f1915378a72189e074e9dea66ce292e923e736deab5ec2dfffd3ec5f489cd619"
+    "sha256": "ab4fdaf5dc42f42cd9304515a6a147a13464a14031842aa8244f31820353e921"
   }
 }
