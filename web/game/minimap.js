@@ -52,8 +52,27 @@ export function forecastAreas(reports) {
       const [w, e, s, n] = r.sector_bbox;
       const [f0, f1] = r.wind_range_mps.map(beaufort), force = f0 === f1 ? `F${f0}` : `F${f0}–${f1}`;
       return { type: "Feature", properties: { hs: r.hs_range_m[1],
-        label: `${r.hs_range_m[0]}–${r.hs_range_m[1]} m${r.trend === "increasing" ? " ↑" : ""}\n${force}` },
+        label: `${r.hs_range_m[0]}–${r.hs_range_m[1]} m${r.trend === "increasing" ? " rising" : ""}\n${force}` },
         geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } };
+    }),
+  };
+}
+
+// The forecast wave direction of each released area as an arrow drawn with lines (no font glyph needed): it points
+// where the waves travel, sits below the area's label and spans about a third of the area's height.
+export function waveArrows(reports) {
+  return {
+    type: "FeatureCollection",
+    features: reports.map((r) => {
+      const [w, e, s, n] = r.sector_bbox, lat = s + (n - s) * 0.3, lon = (w + e) / 2, half = (n - s) / 6;
+      const k = Math.cos((lat * Math.PI) / 180), at = (deg, len) => {
+        const a = (deg * Math.PI) / 180;
+        return [Math.sin(a) * len / k, Math.cos(a) * len];
+      };
+      const to = (r.wave_from_deg + 180) % 360, [dx, dy] = at(to, half);
+      const tip = [lon + dx, lat + dy], tail = [lon - dx, lat - dy];
+      const barb = (side) => { const [bx, by] = at(to + 180 + side, half * 0.45); return [tip[0] + bx, tip[1] + by]; };
+      return { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: [[tail, tip], [barb(-30), tip, barb(30)]] } };
     }),
   };
 }
@@ -146,12 +165,14 @@ export function createMinimap(container, { replay, duration, live, field }) {
     map = new maplibre.Map({ container, style: "https://tiles.openfreemap.org/styles/dark", bounds, fitBoundsOptions: { padding: 12 },
       attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
     map.on("load", () => {
-      for (const id of ["forecast", "area", "route", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
+      for (const id of ["forecast", "forecast-arrow", "area", "route", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
       map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0 } }); // an anchor: the colour is the weather layer's
       if (field) (setWeather = addWeather(map, field, "forecast")).wind(windOn); // replays: the Copernicus field under everything else
       map.addLayer({ id: "forecast-edge", type: "line", source: "forecast", paint: { "line-color": HS_COLORS, "line-opacity": 0.6 } });
       map.addLayer({ id: "forecast-label", type: "symbol", source: "forecast", layout: { "text-field": ["get", "label"],
         "text-font": ["Noto Sans Regular"], "text-size": 11 }, paint: { "text-color": "#d6e2ee", "text-halo-color": "#0b1622", "text-halo-width": 1.2 } });
+      map.addLayer({ id: "forecast-arrow", type: "line", source: "forecast-arrow", layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#d6e2ee", "line-width": 2, "line-opacity": 0.85 } }); // where the forecast waves run
       map.addLayer({ id: "area", type: "line", source: "area", paint: { "line-color": "#a9bccd", "line-dasharray": [4, 3] } });
       // the ocean track: a reference line across the whole Atlantic, under the local track and the preview
       map.addSource("ocean", { type: "geojson", data: routeFeature() });
@@ -224,6 +245,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
       expand.title = big ? "Shrink the map (Esc)" : "Enlarge the map";
       expand.textContent = big ? "✕" : "⤢";
       map.resize();
+      if (live) map.fitBounds(bounds, { padding: 16, duration: 0 }); // live: the whole forecast grid at either size
       if (follow) map.jumpTo({ center: ship });
     };
     // a click on the small map enlarges it; once big, clicks pan and open loss markers as usual
@@ -315,6 +337,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
       if (key !== reportsKey) {
         reportsKey = key;
         map.getSource("forecast").setData(forecastAreas(reports));
+        map.getSource("forecast-arrow").setData(waveArrows(reports));
         setWeather?.remove();
         const f = forecastField(reports); // released sectors only, see weather-layer.js
         setWeather = f && addWeather(map, f, "forecast");

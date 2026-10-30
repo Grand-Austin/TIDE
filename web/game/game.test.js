@@ -7,7 +7,7 @@ import { sampleAt, latest, fromScene, turnRateAt } from "./replay.js";
 import { cargoFall, shipToWorld } from "./cargo-fall.js";
 import { turnInfo, turnNote, turnRateText, shipLossNote, beaufort, seaState, bulletin } from "./live.js";
 import { forecastField } from "./weather-layer.js";
-import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, plannedRoute } from "./minimap.js";
+import { trackGeometry, sampleIndex, forecastAreas, settleNote, lossMarkers, lossPopup, plannedRoute, waveArrows } from "./minimap.js";
 import { OCEAN_TRACK, LE_HAVRE, HALIFAX, routeLengthNm, routeBounds, routeFeature } from "./ocean-route.js";
 import { nearbyPorts, rangeRing, portPopup } from "./port-guide.js";
 import { DEEPWATER_PORTS } from "./deepwater-ports.js";
@@ -186,7 +186,7 @@ test("passage map measures the track sailed", () => {
 
 test("passage map draws released forecast areas and the helm preview note", () => {
   const f = forecastAreas([{ sector_bbox: [-12, -11, 51, 52], hs_range_m: [8, 8.5], wind_range_mps: [17.5, 22.5], trend: "increasing" }]).features[0];
-  expect(f.properties).toEqual({ hs: 8.5, label: "8–8.5 m ↑\nF8–9" });
+  expect(f.properties).toEqual({ hs: 8.5, label: "8–8.5 m rising\nF8–9" });
   expect(f.geometry.coordinates[0][2]).toEqual([-11, 52]);
   expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 100)).toBe("Steady on 130° in about 7 min"); // settled_s counts from from_s
   expect(settleNote({ heading_deg: 130, settled_s: 400, from_s: 100 }, 485)).toBe("On the ordered 130°");
@@ -202,6 +202,16 @@ test("the planned route crosses the operating area along the initial course, in 
   const [a, b] = plannedRoute([-10.5, 51.0], 200, bbox); // south-south-west: leaves through the south edge
   expect(b[1]).toBeCloseTo(50.15, 6);
   expect(a[1]).toBeGreaterThan(51.0);
+});
+
+test("forecast arrows point where the waves run, inside their area", () => {
+  const [f] = waveArrows([{ sector_bbox: [-12, -11, 51, 52], wave_from_deg: 270 }]).features;
+  const [[tail, tip]] = f.geometry.coordinates;
+  expect(tip[0]).toBeGreaterThan(tail[0]); // waves from the west run east
+  expect(tip[1]).toBeCloseTo(tail[1], 9);
+  for (const [lon, lat] of f.geometry.coordinates.flat()) {
+    expect(lon).toBeGreaterThan(-12); expect(lon).toBeLessThan(-11); expect(lat).toBeGreaterThan(51); expect(lat).toBeLessThan(52);
+  }
 });
 
 test("cargo losses group into map markers that say what the sea was doing", () => {
@@ -266,6 +276,7 @@ test("the forecast reads as a marine bulletin: own area first, Beaufort force an
   expect(html.indexOf("Your area")).toBeLessThan(html.indexOf("East"));
   expect(html).toContain("<b>Your area</b>: wind force 8 to 9 (34–44 kn). Sea high, 8–8.5 m, rising. Waves from W, 12 s.");
   expect(html).toContain("Sea very rough, 4.5–5 m. Waves");
+  expect(html).toContain("How to read it");
   expect(bulletin([], [1, 1])).toContain("None released yet");
 });
 

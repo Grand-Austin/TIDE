@@ -49,6 +49,11 @@ const SEA_STATES = [[0.1, "calm"], [0.5, "smooth"], [1.25, "slight"], [2.5, "mod
 export const beaufort = (mps) => BEAUFORT_MPS.filter((b) => mps > b).length;
 export const seaState = (hs) => SEA_STATES.find(([top]) => hs <= top)[1];
 const hhmm = (iso) => iso.slice(11, 16);
+// How to read the bulletin and the map: method only, the way out stays the trainee's call.
+const READING = `<details class="reading"><summary>How to read it</summary><ol>` +
+  `<li>Compare your area with its neighbours: a lower Hs is a calmer sea.</li>` +
+  `<li>The map arrows show where the waves run. Picture your bow on a heading: waves on the beam roll the ship hardest and throw boxes overboard.</li>` +
+  `<li>A rising area gets worse within the hour: decide early, the ship takes minutes to turn.</li></ol></details>`;
 
 // The released forecasts as a ship receives them: issue and validity times, then one line per sea area, the ship's
 // own area first and the rest in compass order (no ranking, so the bulletin does not pick the way out).
@@ -65,7 +70,7 @@ export function bulletin(reports, shipSector) {
   });
   const issued = reports.map((r) => r.issued_at).sort().at(-1), valid = reports.map((r) => r.valid_to).sort()[0];
   return `<h2>Weather bulletin</h2><p class="live-status">Issued ${hhmm(issued)} UTC · valid to ${hhmm(valid)} UTC · ` +
-    `next update ${hhmm(valid)} UTC</p><ul class="bulletin">${lines.join("")}</ul>`;
+    `next update ${hhmm(valid)} UTC</p><ul class="bulletin">${lines.join("")}</ul>${READING}`;
 }
 
 const compass = (d) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((((d % 360) + 360) % 360) / 45) % 8];
@@ -275,6 +280,8 @@ const CSS = `
   .live-card textarea { min-height: 52px; font-family: inherit; resize: vertical; }
   .live-card .ok { color: #6fd3a0; } .live-card .bad { color: var(--order); }
   .live-card ul { margin: 0; padding-left: 16px; } .live-card li { margin: 3px 0; }
+  .live-card details.reading { font-size: 12px; color: var(--muted); } .live-card details.reading summary { cursor: pointer; color: var(--text); }
+  .live-card details.reading ol { margin: 6px 0 0; padding-left: 18px; } .live-card details.reading li { margin: 3px 0; }
   .live-card ul.bulletin { padding-left: 0; list-style: none; font-size: 12px; line-height: 1.4; }
   .live-stars { font-size: 24px; color: var(--order); letter-spacing: 4px; }
   .live-pill { align-self: flex-start; z-index: 7; border-radius: 999px; color: var(--order); border-color: var(--order); background: var(--panel); }
@@ -326,8 +333,13 @@ export function liveOverlay() {
   const button = (label, fn, primary) => Object.assign(document.createElement("button"), { type: "button", textContent: label, onclick: fn,
     className: primary ? "primary" : "" });
   // attention: a briefing or decision waits for the player; the card glows until they first touch it
+  let readingOpen = false; // the card redraws on every poll: keep "How to read it" as the trainee left it
   const render = (title, html, actions, attention) => {
     card.replaceChildren(el(`<h2>${title}</h2>${html}`));
+    for (const d of card.querySelectorAll("details.reading")) {
+      d.open = readingOpen;
+      d.ontoggle = () => (readingOpen = d.open);
+    }
     card.classList.toggle("attention", !!attention);
     card.classList.remove("touched");
     if (actions?.length) {
