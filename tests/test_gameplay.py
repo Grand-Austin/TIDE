@@ -168,3 +168,16 @@ def test_low_wave_pocket_inside_envelope_is_not_escape():
     reason, _ = rules.evaluate(point, set())
     assert rules.contains(point.lon, point.lat, point.time_s)
     assert reason is None
+
+
+def test_forecast_directions_use_16_points_and_report_a_turning_wind():
+    from types import SimpleNamespace
+    from pipeline.gameplay import _point, _shift, _wind_from
+
+    assert [_point(d) for d in (258.0, 265.0, 340.0, 359.0)] == [247.5, 270.0, 337.5, 0.0]
+    westerly = SimpleNamespace(wind_east_mps=10.0, wind_north_mps=0.0)  # blowing east: from the west
+    assert _wind_from(westerly) == 270.0
+    north_westerly = SimpleNamespace(wind_east_mps=7.0, wind_north_mps=-7.0)
+    assert _shift([westerly, north_westerly]) == "veering"  # 270 -> 315, clockwise
+    assert _shift([north_westerly, westerly]) == "backing"
+    assert _shift([westerly, westerly]) == "steady"

@@ -14,6 +14,24 @@ from game.scenario import digest, load_scenario, utc
 from pipeline.scenario import write_json
 
 
+POINT_DEG = 22.5  # forecast directions on the 16-point compass, as a bulletin gives them
+SHIFT_DEG = 20.0  # a wind turning at least this much within the forecast hour is reported as veering or backing
+
+
+def _point(deg):
+    return round(deg / POINT_DEG) * POINT_DEG % 360
+
+
+def _wind_from(sample):
+    return math.degrees(math.atan2(-sample.wind_east_mps, -sample.wind_north_mps)) % 360
+
+
+def _shift(samples):
+    """Veering: the wind's direction turns clockwise over the hour; backing: anticlockwise."""
+    turn = (_wind_from(samples[-1]) - _wind_from(samples[0]) + 540) % 360 - 180
+    return "veering" if turn >= SHIFT_DEG else "backing" if turn <= -SHIFT_DEG else "steady"
+
+
 def build_gameplay(scenario):
     d = scenario.definition
     w, e, s, n = d["area_bbox"]
@@ -91,9 +109,9 @@ def build_gameplay(scenario):
                                 math.floor(min(winds) / 2.5) * 2.5,
                                 math.ceil(max(winds) / 2.5) * 2.5,
                             ],
-                            "wave_from_deg": round(samples[0].wave_from_deg / 45)
-                            * 45
-                            % 360,
+                            "wave_from_deg": _point(samples[0].wave_from_deg),
+                            "wind_from_deg": _point(_wind_from(samples[0])),
+                            "wind_shift": _shift(samples),
                             "wave_period_s": round(samples[0].tp),
                             "trend": "increasing" if hs[-1] > hs[0] + 0.2 else "steady",
                             "important": issued > 0 and max(hs) >= 4,
