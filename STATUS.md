@@ -21,9 +21,11 @@ restoration section in [MOTION_VALIDATION.md](docs/MOTION_VALIDATION.md).
 | --- | --- | --- |
 | `main` | SeaSense route-choice prototype (PRs #4–#12) | Merged; kept as reference |
 | `experiment` | TIDE simulation toolkit, scenario pipeline, rules, Director, terminal UI; fresh-clone fix, CI, storm dynamics fix, cargo calibration | Active line of work |
-| `ci/fresh-clone` | Fast-forward merged into `experiment` on 2026-10-29 | Can be deleted |
-| `blender/3d-demo` | Blender S175 and container models; 3D replay page (`web/game`) playing Yan's Biscay storm scenes and recorded sessions; falling-container animation | Merged into `tide/storm-game` on 2026-10-30 |
-| `tide/storm-game` | `experiment` + `web/3d-scene` + `blender/3d-demo`: live storm game in the 3D page against `game/live.py` | Active line for the video |
+| `storm-game` | Live storm game: the 3D page (`web/game/`) plays against `game/live.py`; same commits as `experiment` | Active line for the video |
+
+The merged branches `ci/fresh-clone`, `web/3d-scene`, `blender/3d-demo`, `web/map-spike` and `tide/storm-game`
+were deleted on 2026-10-31. Their commits are in `experiment`; the map spike and the two 3D lines are superseded
+by `web/game`.
 
 ## Decisions
 
