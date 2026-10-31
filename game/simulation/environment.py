@@ -4,9 +4,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 import math
+import threading
 
 import numpy as np
 import xarray as xr
+
+
+# netCDF4/HDF5 is not thread-safe. Open, read and close one dataset at a time, also across threads:
+# a live session or a simulator worker can close its files while another thread opens the next one.
+NETCDF_LOCK = threading.RLock()
 
 
 class EnvironmentError(ValueError):
@@ -118,14 +124,16 @@ class CopernicusEnvironment:
         }
         datasets = {}
         try:
-            for layer, name in filenames.items():
-                if layer in ('wind', 'temperature') and not (path / name).exists():
-                    continue
-                datasets[layer] = xr.open_dataset(path / name)
-            return cls(**datasets)
+            with NETCDF_LOCK:
+                for layer, name in filenames.items():
+                    if layer in ('wind', 'temperature') and not (path / name).exists():
+                        continue
+                    datasets[layer] = xr.open_dataset(path / name)
+                return cls(**datasets)
         except Exception:
-            for dataset in datasets.values():
-                dataset.close()
+            with NETCDF_LOCK:
+                for dataset in datasets.values():
+                    dataset.close()
             raise
 
     def sample(self, time: datetime, lon: float, lat: float) -> SeaState:
@@ -147,8 +155,10 @@ class CopernicusEnvironment:
         return SeaState(float(hs), float(tp), direction, float(u), float(v), float(wu), float(wv), sst)
 
     def close(self):
-        for dataset in self._datasets:
-            dataset.close()
+        with NETCDF_LOCK:
+            for dataset in self._datasets:
+                dataset.close()
+            self._datasets = ()
 
     def __enter__(self):
         return self

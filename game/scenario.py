@@ -1,6 +1,6 @@
 """Small, versioned scenario definitions shared by offline tools and the runtime."""
 
-from contextlib import ExitStack, contextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import xarray as xr
 
-from game.simulation.environment import CopernicusEnvironment
+from game.simulation.environment import NETCDF_LOCK, CopernicusEnvironment
 from game.simulation.runtime import Settings, Simulation
 from game.simulation.vessel import load_s175
 from game.simulation.wind import WindParameters
@@ -67,14 +67,21 @@ class Scenario:
 
     @contextmanager
     def environment(self):
-        with ExitStack() as stack:
-            datasets = {}
-            for layer, source in self.definition["environment"].items():
-                path = self.root / source["path"]
-                if digest(path) != source["sha256"]:
-                    raise ValueError(f"{layer} checksum mismatch")
-                datasets[layer] = stack.enter_context(xr.open_dataset(path))
-            yield CopernicusEnvironment(**datasets)
+        datasets = {}
+        try:
+            # One thread at a time touches netCDF files: another session may be closing its own.
+            with NETCDF_LOCK:
+                for layer, source in self.definition["environment"].items():
+                    path = self.root / source["path"]
+                    if digest(path) != source["sha256"]:
+                        raise ValueError(f"{layer} checksum mismatch")
+                    datasets[layer] = xr.open_dataset(path)
+                environment = CopernicusEnvironment(**datasets)
+            yield environment
+        finally:
+            with NETCDF_LOCK:
+                for dataset in datasets.values():
+                    dataset.close()
 
     def simulation(self, environment, seed=None):
         d = self.definition
