@@ -1,0 +1,53 @@
+{
+  "archive": {
+    "bytes": 3269070,
+    "path": "ne_10m_land.zip",
+    "sha256": "e547d749445eaa0964aba76738090ec88f5e63c4585122170f98c67a7ea922dc"
+  },
+  "dataset": "Natural Earth 10m land",
+  "license": "Public domain",
+  "members": [
+    {
+      "bytes": 37096,
+      "name": "ne_10m_land.README.html",
+      "sha256": "f22176c0b44403fd7b7381a404562007a595c477ca72d23d9b7ed3949e948b12"
+    },
+    {
+      "bytes": 7,
+      "name": "ne_10m_land.VERSION.txt",
+      "sha256": "548358969090d629b41888f5fe664ac31b7203dfd849f7c1ef820ac055b62191"
+    },
+    {
+      "bytes": 5,
+      "name": "ne_10m_land.cpg",
+      "sha256": "3ad3031f5503a4404af825262ee8232cc04d4ea6683d42c5dd0a2f2a27ac9824"
+    },
+    {
+      "bytes": 350,
+      "name": "ne_10m_land.dbf",
+      "sha256": "e422520372e65c6fb8220888580e5331d04699bcd71c27e53ad42e241a531cbd"
+    },
+    {
+      "bytes": 145,
+      "name": "ne_10m_land.prj",
+      "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"
+    },
+    {
+      "bytes": 7166824,
+      "name": "ne_10m_land.shp",
+      "sha256": "4cad3a49bc75c1a4c2f3d7efae04f2f8e63151c96764b2658effabf524331fa6"
+    },
+    {
+      "bytes": 188,
+      "name": "ne_10m_land.shx",
+      "sha256": "f3b02a190c3020eeafd0f48de982619826b57ecd853cbc68e4fc049652891a04"
+    }
+  ],
+  "retrieved_utc": "2026-10-30T19:38:34Z",
+  "schema_version": 1,
+  "source": {
+    "documentation": "https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/",
+    "url": "https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_land.zip"
+  },
+  "version": "5.1.1"
+}

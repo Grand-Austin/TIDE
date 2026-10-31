@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "phases": [
+        "decision",
+        "resume"
+      ],
+      "type": "function",
+      "function": {
+        "name": "read_status",
+        "description": "Read released current ship, cargo, mission, time and event state. Does not grant resume permission.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "phases": [
+        "decision",
+        "resume"
+      ],
+      "type": "function",
+      "function": {
+        "name": "read_reports",
+        "description": "Read issued reports applicable to the current and neighbouring sectors. Never exposes raw future fields.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "phases": [
+        "decision",
+        "resume"
+      ],
+      "type": "function",
+      "function": {
+        "name": "request_decision",
+        "description": "Keep the game paused and return the player decision context. Never resumes automatically.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "phases": [
+        "resume"
+      ],
+      "type": "function",
+      "function": {
+        "name": "advance",
+        "description": "Follow the already validated player order until a local checkpoint, manual pause or terminal outcome. Requires live player resume authorization. Call exactly once.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "phases": [
+        "decision",
+        "resume"
+      ],
+      "type": "function",
+      "function": {
+        "name": "finish_mission",
+        "description": "Return and preserve an existing terminal outcome. Fails if the mission has not ended. No simulation advancement.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "phases": [
+        "attention"
+      ],
+      "type": "function",
+      "function": {
+        "name": "manage_attention",
+        "description": "Choose delivery of already issued report IDs and optionally request a player decision based on current evidence. Never advances or changes the ship order.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "report_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 9
+            },
+            "pause": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "evidence_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10
+            }
+          },
+          "required": [
+            "report_ids",
+            "pause",
+            "reason",
+            "evidence_ids"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ]
+}

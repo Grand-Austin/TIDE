@@ -1,0 +1,13 @@
+{"version": 1, "tools": [
+  {"name": "record_plan", "description": "Record the short plan for this request.",
+   "roles": ["copilot"],
+   "parameters": {"type": "object", "additionalProperties": false, "required": ["steps"],
+     "properties": {"steps": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}}}}},
+  {"name": "read_released_forecast", "description": "Return every forecast area released to the player.",
+   "roles": ["copilot"],
+   "parameters": {"type": "object", "additionalProperties": false, "properties": {}}},
+  {"name": "finish_insight", "description": "Finish with one short advisory insight.",
+   "roles": ["copilot"], "terminal": true,
+   "parameters": {"type": "object", "additionalProperties": false, "required": ["text"],
+     "properties": {"text": {"type": "string"}}}}
+]}

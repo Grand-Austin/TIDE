@@ -1,0 +1,70 @@
+{
+  "model": "Isherwood (1972) empirical horizontal wind forces",
+  "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad",
+  "source_files": [
+    {
+      "path": "LIBRARY/environment/isherwood72.m",
+      "url": "https://github.com/cybergalactic/MSS/blob/ce0b40ed101411fc4eebd064b35c5a96916106ad/LIBRARY/environment/isherwood72.m",
+      "sha256": "8d29b0b718b11de9c2830f22114948df56e5e3d77732fdfb8452697f4db2a4d1"
+    },
+    {
+      "path": "SIMULINK/mssSimulinkDemos/demoS175WindCurrentAutopilot.slx",
+      "url": "https://github.com/cybergalactic/MSS/blob/ce0b40ed101411fc4eebd064b35c5a96916106ad/SIMULINK/mssSimulinkDemos/demoS175WindCurrentAutopilot.slx",
+      "sha256": "f923ca824ae1c2ab496e4937555121b44a436c4824d2169d8ef98468a6c392a0"
+    }
+  ],
+  "licence": "MIT; see MSS-LICENSE.txt",
+  "coordinate_conventions": {
+    "body": "forward-starboard-down (FSD)",
+    "wind_input": "earth-frame north/east airflow toward directions",
+    "force_output": "[X,Y,0,0,0,N] in N and Nm",
+    "relative_wind": "earth airflow minus vessel ground velocity; yaw-only conversion to horizontal body axes",
+    "relative_angle": "atan2(body relative airflow y, -body relative airflow x), normalized to [-pi,pi]"
+  },
+  "parameters": {
+    "loa_m": {
+      "value": 175.0,
+      "source": "Demo ship length L; used as Loa by the empirical model, not independently verified LOA"
+    },
+    "breadth_m": {
+      "value": 25.4,
+      "source": "S175 breadth B"
+    },
+    "lateral_area_m2": {
+      "value": 2000.0,
+      "source": "S175 demo Isherwood block A_L"
+    },
+    "frontal_area_m2": {
+      "value": 100.0,
+      "source": "S175 demo Isherwood block A_T"
+    },
+    "superstructure_area_m2": {
+      "value": 200.0,
+      "source": "S175 demo Isherwood block A_SS"
+    },
+    "perimeter_m": {
+      "value": 130.0,
+      "source": "S175 demo Isherwood block S"
+    },
+    "centroid_from_bow_m": {
+      "value": 30.0,
+      "source": "S175 demo Isherwood block C"
+    },
+    "mast_groups": {
+      "value": 0,
+      "source": "S175 demo Isherwood block M"
+    },
+    "air_density_kg_m3": {
+      "value": 1.224,
+      "source": "MSS isherwood72.m constant at 15 C"
+    }
+  },
+  "assumptions": [
+    "Demo parameters are a traceable starting point, not a calibrated loading-specific aerodynamic model.",
+    "Horizontal empirical yaw moment is applied at the runtime CG without a separately verified aerodynamic reference-point correction.",
+    "No direct wind-induced roll, pitch or heave force is added; six-DOF hydrodynamic coupling remains active.",
+    "No gust reconstruction or vertical wind profile is inferred from the gridded 10 m wind.",
+    "True zero wind still creates relative airflow and drag when the vessel moves.",
+    "The Python port normalizes signed relative angles before sign application; this fixes inconsistent lateral signs for equivalent original MATLAB inputs outside [-pi,pi]."
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "name": "record_plan",
+      "description": "Record a short finite experiment plan before any other tool.",
+      "roles": [
+        "builder"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "steps"
+        ],
+        "properties": {
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "plan_voyage",
+      "description": "Read the authored planned voyage for the fixed initial position. The model cannot change the start, ports or route.",
+      "roles": [
+        "builder"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_candidates",
+      "description": "List route candidates and their bounded order counts.",
+      "roles": [
+        "builder"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      }
+    },
+    {
+      "name": "run_trial",
+      "description": "Run one full-session trial for a candidate. This is costly and idempotent.",
+      "roles": [
+        "builder"
+      ],
+      "costly": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_index"
+        ],
+        "properties": {
+          "candidate_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 128
+          }
+        }
+      }
+    },
+    {
+      "name": "submit_revision",
+      "description": "Add a bounded order revision after inspecting a failed trial.",
+      "roles": [
+        "builder"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "base_index",
+          "orders",
+          "rationale"
+        ],
+        "properties": {
+          "base_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 128
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "orders": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "t",
+                "heading_deg",
+                "speed_knots"
+              ],
+              "properties": {
+                "t": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "heading_deg": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 359.999
+                },
+                "speed_knots": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 15
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "inspect_trial",
+      "description": "Read a stored trial observation. This does not run the simulator.",
+      "roles": [
+        "builder"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trial_index"
+        ],
+        "properties": {
+          "trial_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 256
+          }
+        }
+      }
+    },
+    {
+      "name": "finalize_build",
+      "description": "Revalidate and save all discovered qualified routes against the final package. The required minimum must pass; the fastest sets the budget. The model grants no approval.",
+      "roles": [
+        "builder"
+      ],
+      "terminal": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      }
+    }
+  ]
+}

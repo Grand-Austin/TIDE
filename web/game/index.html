@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIDE storm bridge</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  :root { --panel: rgba(11, 22, 34, 0.72); --panel-solid: #0e1b29; --line: #1f3347; --edge: rgba(157, 182, 204, 0.16);
+          --text: #d6e2ee; --muted: #a9bccd; --accent: #5cc8e8; --order: #f2a93b; --radius: 14px;
+          --shadow: 0 10px 30px rgba(3, 9, 16, 0.35); --side: 342px; --credit-h: 34px;
+          /* the small passage map scales with the window; the left column and the dock make room for it */
+          --map-w: clamp(250px, 25vw, 360px); --map-h: clamp(110px, calc(100vh - 590px), 220px); }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8d99a2; font-family: system-ui, sans-serif; color: var(--text); }
+  canvas { display: block; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .mono { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .glass { border: 1px solid var(--edge); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow);
+           backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
+  h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  button, select { font: inherit; color: var(--text); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  * { scrollbar-width: thin; scrollbar-color: #2b4660 transparent; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2b4660; border-radius: 3px; }
+
+  /* left column: title card, then the live briefing / decision / mission card */
+  /* --map-box: the small passage map's measured height (minimap.js), so the cards above it never run over it */
+  .left { position: fixed; top: 12px; left: 12px; width: 330px; display: flex; flex-direction: column;
+          max-height: calc(100vh - var(--map-box, calc(var(--map-h) + 82px)) - var(--credit-h) - 28px);
+          gap: 10px; z-index: 7; }
+  .head { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .logo { font-weight: 700; letter-spacing: 0.22em; font-size: 13px; }
+  .chip { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+          border: 1px solid currentColor; }
+  .chip.replay { color: var(--muted); } .chip.live { color: #6fd3a0; }
+  .sub { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .head select { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--edge); border-radius: 10px; background: var(--panel-solid); }
+  .cta { display: flex; align-items: center; justify-content: center; gap: 6px; height: 36px; border-radius: 10px; background: var(--order);
+         color: #0b1622; font-weight: 600; font-size: 13px; text-decoration: none; }
+  .cta:hover { filter: brightness(1.08); }
+  .cta[hidden] { display: none; }
+  .objective { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .objective:empty { display: none; }
+
+  /* right: ship and cargo state */
+  .panel { position: fixed; top: 12px; right: 12px; bottom: calc(var(--credit-h) + 4px); width: calc(var(--side) - 12px); box-sizing: border-box;
+           overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .panel section { display: flex; flex-direction: column; gap: 6px; }
+  .panel section + section { padding-top: 12px; border-top: 1px solid var(--edge); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .big { font-size: 24px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; font-size: 12px; color: var(--muted); }
+  .grid3 b { display: block; color: var(--text); font: 500 16px ui-monospace, monospace; }
+  .track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .track > div { height: 100%; transition: width 0.3s, background 0.3s; }
+  .badge { padding: 2px 10px; border-radius: 10px; color: #0b1622; font-size: 12px; font-weight: 600; }
+  .helm { display: flex; gap: 12px; align-items: center; }
+  .log { margin: 0; padding: 0; list-style: none; font: 12px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 180px; overflow-y: auto; }
+  .dev { padding: 4px 8px; border: 1px solid var(--order); border-radius: 4px; color: var(--order); font-size: 12px; }
+  .toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 999px;
+           border: 2px solid; background: var(--panel); backdrop-filter: blur(14px); font-size: 15px; font-weight: 600; z-index: 8; }
+  /* a loss note: what went, why, and what helps; it wraps short of the camera-view strip beside the panel */
+  .toast:has(small) { border-radius: 16px; text-align: center; max-width: max(280px, calc(100% - 2 * (var(--side) + 80px))); }
+  .toast small { display: block; margin-top: 3px; font-size: 13px; font-weight: 400; color: var(--muted); }
+  #panel-toggle { display: none; }
+
+  /* bottom left: where the ship is */
+  .map { position: fixed; left: 12px; bottom: calc(var(--credit-h) + 4px); width: 300px; margin: 0; padding: 10px; box-sizing: border-box;
+         display: flex; flex-direction: column; gap: 8px; }
+  .map .row { padding: 0 2px; flex-wrap: wrap; row-gap: 6px; }
+  #map { height: 190px; border-radius: 9px; overflow: hidden; background: var(--panel-solid); }
+  #map .maplibregl-ctrl-attrib { font-size: 10px; }
+  .ship-mark { width: 18px; height: 18px; }
+  .map .row #map-progress { margin-left: auto; }
+  .expand { width: 26px; height: 26px; padding: 0; border: 1px solid var(--edge); border-radius: 7px; background: transparent; cursor: pointer; }
+  .expand[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(92, 200, 232, 0.12); }
+  .expand.text { width: auto; padding: 0 8px; font-size: 11px; } .expand[hidden] { display: none; }
+  .map.big { z-index: 8; width: min(560px, 44vw); } .map.big #map { height: min(400px, 52vh); }
+  /* small until clicked: no legend, a short map; a click on the map enlarges it (minimap.js) */
+  .map:not(.big) #map-progress { display: none; } /* one header row on the small map; the enlarged map shows it */
+  .map:not(.big) #map-ports { margin-left: auto; }
+  .map:not(.big) { width: var(--map-w); } .map:not(.big) #map { height: var(--map-h); cursor: zoom-in; } .map:not(.big) .legend { display: none; } .map:not(.big) .maplibregl-ctrl-attrib { display: none; }
+  /* while a briefing or decision is open the left column takes the height and the map steps aside */
+  body.deciding .map { display: none; } body.deciding .left { max-height: calc(100vh - 110px); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--muted); padding: 0 2px; }
+  .legend[hidden] { display: none; }
+  .legend [hidden] { display: none !important; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { display: inline-block; width: 16px; height: 0; border-top: 3px solid var(--accent); }
+  .sw.ahead { border-top: 2px dashed var(--order); }
+  .sw.ocean { border-top: 2px dashed #8fa6ff; }
+  .sw.ref { border-top: 2px dashed #e25c4b; }
+  .sw.port { width: 8px; height: 8px; border: 0; border-radius: 50%; background: #6ee7b7; }
+  .sw.hs { height: 9px; border: 0; border-radius: 2px; background: linear-gradient(90deg, #4caf7d, #e6c84f, #f0954a, #b8324a); }
+  #map-settle { flex-basis: 100%; color: var(--order); }
+  .legend .sw.field { width: 34px; height: 9px; border: 0; border-radius: 2px; }
+  #map-settle:empty { display: none; }
+  .sw.loss { width: 9px; height: 9px; border: 0; border-radius: 50%; background: #e25c4b; }
+  .loss-popup .maplibregl-popup-content { padding: 10px 12px; border-radius: 10px; background: #0e1b29; color: var(--text);
+    font: 12px/1.45 system-ui, sans-serif; box-shadow: var(--shadow); }
+  .loss-popup p { margin: 4px 0 0; } .loss-popup .fine { color: var(--muted); font-size: 11px; }
+  .loss-popup .maplibregl-popup-tip { border-top-color: #0e1b29; border-bottom-color: #0e1b29; }
+  .loss-popup .maplibregl-popup-close-button { color: var(--muted); font-size: 16px; padding: 0 6px; }
+
+  /* bottom centre: a floating playback dock between the map and the panel */
+  .dock-wrap { position: fixed; left: calc(var(--map-w) + 24px); right: var(--side); bottom: calc(var(--credit-h) + 4px); display: flex; flex-direction: column;
+               align-items: center; gap: 8px;
+               pointer-events: none; }
+  .dock { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 999px; min-width: 0;
+          width: max-content; min-width: min(780px, 100%); max-width: 100%; box-sizing: border-box; font-size: 13px; }
+  .dock button { height: 36px; min-width: 36px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; }
+  .dock button:hover { background: rgba(157, 182, 204, 0.12); }
+  .dock .play { width: 40px; height: 40px; padding: 0; background: var(--accent); color: #0b1622; font-size: 15px; flex: none; }
+  .dock .play:hover { background: var(--accent); filter: brightness(1.1); }
+  .dock .time { color: var(--muted); white-space: nowrap; font-size: 12px; }
+  .dock input[type="range"] { flex: 1 1 120px; min-width: 60px; accent-color: var(--accent); }
+  .seg { display: flex; padding: 2px; border-radius: 999px; background: rgba(3, 9, 16, 0.45); flex: none; }
+  .seg button { height: 30px; min-width: 40px; padding: 0 8px; font-size: 12px; }
+  .seg button[aria-pressed="true"] { background: #2b4660; color: #fff; }
+  .helm-ctl button { min-width: 44px; } .helm-ctl .spd { display: flex; align-items: center; justify-content: center; min-width: 62px; font-size: 12px; color: var(--order); }
+  .helm-ctl button:nth-child(2) { margin-right: 6px; }
+  /* camera views: a vertical strip beside the panel, clear of the cards and toasts at the top */
+  .views { position: fixed; top: 12px; right: calc(var(--side) + 8px); z-index: 4; flex-direction: column; border-radius: 18px; }
+  .views button { border: 0; background: transparent; color: var(--text); border-radius: 999px; cursor: pointer; }
+  .toggle { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; cursor: pointer;
+            white-space: nowrap; color: var(--muted); font-size: 12px; flex: 0 1 auto; min-width: 0; }
+  .toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; flex: none; }
+  .toggle:has(input:checked) { color: var(--text); }
+  .toggle span { min-width: 0; overflow: hidden; text-overflow: ellipsis; } /* never past the dock */
+
+  .sources { position: fixed; left: 50%; transform: translateX(-50%); bottom: 6px; max-width: min(760px, calc(100% - 24px)); z-index: 6;
+             color: rgba(214, 226, 238, 0.85); font-size: 11px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+  .sources summary { list-style: none; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                     padding: 4px 10px; border-radius: 999px; }
+  .sources summary::-webkit-details-marker { display: none; }
+  .sources summary:hover { background: rgba(11, 22, 34, 0.5); }
+  .sources summary b { color: var(--accent); font-weight: 600; }
+  .sources[open] summary b::after { content: " ▾"; }
+  .sources .credit { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px));
+                     box-sizing: border-box; padding: 12px 14px; text-shadow: none; color: var(--text); font-size: 12px; line-height: 1.5; }
+  .sources .credit p { margin: 0 0 6px; } .sources .credit p:last-child { margin: 0; color: var(--order); }
+  #fps { position: fixed; right: calc(var(--side) + 8px); top: 12px; color: #0b1622; font: 11px ui-monospace, monospace; }
+
+  body.film > :not(canvas) { display: none !important; } /* ?film: the 3D scene alone, for screen recording */
+  @media (max-width: 1440px) { .toggle span { display: none; } .toggle { padding: 0 8px; } } /* the slow-motion box keeps its title */
+  @media (max-width: 1180px) { .map { display: none; } .left { max-height: calc(100vh - 240px); } .dock-wrap { left: 12px; } .views { top: auto; bottom: 150px; } }
+  @media (max-width: 900px) {
+    :root { --credit-h: 44px; }
+    .left { right: 12px; width: auto; max-height: 45vh; }
+    .panel { top: auto; bottom: calc(var(--credit-h) + 60px); left: 12px; right: 12px; width: auto; max-height: 45vh; }
+    .panel[data-collapsed="true"] > section:not(:first-child) { display: none; }
+    #panel-toggle { display: inline-block; }
+    .dock-wrap { left: 8px; right: 8px; }
+    .dock { width: 100%; gap: 4px; }
+    .dock .time, .toggle span { display: none; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="fps" hidden></div>
+<pre id="errors" hidden style="position: fixed; left: 12px; top: 36px; max-width: calc(100% - 380px); max-height: 50vh; overflow: auto; margin: 0;
+  padding: 10px 12px; border-radius: 6px; background: #3a1418; color: #ffd7d7; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; z-index: 9"></pre>
+<script>
+  // Show load, script and shader errors on the page so a screenshot is enough to report them.
+  (function () {
+    const box = document.getElementById("errors"), show = (msg) => { box.hidden = false; box.textContent += msg + "\n\n"; };
+    addEventListener("error", (e) => show(`${e.message} (${(e.filename || "").split("/").pop()}:${e.lineno})`));
+    addEventListener("unhandledrejection", (e) => show(String(e.reason && e.reason.stack || e.reason)));
+    const error = console.error.bind(console);
+    console.error = (...a) => { error(...a); if (!/AbortError/.test(String(a[0]))) show(a.map(String).join(" ")); }; // three.js reports shader errors here; MapLibre logs aborted tile requests
+  })();
+</script>
+<div id="p-toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="left" id="left">
+  <header class="head glass">
+    <div class="brand"><span class="logo">TIDE</span><span class="chip replay" id="mode">Replay</span><span class="sub" id="mode-note">fixed demo orders</span></div>
+    <label for="scene" class="sr">Scenario</label>
+    <select id="scene">
+      <option value="biscay-20261022-21">Storm 22 Oct 2026, Ushant</option>
+      <option value="biscay-20260123-06">Storm 23 Jan 2026, Biscay</option>
+      <option value="biscay-20260108-18">Storm 8 Jan 2026, Ushant</option>
+      <option value="biscay-20251218-03">Storm 18 Dec 2025, Celtic Sea</option>
+      <option value="replay">Menorca 9 Sep 2026 (recorded game)</option>
+    </select>
+    <p class="objective" id="objective"></p>
+    <a class="cta" id="cta" hidden></a>
+  </header>
+</div>
+
+<aside class="panel glass" id="panel" aria-label="Ship and cargo state" data-collapsed="true">
+  <section>
+    <div class="row"><span class="big mono" id="p-clock">--:--:-- UTC</span><span class="muted mono" id="p-elapsed"></span></div>
+    <div class="track"><div id="p-progress" style="background: var(--accent); width: 0"></div></div>
+    <div class="dev" id="p-dev" hidden>DEV OVERRIDE: the sea or sun shown is not scenario data</div>
+  </section>
+
+  <section>
+    <h2>Helm</h2>
+    <div class="helm">
+      <svg width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="Compass: actual heading, ordered heading and wave direction">
+        <circle cx="50" cy="50" r="46" fill="#0e1b29" stroke="#2b4660"></circle>
+        <text x="50" y="13" text-anchor="middle" font-size="9" fill="#a9bccd">N</text>
+        <g id="p-wave"><path d="M50 4 L46 14 L50 11 L54 14 Z" fill="#9db6cc"></path><line x1="50" y1="11" x2="50" y2="26" stroke="#9db6cc" stroke-width="2"></line></g>
+        <g id="p-target"><line x1="50" y1="50" x2="50" y2="10" stroke="#f2a93b" stroke-width="2" stroke-dasharray="4 3"></line></g>
+        <g id="p-needle"><path d="M50 12 L55 54 L50 50 L45 54 Z" fill="#5cc8e8"></path></g>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+        <span class="big mono" id="p-heading">---°</span>
+        <span class="mono" style="color: var(--order); font-size: 13px" id="p-order"></span>
+        <span class="mono" style="font-size: 12px" id="p-turn" title="Actual rate of turn, starboard positive">Rate —</span>
+        <span class="muted" id="p-relsea"></span>
+      </div>
+    </div>
+    <div class="muted" id="p-speed"></div>
+  </section>
+
+  <section>
+    <h2>Sea at the ship</h2>
+    <div class="grid3"><span>Hs<b id="p-hs"></b></span><span>Peak period<b id="p-tp"></b></span><span>Wind<b id="p-wind" style="font-size: 13px"></b></span></div>
+    <div class="muted" id="p-weather"></div>
+  </section>
+
+  <section>
+    <h2>Motion</h2>
+    <div class="grid3"><span>Roll<b id="p-roll"></b></span><span>Pitch<b id="p-pitch"></b></span><span>Heave<b id="p-heave"></b></span></div>
+    <canvas id="p-spark" width="296" height="56" aria-label="Roll over the last two minutes" role="img"></canvas>
+  </section>
+
+  <section>
+    <div class="row"><h2>Cargo</h2><span class="badge" id="p-grade">Grade 0</span></div>
+    <div class="row"><span>All cargo, 1,200 TEU</span><span class="mono" id="p-total"></span></div>
+    <div class="track"><div id="p-total-bar"></div></div>
+    <div class="row"><span>Deck cargo, 480 TEU</span><span class="mono" id="p-deck"></span></div>
+    <div class="track"><div id="p-deck-bar"></div></div>
+    <div class="muted"><span id="p-lost"></span></div>
+  </section>
+
+  <section>
+    <h2>Loss log</h2>
+    <ul class="log" id="p-log"></ul>
+  </section>
+</aside>
+
+<figure class="map glass" aria-labelledby="map-title">
+  <div class="row"><h2 id="map-title">Passage</h2><span class="muted mono" id="map-progress"></span>
+    <button type="button" class="expand text" id="map-ports" aria-pressed="true" title="Container ports within 200 nm">Ports</button>
+    <button type="button" class="expand text" id="map-wind" aria-pressed="false" title="Show the wind (Copernicus)">Wind</button>
+    <button type="button" class="expand" id="map-locate" aria-pressed="false" aria-label="Centre on the ship and follow it" title="Centre on the ship and follow it"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align: middle"><path d="M21 3 3 10.5l7.5 3 3 7.5z" fill="currentColor"/></svg></button>
+    <button type="button" class="expand text" id="map-hint" hidden title="Ask the Copilot for advisory help">Hint</button>
+    <button type="button" class="expand" id="map-expand" aria-pressed="false" aria-label="Enlarge the map" title="Enlarge the map">⤢</button></div>
+  <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas, the ocean track, the nearest container ports and the predicted track"></div>
+  <div class="legend" id="map-legend"><span><i class="sw sailed"></i>sailed</span><span class="live-only"><i class="sw ahead"></i>your order</span>
+    <span><i class="sw ocean"></i>Le Havre–Halifax track</span><span><i class="sw port"></i>container port ≤ 200 nm</span>
+    <span class="live-only"><i class="sw hs"></i>forecast Hs 0–10 m · arrow: waves run this way</span><span class="live-only" id="map-ref-legend" hidden><i class="sw ref"></i>Copilot reference</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
+</figure>
+
+<div class="views seg glass" id="views" role="group" aria-label="Camera view (keys 1-5)">
+  <button type="button" data-view="quarter" title="Quarter (1)">Quarter</button><button type="button" data-view="beam" title="Side on (2)">Side</button><button type="button" data-view="bow" title="Bow (3)">Bow</button><button type="button" data-view="stern" title="Astern (4)">Astern</button><button type="button" data-view="top" title="From above (5)">Top</button>
+</div>
+<div class="dock-wrap">
+  <div class="dock glass" role="toolbar" aria-label="Playback">
+    <button id="panel-toggle" type="button" aria-controls="panel" aria-expanded="false">Details</button>
+    <button id="play" class="play" type="button" aria-label="Pause">❚❚</button>
+    <span class="time mono" id="dock-time"></span>
+    <label for="scrub" class="sr">Replay time</label>
+    <input id="scrub" type="range" min="0" step="1" value="0">
+    <div class="seg" role="group" aria-label="Playback rate">
+      <button type="button" data-rate="1" aria-pressed="false">1×</button>
+      <button type="button" data-rate="5" aria-pressed="true">5×</button>
+      <button type="button" data-rate="20" aria-pressed="false">20×</button>
+      <button type="button" data-rate="60" aria-pressed="false">60×</button>
+    </div>
+    <label class="toggle" title="Slow motion while boxes fall"><input id="slowmo" type="checkbox" checked><span>Slow motion while boxes fall</span></label>
+  </div>
+</div>
+<details class="sources">
+  <summary>Data: E.U. Copernicus Marine Service · ERA5 · Training prototype, not for navigation · <b>Sources</b></summary>
+  <div class="credit glass" id="credit"></div>
+</details>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

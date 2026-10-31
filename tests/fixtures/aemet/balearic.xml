@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="ISO-8859-15"?>
+<root id="FQXX44" nombre="Boletí­n meteorológico y marino para las zonas costeras de la Comunidad Autónoma de Illes Balears" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="prediccion_mar.xsd">
+  <origen>
+    <productor>Agencia Estatal de Meteorología - AEMET - Gobierno de España</productor>
+    <web> http://www.aemet.es</web>
+    <language>es</language>
+    <copyright>© AEMET. Autorizado el uso de la información y su reproducción citando a AEMET como autora de la misma.</copyright>
+    <nota_legal>http://www.aemet.es/es/nota_legal</nota_legal>
+    <elaborado>2026-10-29T12:00:00</elaborado>
+    <inicio>2026-10-29T12:00:00</inicio>
+    <fin>2026-10-30T12:00:00</fin>
+  </origen>
+  <aviso id="A807" nombre="Avisos para Illes Balears">
+    <inicio>2026-10-29T12:00:00</inicio>
+    <fin>2026-10-30T12:00:00</fin>
+    <texto>No hay avisos</texto>
+  </aviso>
+  <situacion id="S807" nombre="Situación General Illes Balears">
+    <analisis>2026-10-29T00:00:00</analisis>
+    <inicio>2026-10-29T12:00:00</inicio>
+    <fin>2026-10-30T12:00:00</fin>
+    <texto>Bajas presiones relativas de 1018 en mar Tirreno desplazándose al sur de Cerdeña. Alta de 1030 en Alemania con pocos cambios. Alta presiones relativas en las islas Baleares de 1022 desplazándose al sur de Mallorca.</texto>
+  </situacion>
+  <prediccion>
+    <inicio>2026-10-29T12:00:00</inicio>
+    <fin>2026-10-30T12:00:00</fin>
+    <zona id="8040730" nombre="Aguas costeras de Menorca">
+      <subzona id="8040731" nombre="Norte de Menorca">
+        <texto>N y NE 3. Marejadilla. Mar de fondo del N de 1 m disminuyendo. Algún aguacero ocasional.</texto>
+      </subzona>
+      <subzona id="8040732" nombre="Sur de Menorca">
+        <texto>Componente N 3. Marejadilla. En los extremos, mar de fondo del N de 1 m disminuyendo. Algún aguacero ocasional.</texto>
+      </subzona>
+    </zona>
+    <zona id="8040740" nombre="Canal de Menorca">
+      <subzona id="8040740" nombre="Canal de Menorca">
+        <texto>N y NE 3. Marejadilla. Mar de fondo del N de 1 m disminuyendo. Algún aguacero ocasional.</texto>
+      </subzona>
+    </zona>
+    <zona id="8040710" nombre="Aguas costeras de Mallorca">
+      <subzona id="8040711" nombre="Noroeste de Mallorca (de Dragonera a Formentor)">
+        <texto>W y SW 3 a 4 rolando a NE por la noche. Marejadilla a marejada. Mar de fondo del NE de 1 m disminuyendo. Algún aguacero ocasional.</texto>
+      </subzona>
+      <subzona id="8040712" nombre="Nordeste de Mallorca (de Formentor a Capdepera)">
+        <texto>NW 3 rolando a NE pronto. Marejadilla. Mar de fondo del N de 1 m disminuyendo. Algún aguacero ocasional.</texto>
+      </subzona>
+      <subzona id="8040713" nombre="Este de Mallorca (de Capdepera a Salinas)">
+        <texto>W y SW 3 rolando a NE por la noche. Marejadilla. Algún aguacero ocasional.</texto>
+      </subzona>
+      <subzona id="8040714" nombre="Sur de Mallorca (de Salinas a Dragonera)">
+        <texto>W y SW 3 rolando a NE por la noche. Marejadilla.</texto>
+      </subzona>
+    </zona>
+    <zona id="8040760" nombre="Aguas costeras de Cabrera">
+      <subzona id="8040760" nombre="Aguas costeras de Cabrera">
+        <texto>W y SW 3 rolando a NE por la noche. Marejadilla.</texto>
+      </subzona>
+    </zona>
+    <zona id="8040720" nombre="Canal de Mallorca">
+      <subzona id="8040720" nombre="Canal de Mallorca">
+        <texto>Componente W 3 rolando a E por la mañana. Marejadilla. Aguaceros y alguna tormenta al final.</texto>
+      </subzona>
+    </zona>
+    <zona id="8040770" nombre="Aguas costeras de Ibiza">
+      <subzona id="8040770" nombre="Aguas costeras de Ibiza">
+        <texto>S y SW 3 rolando a E por la mañana. Marejadilla. Aguaceros y alguna tormenta al final.</texto>
+      </subzona>
+    </zona>
+    <zona id="8040780" nombre="Aguas costeras de Formentera">
+      <subzona id="8040780" nombre="Aguas costeras de Formentera">
+        <texto>S y SW 3 rolando a E por la mañana. Marejadilla. Aguaceros y alguna tormenta al final.</texto>
+      </subzona>
+    </zona>
+  </prediccion>
+  <tendencia>
+    <inicio>2026-10-30T12:00:00</inicio>
+    <fin>2026-10-31T12:00:00</fin>
+    <texto>No se esperan condiciones de aviso en ninguna zona</texto>
+  </tendencia>
+</root>

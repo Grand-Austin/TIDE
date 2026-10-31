@@ -1,0 +1,827 @@
+{
+ "window": "storm peak \u00b124 h, \u00b12\u00b0 around the peak cell, clipped to the region",
+ "copernicus_products": {
+  "waves": "GLOBAL_ANALYSISFORECAST_WAV_001_027",
+  "wind": "WIND_GLO_PHY_L4_NRT_012_004",
+  "currents": "GLOBAL_ANALYSISFORECAST_PHY_001_024"
+ },
+ "credit": "Generated using E.U. Copernicus Marine Service Information",
+ "files": {
+  "biscay-20251031-00/waves.nc": {
+   "sha256": "dcebfe54b4961d0cb7876f95611c4fb58c37eb5c76d58eb458361421820837c5",
+   "bytes": 238593,
+   "time": [
+    "2025-10-30T00:00Z",
+    "2025-11-01T00:00Z"
+   ]
+  },
+  "biscay-20251031-00/wind.nc": {
+   "sha256": "59ff51cec5f353360b71be1dc18dfacf7c9194a9f4d5da1a0cac7c6911c13ec1",
+   "bytes": 72361,
+   "time": [
+    "2025-10-30T00:00Z",
+    "2025-11-01T00:00Z"
+   ]
+  },
+  "biscay-20251031-00/currents.nc": {
+   "sha256": "cef8cbfdf9d448df6ab000c7fef6f79f540c5c97e2265e3cf7c4a8afeb6914be",
+   "bytes": 71327,
+   "time": [
+    "2025-10-30T00:00Z",
+    "2025-11-01T00:00Z"
+   ]
+  },
+  "biscay-20251105-00/waves.nc": {
+   "sha256": "f7215e3733a966837a426687d8425aa2d0e52e70fa03848648c208a68111225b",
+   "bytes": 672871,
+   "time": [
+    "2025-11-04T00:00Z",
+    "2025-11-06T00:00Z"
+   ]
+  },
+  "biscay-20251105-00/wind.nc": {
+   "sha256": "69cb1e2a18cfad719ff1a011330de0549958ea374e1679274d46dc0429bc10a7",
+   "bytes": 192712,
+   "time": [
+    "2025-11-04T00:00Z",
+    "2025-11-06T00:00Z"
+   ]
+  },
+  "biscay-20251105-00/currents.nc": {
+   "sha256": "3b29261ec027fc2cc134064eec3480b2405f699ca0c4c2083d73cde4a9d3b45d",
+   "bytes": 168945,
+   "time": [
+    "2025-11-04T00:00Z",
+    "2025-11-06T00:00Z"
+   ]
+  },
+  "biscay-20251105-21/waves.nc": {
+   "sha256": "e7665000910f0d1ca98d4e9e3d6fa7f4ad7c41c619802b21b6c59220cfe3d7a3",
+   "bytes": 327497,
+   "time": [
+    "2025-11-04T21:00Z",
+    "2025-11-06T21:00Z"
+   ]
+  },
+  "biscay-20251105-21/wind.nc": {
+   "sha256": "fba123c336b8e519a31d588f714af6d6d4a193d028d7c7d6f33023cc3efb86ae",
+   "bytes": 100979,
+   "time": [
+    "2025-11-04T21:00Z",
+    "2025-11-06T21:00Z"
+   ]
+  },
+  "biscay-20251105-21/currents.nc": {
+   "sha256": "59f7504e67415c10bbba4a33999c5b9c8c41366e12dbce11e0d2ff52a6d2dfa6",
+   "bytes": 86604,
+   "time": [
+    "2025-11-05T00:00Z",
+    "2025-11-06T18:00Z"
+   ]
+  },
+  "biscay-20251127-21/waves.nc": {
+   "sha256": "9e4ee5fffffe9ef09d0e109432f47a44dcd3b0694499ae011cf42de17955e8f5",
+   "bytes": 236180,
+   "time": [
+    "2025-11-26T21:00Z",
+    "2025-11-28T21:00Z"
+   ]
+  },
+  "biscay-20251127-21/wind.nc": {
+   "sha256": "9478388482f33e8a3a84e6a049367c9fb003bd3210fc0e691eb7e8ed05aab1b0",
+   "bytes": 71348,
+   "time": [
+    "2025-11-26T21:00Z",
+    "2025-11-28T21:00Z"
+   ]
+  },
+  "biscay-20251127-21/currents.nc": {
+   "sha256": "7977e9ba6df82894fdf4f72c518a96f67d167913e1e11627c6b677cfbf9c28af",
+   "bytes": 68069,
+   "time": [
+    "2025-11-27T00:00Z",
+    "2025-11-28T18:00Z"
+   ]
+  },
+  "biscay-20251202-09/waves.nc": {
+   "sha256": "ce19530497f9b0c51b534869bc97b48f57530ac5cd672ac9216ba2c0ef2a1880",
+   "bytes": 377980,
+   "time": [
+    "2025-12-01T09:00Z",
+    "2025-12-03T09:00Z"
+   ]
+  },
+  "biscay-20251202-09/wind.nc": {
+   "sha256": "1c29335badcef0935ed8186bca2ed9550e9feb7b4dbc8467d0bc3b1469e5711a",
+   "bytes": 111659,
+   "time": [
+    "2025-12-01T09:00Z",
+    "2025-12-03T09:00Z"
+   ]
+  },
+  "biscay-20251202-09/currents.nc": {
+   "sha256": "c25eaa39a2d8d227a3c86141fe7db14c4f56a9b075016bfcd2bdae3370dffdbe",
+   "bytes": 99111,
+   "time": [
+    "2025-12-01T12:00Z",
+    "2025-12-03T06:00Z"
+   ]
+  },
+  "biscay-20251206-00/waves.nc": {
+   "sha256": "849a4b915b6a4f987a1eb9a4bacfbf90ffa4982434e911f73b3ba06e3be6a365",
+   "bytes": 382383,
+   "time": [
+    "2025-12-05T00:00Z",
+    "2025-12-07T00:00Z"
+   ]
+  },
+  "biscay-20251206-00/wind.nc": {
+   "sha256": "d5ca5aa8e1a1bfffa07629d45798a0cbf40c34d1f7163116a9161e51eeebbd85",
+   "bytes": 109032,
+   "time": [
+    "2025-12-05T00:00Z",
+    "2025-12-07T00:00Z"
+   ]
+  },
+  "biscay-20251206-00/currents.nc": {
+   "sha256": "384e321d01ad1ff9bb87ed6a6396acc4961e1c1dd8fd2a61b80cb022ba6294d3",
+   "bytes": 101893,
+   "time": [
+    "2025-12-05T00:00Z",
+    "2025-12-07T00:00Z"
+   ]
+  },
+  "biscay-20251209-12/waves.nc": {
+   "sha256": "bdee7ed2330c5d2eae29d25ee81d985b98d39b5db130f4d8a89942b1c1eb69fb",
+   "bytes": 548330,
+   "time": [
+    "2025-12-08T12:00Z",
+    "2025-12-10T12:00Z"
+   ]
+  },
+  "biscay-20251209-12/wind.nc": {
+   "sha256": "7cdf898fc961092eae732ecb53716e2b876815fd9f9f3f91b51fc3dcd4652983",
+   "bytes": 158930,
+   "time": [
+    "2025-12-08T12:00Z",
+    "2025-12-10T12:00Z"
+   ]
+  },
+  "biscay-20251209-12/currents.nc": {
+   "sha256": "76d7e32fb5cb132243cf517d04621c9b6b247848d63d269e80530d9aa20a9336",
+   "bytes": 139939,
+   "time": [
+    "2025-12-08T12:00Z",
+    "2025-12-10T12:00Z"
+   ]
+  },
+  "biscay-20251212-06/waves.nc": {
+   "sha256": "ec032e4a80112836b6b15e600c7178096f0e89865156a3f08af40da1707d205a",
+   "bytes": 330578,
+   "time": [
+    "2025-12-11T06:00Z",
+    "2025-12-13T06:00Z"
+   ]
+  },
+  "biscay-20251212-06/wind.nc": {
+   "sha256": "a1f98a3cca7b9e3052e0aa74af36ba60f6f56d8392a0769a2add9a167a226bdc",
+   "bytes": 99474,
+   "time": [
+    "2025-12-11T06:00Z",
+    "2025-12-13T06:00Z"
+   ]
+  },
+  "biscay-20251212-06/currents.nc": {
+   "sha256": "d8bb591e83ba0db158b9cd81598f4fb86a67fbbdb3645579185e396333dda3bb",
+   "bytes": 94484,
+   "time": [
+    "2025-12-11T06:00Z",
+    "2025-12-13T06:00Z"
+   ]
+  },
+  "biscay-20251218-03/waves.nc": {
+   "sha256": "c2539ab80cf4f806f06de173ab8d80f6920fa28dcd447b8bb1d47334c0cf4d67",
+   "bytes": 240612,
+   "time": [
+    "2025-12-17T03:00Z",
+    "2025-12-19T03:00Z"
+   ]
+  },
+  "biscay-20251218-03/wind.nc": {
+   "sha256": "c9c62fd53464b18f270793f431db9c07282902c1baca9116d3c9a5174eeaacaa",
+   "bytes": 72118,
+   "time": [
+    "2025-12-17T03:00Z",
+    "2025-12-19T03:00Z"
+   ]
+  },
+  "biscay-20251218-03/currents.nc": {
+   "sha256": "2770a7dd151e63cf7ffe22004cc43dc19ca1eb0237359217e94652bc3246c346",
+   "bytes": 68002,
+   "time": [
+    "2025-12-17T06:00Z",
+    "2025-12-19T00:00Z"
+   ]
+  },
+  "biscay-20251221-03/waves.nc": {
+   "sha256": "b901cff8deb80ea9abefb79fc1b9a8321a890720c8e06794a69b18d26180168b",
+   "bytes": 245432,
+   "time": [
+    "2025-12-20T03:00Z",
+    "2025-12-22T03:00Z"
+   ]
+  },
+  "biscay-20251221-03/wind.nc": {
+   "sha256": "dc4f7c7ee84236cd5ef8d19872f9f24f1253a96d8c1b5e35e852162d0ae2be42",
+   "bytes": 82541,
+   "time": [
+    "2025-12-20T03:00Z",
+    "2025-12-22T03:00Z"
+   ]
+  },
+  "biscay-20251221-03/currents.nc": {
+   "sha256": "453643f63956b0f87293779597d03cd2a0e33c87995e104d326bfd62a17adfb4",
+   "bytes": 71790,
+   "time": [
+    "2025-12-20T06:00Z",
+    "2025-12-22T00:00Z"
+   ]
+  },
+  "biscay-20260108-18/waves.nc": {
+   "sha256": "9b809bdfc6b660a162745b2fc9ce5c74bd918fd55604a1d5955674f7855c383e",
+   "bytes": 676840,
+   "time": [
+    "2026-01-07T18:00Z",
+    "2026-01-09T18:00Z"
+   ]
+  },
+  "biscay-20260108-18/wind.nc": {
+   "sha256": "7a21c054cbfd8b9b8367b6180d6ee75ed8bf53347998b20b5a581189f705ce00",
+   "bytes": 189448,
+   "time": [
+    "2026-01-07T18:00Z",
+    "2026-01-09T18:00Z"
+   ]
+  },
+  "biscay-20260108-18/currents.nc": {
+   "sha256": "38be0d405c68fca0beee136b1e743cf97df9f586c1cfe162b35bd23a44ecf4be",
+   "bytes": 157814,
+   "time": [
+    "2026-01-07T18:00Z",
+    "2026-01-09T18:00Z"
+   ]
+  },
+  "biscay-20260116-18/waves.nc": {
+   "sha256": "d0149e8946049064f5b2f8864c5af13a5f15f47ddb693feea716277020790f72",
+   "bytes": 313864,
+   "time": [
+    "2026-01-15T18:00Z",
+    "2026-01-17T18:00Z"
+   ]
+  },
+  "biscay-20260116-18/wind.nc": {
+   "sha256": "ab7b10c076b0db85ff2679ca9220b7e405722502179bcb7901821d23609dac57",
+   "bytes": 111498,
+   "time": [
+    "2026-01-15T18:00Z",
+    "2026-01-17T18:00Z"
+   ]
+  },
+  "biscay-20260116-18/currents.nc": {
+   "sha256": "2ca48e7df1d51340604a867f1f1b3a44ac99b7a7357a200fe940bc07b864fc95",
+   "bytes": 106222,
+   "time": [
+    "2026-01-15T18:00Z",
+    "2026-01-17T18:00Z"
+   ]
+  },
+  "biscay-20260120-09/waves.nc": {
+   "sha256": "cf5f9b61fb0aa1539c0f0650ce063614215603f879ba5fe72542dd7371a96c90",
+   "bytes": 362797,
+   "time": [
+    "2026-01-19T09:00Z",
+    "2026-01-21T09:00Z"
+   ]
+  },
+  "biscay-20260120-09/wind.nc": {
+   "sha256": "b73af409e787d9cd1d6710d4e58011c93d055be9fa7f81284cef780ca5703edb",
+   "bytes": 107461,
+   "time": [
+    "2026-01-19T09:00Z",
+    "2026-01-21T09:00Z"
+   ]
+  },
+  "biscay-20260120-09/currents.nc": {
+   "sha256": "d7b94ad59a68aec3c43f168ea219515803f74ca3e1a8a60a7cec82ca77c24e78",
+   "bytes": 95308,
+   "time": [
+    "2026-01-19T12:00Z",
+    "2026-01-21T06:00Z"
+   ]
+  },
+  "biscay-20260123-06/waves.nc": {
+   "sha256": "e84942929af3f9da9e873cbcf72bd0f8587dcef0bb04f5dfe02f15af29cb9b26",
+   "bytes": 699161,
+   "time": [
+    "2026-01-22T06:00Z",
+    "2026-01-24T06:00Z"
+   ]
+  },
+  "biscay-20260123-06/wind.nc": {
+   "sha256": "83c6e3094d04d019a52de1025433376c624d8d6638723cc41afb0f81ae24c627",
+   "bytes": 191405,
+   "time": [
+    "2026-01-22T06:00Z",
+    "2026-01-24T06:00Z"
+   ]
+  },
+  "biscay-20260123-06/currents.nc": {
+   "sha256": "230912d44ccf55fe79c773da55ab4444bc90b38e603b8e76de97a3b352cbbab8",
+   "bytes": 172716,
+   "time": [
+    "2026-01-22T06:00Z",
+    "2026-01-24T06:00Z"
+   ]
+  },
+  "biscay-20260127-12/waves.nc": {
+   "sha256": "87c53b426bc723306aef057fe1e85648379638855df9ae86ce47e0e558052f4f",
+   "bytes": 715685,
+   "time": [
+    "2026-01-26T12:00Z",
+    "2026-01-28T12:00Z"
+   ]
+  },
+  "biscay-20260127-12/wind.nc": {
+   "sha256": "dfa449f47283e203d032132c1fc019b6052ddb3ba9ca8bf7aabb28a227d98fa4",
+   "bytes": 193087,
+   "time": [
+    "2026-01-26T12:00Z",
+    "2026-01-28T12:00Z"
+   ]
+  },
+  "biscay-20260127-12/currents.nc": {
+   "sha256": "26e0defe233a68e24056967fd99e7a9b767e5fbe62edd002a0172a1a7284ba81",
+   "bytes": 171448,
+   "time": [
+    "2026-01-26T12:00Z",
+    "2026-01-28T12:00Z"
+   ]
+  },
+  "biscay-20260130-00/waves.nc": {
+   "sha256": "f7b26e1993a2ec3b2dce547bdd0aeef98c34ef417a4925085435dd3e8ff9650e",
+   "bytes": 395091,
+   "time": [
+    "2026-01-29T00:00Z",
+    "2026-01-31T00:00Z"
+   ]
+  },
+  "biscay-20260130-00/wind.nc": {
+   "sha256": "0e43b2e481899874440fa6e8bc0ca6eefcecbe770db36731bbc6e73b85117ccd",
+   "bytes": 112528,
+   "time": [
+    "2026-01-29T00:00Z",
+    "2026-01-31T00:00Z"
+   ]
+  },
+  "biscay-20260130-00/currents.nc": {
+   "sha256": "479e26d9bcf4583154887e00f91edac06c34a0b9a6ba994fbc9b8858a0864a90",
+   "bytes": 104927,
+   "time": [
+    "2026-01-29T00:00Z",
+    "2026-01-31T00:00Z"
+   ]
+  },
+  "biscay-20260203-06/waves.nc": {
+   "sha256": "c795f0da98210f918cb09192f717b8d522b247cbf0d9ea8c9e822bf90b70f1e4",
+   "bytes": 231356,
+   "time": [
+    "2026-02-02T06:00Z",
+    "2026-02-04T06:00Z"
+   ]
+  },
+  "biscay-20260203-06/wind.nc": {
+   "sha256": "5bc65c41684c854280ba60ce8e10759ec3145bc122aae21a122c6c8202ebe609",
+   "bytes": 73532,
+   "time": [
+    "2026-02-02T06:00Z",
+    "2026-02-04T06:00Z"
+   ]
+  },
+  "biscay-20260203-06/currents.nc": {
+   "sha256": "f33fee8e7e5c62a76300e86b4dfa4bc739e9832a8d2708c3fd91ecb3543dc1f8",
+   "bytes": 71130,
+   "time": [
+    "2026-02-02T06:00Z",
+    "2026-02-04T06:00Z"
+   ]
+  },
+  "biscay-20260206-18/waves.nc": {
+   "sha256": "36a24344b00ace67b2b81d7ffc70c7046ff6b1043e1808e39e82ea598b733d95",
+   "bytes": 370656,
+   "time": [
+    "2026-02-05T18:00Z",
+    "2026-02-07T18:00Z"
+   ]
+  },
+  "biscay-20260206-18/wind.nc": {
+   "sha256": "b170f950d6f22fa4170cd1c5b516bbf8239af4c6fd320c61b5cfeeedfe9a1ebf",
+   "bytes": 111187,
+   "time": [
+    "2026-02-05T18:00Z",
+    "2026-02-07T18:00Z"
+   ]
+  },
+  "biscay-20260206-18/currents.nc": {
+   "sha256": "0741dc2974583743819a7ff92730cd6b810958d72704240bbe87c04b52e425b9",
+   "bytes": 105521,
+   "time": [
+    "2026-02-05T18:00Z",
+    "2026-02-07T18:00Z"
+   ]
+  },
+  "biscay-20260211-21/waves.nc": {
+   "sha256": "f4c0a0f7f3e721a67fe226a5d3bc226e3c96dbac0ce41453b492652d52e38089",
+   "bytes": 642008,
+   "time": [
+    "2026-02-10T21:00Z",
+    "2026-02-12T21:00Z"
+   ]
+  },
+  "biscay-20260211-21/wind.nc": {
+   "sha256": "59fb6ba77488c99a5840b3bcb2279d2f77b722e9a762fe15a9947f6560660c0d",
+   "bytes": 181846,
+   "time": [
+    "2026-02-10T21:00Z",
+    "2026-02-12T21:00Z"
+   ]
+  },
+  "biscay-20260211-21/currents.nc": {
+   "sha256": "c6675bb759283f27bc1010e907db1585797e219a6f64050b6d0a476208acf5a9",
+   "bytes": 153083,
+   "time": [
+    "2026-02-11T00:00Z",
+    "2026-02-12T18:00Z"
+   ]
+  },
+  "biscay-20260214-06/waves.nc": {
+   "sha256": "17da7f22d2136c34d2297dac68030f34bfc2eb6f8f19a6c038569db6b12cdb97",
+   "bytes": 494309,
+   "time": [
+    "2026-02-13T06:00Z",
+    "2026-02-15T06:00Z"
+   ]
+  },
+  "biscay-20260214-06/wind.nc": {
+   "sha256": "210027cded4c7aa10debe4f9c8527b98a605181a81922095dee54a4fa760144b",
+   "bytes": 194223,
+   "time": [
+    "2026-02-13T06:00Z",
+    "2026-02-15T06:00Z"
+   ]
+  },
+  "biscay-20260214-06/currents.nc": {
+   "sha256": "26f5cd3313a2cd439b3088c2135d623f64eca24e1befef698b192165b6996df3",
+   "bytes": 124528,
+   "time": [
+    "2026-02-13T06:00Z",
+    "2026-02-15T06:00Z"
+   ]
+  },
+  "biscay-20260216-12/waves.nc": {
+   "sha256": "d6c0ca1fb7d1cd95e442b2d8e3d4a591331781bcfea2f2ec85128e09460b02f0",
+   "bytes": 252779,
+   "time": [
+    "2026-02-15T12:00Z",
+    "2026-02-17T12:00Z"
+   ]
+  },
+  "biscay-20260216-12/wind.nc": {
+   "sha256": "1e642f1ce12fc53ea07a76cc9a6dba72a841e750d02957763d73cf54bb17e403",
+   "bytes": 77299,
+   "time": [
+    "2026-02-15T12:00Z",
+    "2026-02-17T12:00Z"
+   ]
+  },
+  "biscay-20260216-12/currents.nc": {
+   "sha256": "4088c60cde0e011960ca76f18ec10fe82e4a79add4218e89d01e0335b737ebbe",
+   "bytes": 75858,
+   "time": [
+    "2026-02-15T12:00Z",
+    "2026-02-17T12:00Z"
+   ]
+  },
+  "biscay-20260219-09/waves.nc": {
+   "sha256": "967811e123245945f5c642968960071d02a6c20ed0fd1471e5783e4a0d7a4fd5",
+   "bytes": 688782,
+   "time": [
+    "2026-02-18T09:00Z",
+    "2026-02-20T09:00Z"
+   ]
+  },
+  "biscay-20260219-09/wind.nc": {
+   "sha256": "c7c4b004f00caa26886f26e161eec866302aae1de8b364abca8ab03da5a1f18f",
+   "bytes": 187047,
+   "time": [
+    "2026-02-18T09:00Z",
+    "2026-02-20T09:00Z"
+   ]
+  },
+  "biscay-20260219-09/currents.nc": {
+   "sha256": "97e773d0764044008e9b1d62a1062186f2a3963e7a7358553056e6c13d8ddf92",
+   "bytes": 155396,
+   "time": [
+    "2026-02-18T12:00Z",
+    "2026-02-20T06:00Z"
+   ]
+  },
+  "biscay-20260311-06/waves.nc": {
+   "sha256": "e29bddbd05c7bb17ce0ca8a98b2a8893e5a31c95c0a25986fe7cb7f263a633a8",
+   "bytes": 235018,
+   "time": [
+    "2026-03-10T06:00Z",
+    "2026-03-12T06:00Z"
+   ]
+  },
+  "biscay-20260311-06/wind.nc": {
+   "sha256": "ba3a4297c4790ff2f39a339a21dc46fe3bf21510743d5584899e9b2f0e95c720",
+   "bytes": 71467,
+   "time": [
+    "2026-03-10T06:00Z",
+    "2026-03-12T06:00Z"
+   ]
+  },
+  "biscay-20260311-06/currents.nc": {
+   "sha256": "488bda0a2325c127ff2662af61bd499a4a92698ab7593476b65ce48a8d14dd4c",
+   "bytes": 70831,
+   "time": [
+    "2026-03-10T06:00Z",
+    "2026-03-12T06:00Z"
+   ]
+  },
+  "biscay-20260313-06/waves.nc": {
+   "sha256": "1b8275036b1c954c23f4d4e518a16af42235c4c0304a28a7a341feb10e4a109c",
+   "bytes": 243388,
+   "time": [
+    "2026-03-12T06:00Z",
+    "2026-03-14T06:00Z"
+   ]
+  },
+  "biscay-20260313-06/wind.nc": {
+   "sha256": "8ad01d8cb2dd6e5c595e23280245a4ee31e980af8a521458a0c84d2856b799d8",
+   "bytes": 72316,
+   "time": [
+    "2026-03-12T06:00Z",
+    "2026-03-14T06:00Z"
+   ]
+  },
+  "biscay-20260313-06/currents.nc": {
+   "sha256": "563447bd8fb07c78ae25d55f02def8333f8898f0901c0323c91f3cde8559a10c",
+   "bytes": 70763,
+   "time": [
+    "2026-03-12T06:00Z",
+    "2026-03-14T06:00Z"
+   ]
+  },
+  "biscay-20260315-21/waves.nc": {
+   "sha256": "1c42e73aad75dbf4eba8d95d74f564edd316749511378449a6f18b62e63e5d6f",
+   "bytes": 240631,
+   "time": [
+    "2026-03-14T21:00Z",
+    "2026-03-16T21:00Z"
+   ]
+  },
+  "biscay-20260315-21/wind.nc": {
+   "sha256": "1931417fc97b73d63db197282e318c08477f72a85a96d7fc9d2153c853628963",
+   "bytes": 71943,
+   "time": [
+    "2026-03-14T21:00Z",
+    "2026-03-16T21:00Z"
+   ]
+  },
+  "biscay-20260315-21/currents.nc": {
+   "sha256": "be1574fb05bd845269a06aeb7e0cc67eb6940b8c7addf265388cf52b745b059a",
+   "bytes": 67282,
+   "time": [
+    "2026-03-15T00:00Z",
+    "2026-03-16T18:00Z"
+   ]
+  },
+  "biscay-20260325-03/waves.nc": {
+   "sha256": "1672eeed7ef7dae9fcc80073864eb954931ea3d90b8efc5f0a8435ffa5c6e18f",
+   "bytes": 278742,
+   "time": [
+    "2026-03-24T03:00Z",
+    "2026-03-26T03:00Z"
+   ]
+  },
+  "biscay-20260325-03/wind.nc": {
+   "sha256": "3b8caae989b22d1a8eb3f1b4aae346dee7e6dc1f6d32a10726916f5a647a31c4",
+   "bytes": 80822,
+   "time": [
+    "2026-03-24T03:00Z",
+    "2026-03-26T03:00Z"
+   ]
+  },
+  "biscay-20260325-03/currents.nc": {
+   "sha256": "1f9782d6501193700d048a710359ffba5982c1d5dcbf36e8b35a2ef03c97d089",
+   "bytes": 74419,
+   "time": [
+    "2026-03-24T06:00Z",
+    "2026-03-26T00:00Z"
+   ]
+  },
+  "biscay-20260404-21/waves.nc": {
+   "sha256": "e7a9e9e9a96a2aaae2af1e3ebe4ba2b7a26be85c53f43ecfb68df28def09c617",
+   "bytes": 575775,
+   "time": [
+    "2026-04-03T21:00Z",
+    "2026-04-05T21:00Z"
+   ]
+  },
+  "biscay-20260404-21/wind.nc": {
+   "sha256": "3e03355e5b4b4556de4bfbe9ba3ff8014c4d14f5d330d4f51a79ae7a90829d81",
+   "bytes": 168349,
+   "time": [
+    "2026-04-03T21:00Z",
+    "2026-04-05T21:00Z"
+   ]
+  },
+  "biscay-20260404-21/currents.nc": {
+   "sha256": "2d777ebb628d38abcbe620b98e2bb5c0c9b5ecd6bd6fa3f492ccb7b366e14aad",
+   "bytes": 136727,
+   "time": [
+    "2026-04-04T00:00Z",
+    "2026-04-05T18:00Z"
+   ]
+  },
+  "biscay-20260411-18/waves.nc": {
+   "sha256": "1feb33867c83db2757cd377fcfa511f2af660defe848e63f76aedf764d160f48",
+   "bytes": 318146,
+   "time": [
+    "2026-04-10T18:00Z",
+    "2026-04-12T18:00Z"
+   ]
+  },
+  "biscay-20260411-18/wind.nc": {
+   "sha256": "e7d03bbe24678a640f837e0b590ef132bd81e35248ae1767e2ce604f2eaeaa8a",
+   "bytes": 96124,
+   "time": [
+    "2026-04-10T18:00Z",
+    "2026-04-12T18:00Z"
+   ]
+  },
+  "biscay-20260411-18/currents.nc": {
+   "sha256": "dbb70c37c22708b92b106c60696804fe6b27ef76287d482f2ff9b5b3b96562d1",
+   "bytes": 88767,
+   "time": [
+    "2026-04-10T18:00Z",
+    "2026-04-12T18:00Z"
+   ]
+  },
+  "biscay-20260606-06/waves.nc": {
+   "sha256": "bf8cfddb70ce5e83adf20a3617ebf81064a017575c539645b092b0a636534119",
+   "bytes": 640890,
+   "time": [
+    "2026-06-05T06:00Z",
+    "2026-06-07T06:00Z"
+   ]
+  },
+  "biscay-20260606-06/wind.nc": {
+   "sha256": "85b6086a51fd7a9a5ca0a637abd3834cd400be4f0c21f7cdbd1e677b93d5a4f5",
+   "bytes": 186368,
+   "time": [
+    "2026-06-05T06:00Z",
+    "2026-06-07T06:00Z"
+   ]
+  },
+  "biscay-20260606-06/currents.nc": {
+   "sha256": "90f9fde5730bd1e00893a59bbf6af958f53fb9ac07cab498cb2380db0913142e",
+   "bytes": 170317,
+   "time": [
+    "2026-06-05T06:00Z",
+    "2026-06-07T06:00Z"
+   ]
+  },
+  "biscay-20261001-03/waves.nc": {
+   "sha256": "53df36de2cd2391bb9b62c132ef40523844c57161125df3f93a0a0d33c2062d0",
+   "bytes": 298504,
+   "time": [
+    "2026-09-30T03:00Z",
+    "2026-10-02T03:00Z"
+   ]
+  },
+  "biscay-20261001-03/wind.nc": {
+   "sha256": "9b7e78b4e61aa98b4b0966e5770332329e51af015cc996f1b3d9c0547e7e1413",
+   "bytes": 93029,
+   "time": [
+    "2026-09-30T03:00Z",
+    "2026-10-02T03:00Z"
+   ]
+  },
+  "biscay-20261001-03/currents.nc": {
+   "sha256": "5f5431d19a137dc7caeca5be7051eaabd4b006a695ec8ee68ae3f432a4e124d3",
+   "bytes": 79696,
+   "time": [
+    "2026-09-30T06:00Z",
+    "2026-10-02T00:00Z"
+   ]
+  },
+  "biscay-20261021-06/waves.nc": {
+   "sha256": "dd42f08b3ffdc9aa6aa201d384d99e98d8d2a266d6940e52bd80b3cd496d02df",
+   "bytes": 627885,
+   "time": [
+    "2026-10-20T06:00Z",
+    "2026-10-22T06:00Z"
+   ]
+  },
+  "biscay-20261021-06/wind.nc": {
+   "sha256": "c29af2d78047756561e5f0d48ed248e05fbdeac3bee44c7c7574957f5d81c0ef",
+   "bytes": 186736,
+   "time": [
+    "2026-10-20T06:00Z",
+    "2026-10-22T06:00Z"
+   ]
+  },
+  "biscay-20261021-06/currents.nc": {
+   "sha256": "e1ad3d342ce1187f573352f72fecf2696be8661c7c8e1044236d812767ddf335",
+   "bytes": 171502,
+   "time": [
+    "2026-10-20T06:00Z",
+    "2026-10-22T06:00Z"
+   ]
+  },
+  "biscay-20261022-21/waves.nc": {
+   "sha256": "e0217d0ad3a04f2905f71fa0551b6dfdea002d4e65591b368066e0df0a8a40a7",
+   "bytes": 580332,
+   "time": [
+    "2026-10-21T21:00Z",
+    "2026-10-23T21:00Z"
+   ]
+  },
+  "biscay-20261022-21/wind.nc": {
+   "sha256": "ccc74a2206524eb304a059dce857e46ff1660a1448d71e773b550876416c258f",
+   "bytes": 159475,
+   "time": [
+    "2026-10-21T21:00Z",
+    "2026-10-23T21:00Z"
+   ]
+  },
+  "biscay-20261022-21/currents.nc": {
+   "sha256": "3c6469d8e59a351a070548a9c36190655646522a7ad34444fe70b327af2ac829",
+   "bytes": 134983,
+   "time": [
+    "2026-10-22T00:00Z",
+    "2026-10-23T18:00Z"
+   ]
+  },
+  "biscay-20261024-21/waves.nc": {
+   "sha256": "f950e2f8ca372f6212a00ebc5caca42dd3213cbef05799fe76f2947a78d3f7f5",
+   "bytes": 241778,
+   "time": [
+    "2026-10-23T21:00Z",
+    "2026-10-25T21:00Z"
+   ]
+  },
+  "biscay-20261024-21/wind.nc": {
+   "sha256": "4dd4da0caf67b5e9e15ec3e4ea54feabd37ffbf4505562009a06727cef4adee1",
+   "bytes": 74310,
+   "time": [
+    "2026-10-23T21:00Z",
+    "2026-10-25T21:00Z"
+   ]
+  },
+  "biscay-20261024-21/currents.nc": {
+   "sha256": "5f9aa1984d1f43bc0620e266e11d37ba039b5bb71fbeb9cdf10dcf405693952d",
+   "bytes": 67682,
+   "time": [
+    "2026-10-24T00:00Z",
+    "2026-10-25T18:00Z"
+   ]
+  },
+  "biscay-20261027-12/waves.nc": {
+   "sha256": "b2501f5dd34500853fa366aadd0027c4f861ebc7b3a22c21a4ce6ffd85d884eb",
+   "bytes": 273938,
+   "time": [
+    "2026-10-26T12:00Z",
+    "2026-10-28T12:00Z"
+   ]
+  },
+  "biscay-20261027-12/wind.nc": {
+   "sha256": "4f88286efab58fa862c2ae8025ea5802495fd55d269517cf4417b83a8164c23e",
+   "bytes": 87564,
+   "time": [
+    "2026-10-26T12:00Z",
+    "2026-10-28T12:00Z"
+   ]
+  },
+  "biscay-20261027-12/currents.nc": {
+   "sha256": "be1da51948456a30580768082e6a1a01af72109f0f78da01484acb771e2ec090",
+   "bytes": 79871,
+   "time": [
+    "2026-10-26T12:00Z",
+    "2026-10-28T12:00Z"
+   ]
+  }
+ }
+}

@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIDE Storm Scene</title>
+<style>
+  :root {
+    --panel: rgba(12, 20, 28, 0.72);
+    --panel-edge: rgba(255, 255, 255, 0.12);
+    --text: #e8eef3;
+    --muted: #93a4b3;
+    --accent: #f2b544;
+    --danger: #ff6b5b;
+    --ok: #6fd3a0;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b1218; color: var(--text); font: 13px/1.4 var(--font); overflow: hidden; }
+  canvas#scene { display: block; width: 100vw; height: 100vh; }
+  .panel { position: absolute; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px;
+           padding: 10px 12px; backdrop-filter: blur(6px); }
+  .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .big { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; }
+  #title { top: 12px; left: 12px; max-width: min(460px, calc(100vw - 24px)); }
+  #title h1 { margin: 0 0 2px; font-size: 16px; }
+  #mode { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(242,181,68,.14); color: #f6d593; font-size: 12px; }
+  #help { margin-top: 6px; color: var(--muted); font-size: 11px; }
+  #title select { margin-top: 6px; width: 100%; background: #101a23; color: var(--text); border: 1px solid var(--panel-edge);
+                  border-radius: 6px; padding: 4px 6px; font: inherit; }
+  #compass { top: 12px; right: 12px; width: 190px; text-align: center; }
+  #compass canvas { width: 166px; height: 166px; }
+  #relative { font-weight: 600; margin-top: 2px; }
+  #instruments { left: 12px; bottom: 96px; width: 250px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  #cargo { right: 12px; bottom: 96px; width: 250px; }
+  .bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
+  #grade { font-weight: 700; }
+  #log { margin: 6px 0 0; padding: 0; list-style: none; max-height: 96px; overflow: auto; font-size: 12px; color: var(--muted); }
+  #log li.loss { color: var(--danger); }
+  #timeline { left: 12px; right: 12px; bottom: 12px; height: 72px; display: flex; gap: 10px; align-items: center; }
+  #timeline canvas { flex: 1; min-width: 0; height: 48px; cursor: pointer; }
+  button { background: #18252f; color: var(--text); border: 1px solid var(--panel-edge); border-radius: 6px; padding: 5px 9px;
+           font: inherit; cursor: pointer; }
+  button:hover { background: #22323e; }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  #toast { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); padding: 10px 16px; border-radius: 8px;
+           background: rgba(120, 20, 10, .85); font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #toast.order { background: rgba(20, 60, 90, .85); }
+  #notes { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); color: rgba(232,238,243,.55); font-size: 11px;
+           text-align: center; width: min(560px, calc(100vw - 560px)); }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; background: #0b1218; font-size: 15px; }
+  #forecasts { right: 12px; top: 270px; width: 250px; max-height: calc(100vh - 470px); overflow: auto; font-size: 12px; display: none; }
+  #forecasts li { margin: 4px 0; color: var(--text); }
+  #forecasts ul { margin: 4px 0 0; padding-left: 16px; }
+  .modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5, 10, 15, .6); z-index: 10; }
+  .modal[hidden] { display: none; }
+  .card { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; background: #101a23;
+          border: 1px solid var(--panel-edge); border-radius: 12px; padding: 18px 20px; }
+  .card h2 { margin: 0 0 6px; font-size: 18px; }
+  .card fieldset { border: 1px solid var(--panel-edge); border-radius: 8px; margin: 10px 0; padding: 8px 10px; }
+  .card legend { color: var(--muted); padding: 0 4px; }
+  .card label { display: block; margin: 3px 0; cursor: pointer; }
+  .card input[type=number], .card textarea { background: #0b1218; color: var(--text); border: 1px solid var(--panel-edge);
+          border-radius: 6px; padding: 5px 7px; font: inherit; }
+  .card textarea { width: 100%; min-height: 54px; }
+  .card .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .card .ok { color: var(--ok); } .card .bad { color: var(--danger); }
+  .card .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .stars { font-size: 28px; color: var(--accent); letter-spacing: 4px; }
+  @media (max-width: 900px) {
+    #instruments, #cargo { bottom: 96px; width: calc(50vw - 18px); }
+    #compass { width: 120px; } #compass canvas { width: 96px; height: 96px; }
+    #notes { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="panel" id="title">
+  <h1 id="storm-name">TIDE · storm scene</h1>
+  <div class="num" id="clock">—</div>
+  <select id="picker" aria-label="Storm"></select>
+  <div id="mode"><b>Replay</b> of a recorded run with fixed demonstration orders. Steering it yourself is not connected yet.</div>
+  <div id="help">Drag: orbit · Wheel: zoom · Space: play/pause · 1–4: speed · C: chase camera · click the timeline to jump</div>
+</div>
+
+<div class="panel" id="compass">
+  <div class="label">Heading · waves · wind</div>
+  <canvas id="compass-canvas" width="332" height="332"></canvas>
+  <div id="relative">—</div>
+</div>
+
+<div class="panel" id="instruments">
+  <div><div class="label">Heading</div><div class="big num" id="heading">—</div><div class="num" id="order">—</div></div>
+  <div><div class="label">Speed</div><div class="big num" id="speed">—</div><div class="label">through water</div></div>
+  <div><div class="label">Sea · Hs / Tp</div><div class="big num" id="sea">—</div><div class="num" id="sea-dir">—</div></div>
+  <div><div class="label">Wind</div><div class="big num" id="wind">—</div><div class="num" id="wind-dir">—</div></div>
+  <div><div class="label">Roll</div><div class="big num" id="roll">—</div><div class="bar"><i id="roll-bar"></i></div></div>
+  <div><div class="label">Pitch</div><div class="big num" id="pitch">—</div><div class="bar"><i id="pitch-bar"></i></div></div>
+</div>
+
+<div class="panel" id="cargo">
+  <div class="label">Cargo</div>
+  <div class="big num"><span id="teu">1200</span> <span style="font-size:13px;color:var(--muted)">/ 1200 TEU</span></div>
+  <div>Grade <span id="grade">0</span> · <span id="units">0</span> deck units lost</div>
+  <div class="bar"><i id="loss-bar" style="background:var(--danger)"></i></div>
+  <ul id="log"></ul>
+</div>
+
+<div class="panel" id="timeline">
+  <button id="play" aria-label="Play or pause">Pause</button>
+  <div id="rates"></div>
+  <canvas id="trace"></canvas>
+  <button id="cam" title="C">Chase</button>
+</div>
+
+<div class="panel" id="forecasts"><div class="label">Released forecasts</div><ul id="forecast-list"></ul></div>
+<div class="modal" id="modal" hidden><div class="card"><h2 id="m-title"></h2><div id="m-body"></div><div class="actions" id="m-actions"></div></div></div>
+<div id="toast"></div>
+<div id="notes"></div>
+<div id="loading">Loading storm scene…</div>
+
+<script type="module">
+import * as THREE from "three";
+
+const G = 9.81;
+const RATES = [1, 5, 20, 60];
+// Live play (?live): the page talks to game/live.py; samples stream in and the playhead follows them.
+const LIVE = new URLSearchParams(location.search).has("live");
+const LIVE_RATES = [1, 5, 20, 0]; // 0 = as fast as the simulation runs
+const live = { since: -1, view: null, order: null, orderTimer: null, rate: 5, paused: true, openCheckpoint: null, scoreShown: false };
+const $ = (id) => document.getElementById(id);
+const deg = (r) => r * 180 / Math.PI;
+const rad = (d) => d * Math.PI / 180;
+const wrap = (d) => ((d % 360) + 360) % 360;
+const compassName = (d) => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(wrap(d) / 22.5) % 16];
+
+// ---------- renderer, scene, camera ----------
+const canvas = $("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+const scene = new THREE.Scene();
+const STORM_SKY = new THREE.Color(0x8d989f); // horizon haze; also the fog colour
+scene.fog = new THREE.FogExp2(STORM_SKY, 0.00045);
+const camera = new THREE.PerspectiveCamera(50, 1, 1, 9000);
+// overcast sky: a large sphere shaded from zenith to horizon, centred on the camera
+const sky = new THREE.Mesh(new THREE.SphereGeometry(8000, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uTop: { value: new THREE.Color(0x4a565f) }, uHorizon: { value: STORM_SKY.clone() },
+              uCloudColor: { value: new THREE.Color(0x9aa3aa) }, uCloud: { value: 0 }, uTime: { value: 0 } },
+  vertexShader: `varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  // cloud layer: the share of sky covered follows ERA5 cloud cover; full cover is an even grey deck
+  fragmentShader: `
+    uniform vec3 uTop, uHorizon, uCloudColor; uniform float uCloud, uTime; varying vec3 vDir;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+    float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p + 9.1; a *= 0.5; } return v; }
+    void main() {
+      vec3 sky = mix(uHorizon, uTop, smoothstep(0.0, 0.45, vDir.y));
+      vec2 uv = vDir.xz / (vDir.y + 0.12) * 1.6 + vec2(uTime * 0.004, uTime * 0.002);
+      float f = fbm(uv);
+      float cover = smoothstep(1.0 - uCloud - 0.05, 1.0 - uCloud + 0.25, f);
+      vec3 cloud = uCloudColor * (0.82 + 0.3 * f);
+      vec3 color = mix(sky, cloud, max(cover, uCloud * uCloud * 0.85));
+      gl_FragColor = vec4(mix(color, uHorizon, smoothstep(0.12, 0.0, vDir.y)), 1.0);
+    }`,
+}));
+scene.add(sky);
+const hemi = new THREE.HemisphereLight(0xcfd8de, 0x2a3a44, 2.4);
+scene.add(hemi);
+const sunLight = new THREE.DirectionalLight(0xf1f4f6, 2.2);
+sunLight.position.set(-400, 600, -300);
+
+// ---------- daylight from the computed sun position (NOAA approximation) ----------
+// Clouds and rain are not in Copernicus Marine data; until a scene carries ERA5 fields the sky is
+// drawn without cloud and no rain falls.
+function sunPosition(date, lat, lon) {
+  const start = Date.UTC(date.getUTCFullYear(), 0, 1), doy = Math.floor((date - start) / 864e5) + 1;
+  const hour = date.getUTCHours() + date.getUTCMinutes() / 60;
+  const g = 2 * Math.PI / 365 * (doy - 1 + (hour - 12) / 24);
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g)
+    + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const ha = rad((hour * 60 + eqt + 4 * lon) / 4 - 180), la = rad(lat);
+  const elev = Math.asin(Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(ha));
+  const az = Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(la) - Math.tan(decl) * Math.cos(la)) + Math.PI; // from north
+  return { elev: deg(elev), az: wrap(deg(az)) };
+}
+const NIGHT_TOP = new THREE.Color(0x070d16), NIGHT_HORIZON = new THREE.Color(0x152030);
+const DAY_TOP = new THREE.Color(0x5b84ad), DAY_HORIZON = new THREE.Color(0xb9c7d1), DUSK = new THREE.Color(0xd99566);
+const DEEP = new THREE.Color(0x17394a), SHALLOW = new THREE.Color(0x4f7f8c);
+function applyDaylight(sun, cloud = null, precip = 0) {
+  const day = THREE.MathUtils.smoothstep(sun.elev, -6, 12), dusk = Math.exp(-(((sun.elev - 2) / 6) ** 2));
+  const top = NIGHT_TOP.clone().lerp(DAY_TOP, day), horizon = NIGHT_HORIZON.clone().lerp(DAY_HORIZON, day).lerp(DUSK, dusk * 0.55);
+  sky.material.uniforms.uTop.value.copy(top);
+  sky.material.uniforms.uHorizon.value.copy(horizon);
+  scene.fog.color.copy(horizon);
+  oceanUniforms.uSky.value.copy(horizon);
+  const e = rad(Math.max(sun.elev, 4)), a = rad(sun.az);
+  const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e));
+  sunLight.position.copy(dir).multiplyScalar(1000);
+  // ERA5 cloud cover dims direct sun and greys the horizon; rain lowers it further
+  const c = cloud === null ? 0 : cloud / 100;
+  sky.material.uniforms.uCloud.value = c;
+  sky.material.uniforms.uCloudColor.value.set(0x9aa3aa).multiplyScalar((0.18 + 0.82 * day) * (1 - Math.min(0.35, precip * 0.08)));
+  horizon.lerp(sky.material.uniforms.uCloudColor.value, c * 0.6);
+  sky.material.uniforms.uHorizon.value.copy(horizon);
+  scene.fog.color.copy(horizon);
+  oceanUniforms.uSky.value.copy(horizon);
+  sunLight.intensity = (0.12 + 2.6 * day) * (1 - 0.75 * c);
+  sunLight.color.set(0xf4f6f8).lerp(DUSK, dusk * 0.5);
+  hemi.intensity = (0.3 + 2.1 * day) * (1 - 0.25 * c);
+  oceanUniforms.uLight.value.copy(dir);
+  oceanUniforms.uDeep.value.copy(DEEP).multiplyScalar(0.3 + 0.7 * day);
+  oceanUniforms.uShallow.value.copy(SHALLOW).multiplyScalar(0.3 + 0.7 * day);
+  return sun.elev > 6 ? "daylight" : sun.elev > -6 ? "twilight" : "night";
+}
+// Whitecap fraction from 10 m wind speed (Monahan & O'Muircheartaigh 1980): W = 3.84e-6 · U^3.41
+const whitecapFraction = (u) => Math.min(0.3, 3.84e-6 * Math.pow(Math.max(u, 0), 3.41));
+scene.add(sunLight);
+// follow camera: azimuth relative to the stern (chase) or to north (free), elevation, distance
+const view = { azimuth: rad(-20), elevation: rad(6), distance: 260 };
+{
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointerup", () => (drag = null));
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    view.azimuth -= (e.clientX - drag[0]) * 0.005;
+    view.elevation = Math.min(rad(75), Math.max(rad(3), view.elevation + (e.clientY - drag[1]) * 0.004));
+    drag = [e.clientX, e.clientY];
+  });
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    view.distance = Math.min(1800, Math.max(140, view.distance * Math.exp(e.deltaY * 0.001)));
+  }, { passive: false });
+}
+
+// ---------- sea surface: Gerstner waves from Hs, Tp and direction ----------
+// The displayed surface is synthesised from the Copernicus statistics at the ship;
+// individual crests are not data (stated on screen).
+const N_WAVES = 12;
+const wave = { dir: [], k: [], w: [], a: [], q: [], phase: [] };
+for (let i = 0; i < N_WAVES; i++) wave.phase.push(Math.random() * Math.PI * 2);
+const spread = [-10, 8, -4, 2, -15, 18, -25, 28, -35, 40, -45, 50]; // short waves spread wider
+const periodScale = [1.3, 1.15, 1.05, 1.0, 0.93, 0.85, 0.75, 0.65, 0.55, 0.47, 0.4, 0.35];
+function setSea(hs, tp, fromDeg) {
+  // JONSWAP shape (gamma 3.3) at each component's frequency, times its frequency band, so short
+  // wind waves carry the small share of energy the spectrum gives them
+  const x = periodScale.map((s) => 1 / s);
+  const weights = x.map((xi, i) => {
+    const sigma = xi < 1 ? 0.07 : 0.09, band = Math.abs((x[i + 1] ?? xi * 1.15) - (x[i - 1] ?? xi / 1.15)) / 2;
+    const S = xi ** -5 * Math.exp(-1.25 * xi ** -4) * 3.3 ** Math.exp(-((xi - 1) ** 2) / (2 * sigma * sigma));
+    return Math.sqrt(S * band);
+  });
+  const norm = Math.sqrt(weights.reduce((acc, w) => acc + w * w / 2, 0));
+  for (let i = 0; i < N_WAVES; i++) {
+    const toward = rad(fromDeg + 180 + spread[i]);
+    wave.dir[i] = [Math.sin(toward), -Math.cos(toward)]; // scene x = east, -z = north
+    const period = tp * periodScale[i];
+    const omega = 2 * Math.PI / period;
+    wave.w[i] = omega;
+    wave.k[i] = omega * omega / G;
+    wave.a[i] = weights[i] * hs / (4 * norm); // so that 4·sqrt(Σa²/2) = Hs
+    wave.q[i] = Math.min(0.9 / (wave.k[i] * wave.a[i] * N_WAVES + 1e-6), 1.0);
+  }
+  for (let i = 0; i < N_WAVES; i++) {
+    oceanUniforms.uWave.value[i].set(wave.dir[i][0], wave.dir[i][1], wave.k[i], wave.a[i]);
+    oceanUniforms.uWave2.value[i].set(wave.w[i], wave.q[i], wave.phase[i], 0);
+  }
+  oceanUniforms.uHs.value = hs;
+}
+function seaHeight(x, z, t) {
+  let y = 0;
+  for (let i = 0; i < N_WAVES; i++) {
+    const ph = wave.k[i] * (wave.dir[i][0] * x + wave.dir[i][1] * z) - wave.w[i] * t + wave.phase[i];
+    y += wave.a[i] * Math.sin(ph);
+  }
+  return y;
+}
+
+const oceanUniforms = {
+  uTime: { value: 0 },
+  uWave: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
+  uWave2: { value: Array.from({ length: N_WAVES }, () => new THREE.Vector4()) },
+  uHs: { value: 1 },
+  uWhitecap: { value: 0 },
+  uWindDir: { value: new THREE.Vector2(1, 0) },
+  uSky: { value: STORM_SKY.clone() },
+  uDeep: { value: new THREE.Color(0x17394a) },
+  uShallow: { value: new THREE.Color(0x4f7f8c) },
+  uLight: { value: new THREE.Vector3(-0.45, 0.7, -0.35).normalize() },
+  uCamera: { value: new THREE.Vector3() },
+  uFogDensity: { value: 0.00045 },
+  uWake: { value: Array.from({ length: 24 }, () => new THREE.Vector3(0, 0, 9999)) },
+  uShip: { value: new THREE.Vector4() },
+  uBow: { value: new THREE.Vector2() },
+};
+const NEAR = 1400, NEAR_STEP = 5, FAR = 9000, FAR_STEP = 60;
+const oceanMaterial = new THREE.ShaderMaterial({
+    uniforms: { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, 0) },
+                uMinLength: { value: 0 }, uPatch: { value: new THREE.Vector3(0, 0, NEAR / 2) } },
+    vertexShader: `
+      #define N ${N_WAVES}
+      #define FAR_MIN 240.0
+      uniform float uTime; uniform vec4 uWave[N]; uniform vec4 uWave2[N];
+      // uMinLength drops waves a mesh cannot resolve; uPatch fades short waves out towards the near
+      // patch edge so near and far sea meet at the same height
+      uniform float uMinLength; uniform vec3 uPatch;
+      varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vec3 p = world.xyz; vec3 n = vec3(0.0, 1.0, 0.0); float crest = 0.0;
+        for (int i = 0; i < N; i++) {
+          vec2 d = uWave[i].xy; float k = uWave[i].z; float a = uWave[i].w;
+          float len = 6.2831853 / max(k, 1e-6);
+          if (len < uMinLength) continue;
+          if (uPatch.z > 0.0 && len < FAR_MIN) {
+            vec2 off = abs(world.xz - uPatch.xy);
+            a *= 1.0 - smoothstep(0.55 * uPatch.z, 0.92 * uPatch.z, max(off.x, off.y));
+          }
+          float w = uWave2[i].x; float q = uWave2[i].y; float ph0 = uWave2[i].z;
+          float ph = k * dot(d, world.xz) - w * uTime + ph0;
+          float c = cos(ph), s = sin(ph);
+          p.x += q * a * d.x * c; p.z += q * a * d.y * c; p.y += a * s;
+          n.x -= d.x * k * a * c; n.z -= d.y * k * a * c; n.y -= q * k * a * s;
+          crest += q * k * a * s;
+        }
+        vWorld = p; vNormal = normalize(n); vCrest = crest;
+        gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `
+      #define W 24
+      uniform vec3 uSky, uDeep, uShallow, uLight, uCamera; uniform float uFogDensity, uHs;
+      uniform vec3 uWake[W]; uniform vec4 uShip; uniform vec2 uBow; uniform float uTime, uWhitecap; uniform vec3 uHole; uniform vec2 uWindDir;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+      }
+      // each octave is rotated as well as scaled so the lattice of the value noise never lines up
+      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { v += a * noise(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p + 17.3; a *= 0.5; } return v * 1.14; }
+      varying vec3 vWorld; varying vec3 vNormal; varying float vCrest;
+      void main() {
+        // the far sea skips the square the fine near patch already covers
+        if (uHole.z > 0.0 && abs(vWorld.x - uHole.x) < uHole.z && abs(vWorld.z - uHole.y) < uHole.z) discard;
+        vec3 n = normalize(vNormal); vec3 v = normalize(uCamera - vWorld);
+        // short wind waves on top of the resolved sea: six small trains spread around the wind
+        // direction, 7–34 m long, moving at deep-water speed; slopes are analytic so there is no lattice
+        vec2 wdir = normalize(uWindDir + vec2(1e-4, 0.0)), grad = vec2(0.0);
+        for (int i = 0; i < 6; i++) {
+          float fi = float(i), ang = (fi - 2.5) * 0.42 + 0.17 * sin(fi * 1.7);
+          vec2 d = vec2(wdir.x * cos(ang) - wdir.y * sin(ang), wdir.x * sin(ang) + wdir.y * cos(ang));
+          float len = 7.0 * pow(1.37, fi), kk = 6.2831853 / len;
+          float ph = kk * dot(d, vWorld.xz) - sqrt(9.81 * kk) * uTime + fi * 2.1;
+          grad += d * 0.22 * cos(ph);
+        }
+        float rough = (0.2 + uWhitecap * 1.5) * exp(-length(uCamera - vWorld) / 320.0);
+        n = normalize(n - vec3(grad.x, 0.0, grad.y) * rough);
+        float fresnel = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
+        float lit = max(dot(n, uLight), 0.0);
+        vec3 water = mix(uDeep * 0.8, uShallow * 1.15, pow(lit, 3.0));
+        vec3 color = mix(water, uSky, fresnel * 0.8);
+        float spec = pow(max(dot(reflect(-uLight, n), v), 0.0), 36.0);
+        color += spec * 0.14;
+        // whitecaps cover roughly the wind-derived fraction uWhitecap, favouring steep crests
+        float caps = fbm(vWorld.xz * 0.035 + vec2(uTime * 0.05, -uTime * 0.03)) * 0.6 + clamp(vCrest, 0.0, 1.0) * 0.4;
+        float foam = smoothstep(1.0 - 1.6 * uWhitecap - 0.05, 1.0 - 1.6 * uWhitecap + 0.08, caps);
+        color = mix(color, vec3(0.92, 0.95, 0.97), foam * 0.85);
+        // wake. Foam is broken up by drifting noise so it reads as spray, not lines.
+        float speed = clamp(uShip.w / 4.0, 0.0, 1.2);
+        float grain = fbm(vWorld.xz * 0.11 + vec2(uTime * 0.21, -uTime * 0.13));
+        float fine = fbm(vWorld.xz * 0.45 - vec2(uTime * 0.6, uTime * 0.35));
+        vec2 fwd = vec2(sin(uShip.z), -cos(uShip.z)), side = vec2(-fwd.y, fwd.x);
+        // bow wave: hugs the hull, then diverges at the Kelvin angle (tan 19.5° = 0.354) as feathered crests
+        vec2 qb = vWorld.xz - uBow;
+        float behind = -dot(qb, fwd), lateral = abs(dot(qb, side));
+        float bowFoam = 0.0;
+        if (behind > -4.0 && behind < 900.0) {
+          float hullHalf = 12.7 * clamp(behind / 22.0, 0.0, 1.0);
+          float edge = hullHalf + max(behind, 0.0) * 0.354;
+          float w = 2.5 + behind * 0.03;
+          float fade = exp(-max(behind, 0.0) / 260.0) * speed;
+          float crest = exp(-pow((lateral - edge) / w, 2.0));
+          // short crests set obliquely inside the arm, like the feathers in an aerial photo
+          float feather = smoothstep(0.55, 1.0, sin((behind * 0.94 - lateral * 0.34) * 0.16));
+          float inside = exp(-pow((lateral - edge + 2.0 * w) / (2.2 * w), 2.0));
+          float alongHull = behind < 175.0 ? exp(-max(lateral - hullHalf, 0.0) / 5.0) * smoothstep(-4.0, 6.0, behind) : 0.0;
+          bowFoam = (crest * 0.75 + feather * inside * 0.45) * fade + alongHull * 0.6 * speed;
+        }
+        // stern: churned propeller wash along the real track, widening and fading with age
+        float band = 0.0;
+        for (int i = 0; i < W - 1; i++) {
+          vec2 a = uWake[i].xy, ab = uWake[i + 1].xy - a;
+          float h = clamp(dot(vWorld.xz - a, ab) / max(dot(ab, ab), 1e-3), 0.0, 1.0);
+          float d = length(vWorld.xz - a - ab * h), age = mix(uWake[i].z, uWake[i + 1].z, h);
+          float width = 6.0 + age * 0.07;
+          band = max(band, exp(-d * d / (width * width)) * exp(-age / 110.0));
+        }
+        float wakeFoam = bowFoam * smoothstep(0.4, 0.68, grain) + band * smoothstep(0.32, 0.65, grain * 0.6 + fine * 0.5) * speed * 0.8;
+        color = mix(color, vec3(0.93, 0.96, 0.98), clamp(wakeFoam, 0.0, 0.9));
+        // slightly lighter, aerated water under the foam
+        color = mix(color, uShallow * 1.3, clamp((bowFoam + band) * 0.18, 0.0, 0.22));
+        float dist = length(uCamera - vWorld);
+        float fog = 1.0 - exp(-pow(uFogDensity * dist, 2.0));
+        gl_FragColor = vec4(mix(color, uSky, fog), 1.0);
+      }`,
+  });
+// near patch: 5 m cells resolve the short wind waves; the far sea reuses the same uniforms with a hole
+const ocean = new THREE.Mesh(new THREE.PlaneGeometry(NEAR, NEAR, NEAR / NEAR_STEP, NEAR / NEAR_STEP).rotateX(-Math.PI / 2), oceanMaterial);
+const farMaterial = oceanMaterial.clone();
+farMaterial.uniforms = { ...oceanUniforms, uHole: { value: new THREE.Vector3(0, 0, NEAR / 2 - 30) },
+                          uMinLength: { value: 4 * FAR_STEP }, uPatch: { value: new THREE.Vector3(0, 0, 0) } };
+const farSea = new THREE.Mesh(new THREE.PlaneGeometry(FAR, FAR, FAR / FAR_STEP, FAR / FAR_STEP).rotateX(-Math.PI / 2), farMaterial);
+scene.add(ocean, farSea);
+
+// ---------- ship: S175-sized container ship, one box per deck cargo unit ----------
+const L = 175, B = 25.4, DRAFT = 9.5, FREEBOARD = 6.5;
+const ship = new THREE.Group();
+ship.rotation.order = "YZX";
+scene.add(ship);
+{
+  const half = B / 2;
+  const deck = new THREE.Shape();
+  deck.moveTo(-L / 2, -half);
+  deck.lineTo(L / 2 - 24, -half);
+  deck.quadraticCurveTo(L / 2 - 2, -half * 0.92, L / 2, 0);
+  deck.quadraticCurveTo(L / 2 - 2, half * 0.92, L / 2 - 24, half);
+  deck.lineTo(-L / 2, half);
+  deck.lineTo(-L / 2, -half);
+  const hullGeom = new THREE.ExtrudeGeometry(deck, { depth: DRAFT + FREEBOARD, bevelEnabled: false });
+  hullGeom.rotateX(Math.PI / 2).translate(0, FREEBOARD, 0); // shape y → scene z (starboard = +z)
+  const hull = new THREE.Mesh(hullGeom, new THREE.MeshStandardMaterial({ color: 0x16191d, roughness: 0.55 }));
+  ship.add(hull);
+  const boot = new THREE.Mesh(hullGeom.clone().scale(1.002, 0.62, 1.002).translate(0, -3.9, 0),
+    new THREE.MeshStandardMaterial({ color: 0x8b2a22, roughness: 0.7 }));
+  ship.add(boot);
+  const deckPlate = new THREE.Mesh(new THREE.ShapeGeometry(deck).rotateX(Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x6a7076, roughness: 0.9, side: THREE.DoubleSide }));
+  deckPlate.position.y = FREEBOARD + 0.05;
+  ship.add(deckPlate);
+  const bow = new THREE.Shape();
+  bow.moveTo(L / 2 - 24, -half + 0.4);
+  bow.quadraticCurveTo(L / 2 - 2.4, -half * 0.88, L / 2 - 0.5, 0);
+  bow.quadraticCurveTo(L / 2 - 2.4, half * 0.88, L / 2 - 24, half - 0.4);
+  bow.lineTo(L / 2 - 24, -half + 0.4);
+  const forecastle = new THREE.Mesh(new THREE.ShapeGeometry(bow).rotateX(Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x4e7d55, roughness: 0.85, side: THREE.DoubleSide }));
+  forecastle.position.y = FREEBOARD + 1.6;
+  ship.add(forecastle);
+  const white = new THREE.MeshStandardMaterial({ color: 0xeef1f3, roughness: 0.5 });
+  const house = new THREE.Mesh(new THREE.BoxGeometry(16, 20, B - 2), white);
+  house.position.set(-L / 2 + 14, FREEBOARD + 10, 0);
+  ship.add(house);
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(8, 3, B + 4), white);
+  bridge.position.set(-L / 2 + 17, FREEBOARD + 19, 0);
+  ship.add(bridge);
+  const mast = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 1), white);
+  mast.position.set(-L / 2 + 17, FREEBOARD + 24, 0);
+  ship.add(mast);
+  const yard = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 9), white);
+  yard.position.set(-L / 2 + 17, FREEBOARD + 26.5, 0);
+  ship.add(yard);
+  // lashing bridges between container bays
+  const steel = new THREE.MeshStandardMaterial({ color: 0x7d858c, roughness: 0.7, metalness: 0.3 });
+  for (let bay = 0; bay <= 10; bay++) {
+    const x = -L / 2 + 24 + bay * 12.9 - 0.35;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.4, B - 1.2), steel);
+    frame.position.set(x, FREEBOARD + 2.7, 0);
+    ship.add(frame);
+  }
+  // hull name on both bows: a fictional training ship, not a real operator's livery
+  const label = document.createElement("canvas"); label.width = 512; label.height = 128;
+  const lc = label.getContext("2d"); lc.fillStyle = "#f2f4f5"; lc.font = "bold 86px system-ui"; lc.textAlign = "center"; lc.textBaseline = "middle";
+  lc.fillText("TIDE S175", 256, 66);
+  const nameMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(label), transparent: true });
+  for (const sideZ of [-1, 1]) {
+    const name = new THREE.Mesh(new THREE.PlaneGeometry(22, 5.5), nameMat);
+    name.position.set(L / 2 - 36, FREEBOARD - 2.2, sideZ * (B / 2 + 0.05));
+    name.rotation.y = sideZ > 0 ? 0 : Math.PI;
+    ship.add(name);
+  }
+  const funnel = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3, 8, 16), new THREE.MeshStandardMaterial({ color: 0xc0392b }));
+  funnel.position.set(-L / 2 + 6, FREEBOARD + 24, 0);
+  ship.add(funnel);
+}
+const COLORS = [0xa33a2c, 0x7a2a26, 0xd9a520, 0xe4e6e8, 0x9aa1a8, 0x2f5fa8, 0xc8642c, 0x2f8f8a, 0xb8453a, 0xcfd3d6];
+const SLOT = { length: 12.2, pitch: 12.9, width: 2.28, height: 2.6, rows: 11, x0: -L / 2 + 24 };
+const containerMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.75 }), 320);
+ship.add(containerMesh);
+let units = []; // {id, tier, teu, home: Matrix4, lostAt, side}
+function layoutCargo(cargo) {
+  const perTier = [0, 0, 0];
+  units = cargo.units.map((u, i) => {
+    const slot = perTier[u.tier]++;
+    const bay = Math.floor(slot / SLOT.rows), row = slot % SLOT.rows;
+    const length = u.teu === 2 ? SLOT.length - 0.4 : SLOT.length / 2 - 0.3;
+    const x = SLOT.x0 + bay * SLOT.pitch + SLOT.length / 2;
+    const z = (row - (SLOT.rows - 1) / 2) * SLOT.width;
+    const y = FREEBOARD + SLOT.height * (u.tier + 0.5) + 0.2;
+    const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(),
+      new THREE.Vector3(length, SLOT.height - 0.15, SLOT.width - 0.15));
+    const pick = Math.floor(Math.abs(Math.sin(i * 12.9898 + u.tier * 78.233)) * 43758.5453) % COLORS.length;
+    containerMesh.setColorAt(i, new THREE.Color(COLORS[pick]));
+    return { ...u, index: i, home: m, pos: new THREE.Vector3(x, y, z), lostAt: null };
+  });
+  containerMesh.instanceColor.needsUpdate = true;
+}
+
+// ---------- rain ----------
+const RAIN = 1200;
+const rainGeom = new THREE.BufferGeometry();
+const rainPos = new Float32Array(RAIN * 6);
+rainGeom.setAttribute("position", new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.LineSegments(rainGeom, new THREE.LineBasicMaterial({ color: 0xb8c6d0, transparent: true, opacity: 0.35 }));
+scene.add(rain);
+
+// ---------- wake: drawn on the sea surface by the ocean shader ----------
+// Recent stern positions (newest first) feed a turbulent band along the real track; the current
+// stern position and heading feed the diverging Kelvin arms (about 19.5° each side).
+const WAKE = 24, WAKE_STEP_S = 8;
+function updateWake(time) {
+  const first = data.samples[0][0];
+  for (let i = 0; i < WAKE; i++) {
+    const ti = Math.max(first, time - i * WAKE_STEP_S), p = sampleAt(ti), [wx, wz] = local(p.lon, p.lat), h = rad(p.heading);
+    const age = ti === first && time - i * WAKE_STEP_S < first ? 9999 : time - ti;
+    oceanUniforms.uWake.value[i].set(wx - Math.sin(h) * L / 2, wz + Math.cos(h) * L / 2, age);
+  }
+  const now = sampleAt(time), [x, z] = local(now.lon, now.lat), h = rad(now.heading);
+  oceanUniforms.uShip.value.set(x - Math.sin(h) * L / 2, z + Math.cos(h) * L / 2, h, now.stw);
+  oceanUniforms.uBow.value.set(x + Math.sin(h) * L / 2, z - Math.cos(h) * L / 2);
+}
+const drops = Array.from({ length: RAIN }, () => [Math.random() * 900 - 450, Math.random() * 300, Math.random() * 900 - 450]);
+
+// ---------- scene data and playback ----------
+let data = null, F = {}, dt = 0.5, t = 0, playing = true, rate = 5, chase = true;
+let lossTimes = new Map(), lastToast = -1;
+const origin = { lon: 0, lat: 0, kx: 1, ky: 1 };
+
+function field(i, name) { return data.samples[i][F[name]]; }
+function sampleAt(time) {
+  const s = data.samples, f = Math.max(0, Math.min(s.length - 1.001, (time - s[0][0]) / dt));
+  const i = Math.floor(f), u = f - i, a = s[i], b = s[i + 1] || a;
+  const out = {};
+  for (const [name, j] of Object.entries(F)) {
+    let va = a[j], vb = b[j];
+    if (name === "heading" || name === "wave_from") { if (vb - va > 180) vb -= 360; if (va - vb > 180) vb += 360; }
+    out[name] = va + (vb - va) * u;
+  }
+  out.heading = wrap(out.heading); out.wave_from = wrap(out.wave_from);
+  return out;
+}
+function local(lon, lat) { return [(lon - origin.lon) * origin.kx, -(lat - origin.lat) * origin.ky]; }
+
+async function load(id) {
+  $("loading").style.display = "grid";
+  data = await (await fetch(`scenes/${id}.json`)).json();
+  F = Object.fromEntries(data.fields.map((n, i) => [n, i]));
+  dt = data.samples[1][0] - data.samples[0][0];
+  [origin.lon, origin.lat] = data.start_lon_lat;
+  origin.ky = 110540; origin.kx = 111320 * Math.cos(rad(origin.lat));
+  layoutCargo(data.cargo);
+  camHeading = null;
+  lossTimes = new Map();
+  for (const e of data.events) if (e.kind === "cargo_lost") for (const u of e.units) lossTimes.set(u, e.t);
+  units.forEach((u) => { u.lostAt = lossTimes.get(u.id) ?? null; u.side = Math.random() < 0.5 ? -1 : 1; });
+  const s = data.storm;
+  $("storm-name").textContent = `${s.area} storm · ${s.peak.slice(0, 10)}`;
+  $("notes").innerHTML = `Copernicus Marine (${Object.values(data.copernicus_products).join(", ")}) at the ship's position. ` +
+    `Roll, pitch and cargo loss: TIDE simulation of the S175 (game cargo model). ` +
+    `Sea surface synthesised from Hs, Tp and direction; whitecap cover from wind speed (Monahan & O'Muircheartaigh 1980); ` +
+    `light from the computed sun position. ${data.weather ? `Cloud and rain: ${data.weather.credit}. ` : "No cloud or rain data in this scene. "}${data.plan_note}`;
+  t = data.samples[0][0];
+  $("log").innerHTML = "";
+  lastToast = -1;
+  cacheTrace();
+  $("loading").style.display = "none";
+}
+
+// ---------- HUD ----------
+const compassCtx = $("compass-canvas").getContext("2d");
+function arrow(ctx, r, bearing, color, width, inward) {
+  const a = rad(bearing - 90), c = 166;
+  const [x0, y0] = inward ? [c + Math.cos(a) * r, c + Math.sin(a) * r] : [c, c];
+  const [x1, y1] = inward ? [c + Math.cos(a) * r * 0.35, c + Math.sin(a) * r * 0.35] : [c + Math.cos(a) * r, c + Math.sin(a) * r];
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const h = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 18 * Math.cos(h - 0.45), y1 - 18 * Math.sin(h - 0.45));
+  ctx.lineTo(x1 - 18 * Math.cos(h + 0.45), y1 - 18 * Math.sin(h + 0.45)); ctx.fill();
+}
+function drawCompass(s, windFrom) {
+  const ctx = compassCtx, c = 166;
+  ctx.clearRect(0, 0, 332, 332);
+  ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(c, c, 150, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = "#93a4b3"; ctx.font = "bold 26px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([n, b]) => ctx.fillText(n, c + Math.sin(rad(b)) * 128, c - Math.cos(rad(b)) * 128));
+  arrow(ctx, 150, s.wave_from, "#4fc3f7", 7, true);
+  arrow(ctx, 150, windFrom, "rgba(255,255,255,.6)", 4, true);
+  arrow(ctx, 110, s.heading, "#f2b544", 9, false);
+}
+function encounter(s) {
+  const rel = wrap(s.wave_from - s.heading); // where the waves come from, seen from the bow
+  const a = rel > 180 ? 360 - rel : rel, side = rel > 180 ? "port" : "starboard";
+  if (a < 30) return ["Head seas", "var(--ok)"];
+  if (a < 60) return [`Bow-quartering seas (${side})`, "var(--accent)"];
+  if (a <= 120) return [`Beam seas from ${side}`, "var(--danger)"];
+  if (a <= 150) return [`Stern-quartering seas (${side})`, "var(--accent)"];
+  return ["Following seas", "var(--ok)"];
+}
+const traceCtx = $("trace").getContext("2d");
+function drawTrace() {
+  const cv = $("trace"), w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio;
+  const ctx = traceCtx, s = data.samples, t0 = s[0][0], t1 = LIVE ? data.budget_s : s[s.length - 1][0];
+  ctx.clearRect(0, 0, w, h);
+  const maxRoll = Math.max(10, ...s.map((r) => Math.abs(r[F.roll])));
+  ctx.fillStyle = "rgba(79,195,247,.55)";
+  for (let i = 0; i < s.length; i += 2) {
+    const x = (s[i][0] - t0) / (t1 - t0) * w, y = Math.abs(s[i][F.roll]) / maxRoll * h;
+    ctx.fillRect(x, h - y, Math.max(1, w / s.length * 2), y);
+  }
+  for (const o of data.orders) {
+    const x = (o.t - t0) / (t1 - t0) * w;
+    ctx.fillStyle = "rgba(242,181,68,.9)"; ctx.fillRect(x, 0, 2 * devicePixelRatio, h);
+  }
+  for (const e of data.events) if (e.kind === "cargo_lost") {
+    const x = (e.t - t0) / (t1 - t0) * w;
+    ctx.fillStyle = "rgba(255,107,91,.95)"; ctx.fillRect(x - devicePixelRatio, 0, 2 * devicePixelRatio, h * 0.4);
+  }
+  ctx.fillStyle = "rgba(232,238,243,.6)"; ctx.font = `${11 * devicePixelRatio}px system-ui`;
+  ctx.fillText(LIVE ? `mission time · |roll| up to ${maxRoll.toFixed(0)}° · red: cargo lost`
+                    : `|roll| up to ${maxRoll.toFixed(0)}° · orange: orders · red: cargo lost`, 6, 13 * devicePixelRatio);
+}
+// the timeline is drawn once per scene or resize and cached; each frame only adds the playhead
+const traceCache = document.createElement("canvas");
+function cacheTrace() {
+  drawTrace();
+  const cv = $("trace");
+  traceCache.width = cv.width; traceCache.height = cv.height;
+  traceCache.getContext("2d").drawImage(cv, 0, 0);
+}
+function drawCursor() {
+  const cv = $("trace"), s = data.samples, t0 = s[0][0], t1 = LIVE ? data.budget_s : s[s.length - 1][0];
+  traceCtx.clearRect(0, 0, cv.width, cv.height);
+  traceCtx.drawImage(traceCache, 0, 0);
+  const x = (t - t0) / (t1 - t0) * cv.width;
+  traceCtx.fillStyle = "#fff"; traceCtx.fillRect(x - devicePixelRatio, 0, 2 * devicePixelRatio, cv.height);
+}
+function toast(text, kind) {
+  const el = $("toast"); el.textContent = text; el.className = kind || ""; el.style.opacity = 1;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (el.style.opacity = 0), 2600);
+}
+function updateHud(s) {
+  const start = new Date(data.start), now = new Date(start.getTime() + (t - data.samples[0][0]) * 1000);
+  const cloud = F.cloud === undefined ? null : s.cloud, precip = F.precip === undefined ? 0 : s.precip;
+  const sun = sunPosition(now, s.lat, s.lon), light = applyDaylight(sun, cloud, precip);
+  $("clock").textContent = `${now.toISOString().slice(0, 16).replace("T", " ")} UTC · ${light}, sun ${sun.elev.toFixed(0)}° · ` +
+    `whitecaps ${(whitecapFraction(Math.hypot(s.wind_e, s.wind_n)) * 100).toFixed(0)}%` +
+    (cloud === null ? "" : ` · cloud ${cloud.toFixed(0)}% · rain ${precip.toFixed(1)} mm/h`);
+  const order = LIVE ? { heading_deg: live.order?.heading ?? s.heading } : [...data.orders].reverse().find((o) => o.t <= t) || data.orders[0];
+  $("heading").textContent = `${s.heading.toFixed(0)}°`;
+  $("order").textContent = `order ${order.heading_deg.toFixed(0)}°` + (LIVE && live.order ? ` · ${live.order.speed.toFixed(1)} kn` : "");
+  $("speed").textContent = `${(s.stw * 1.94384).toFixed(1)} kn`;
+  $("sea").textContent = `${s.hs.toFixed(1)} m · ${s.tp.toFixed(0)} s`;
+  $("sea-dir").textContent = `from ${s.wave_from.toFixed(0)}° ${compassName(s.wave_from)}`;
+  const windKn = Math.hypot(s.wind_e, s.wind_n) * 1.94384, windFrom = wrap(deg(Math.atan2(-s.wind_e, -s.wind_n)));
+  $("wind").textContent = `${windKn.toFixed(0)} kn`;
+  $("wind-dir").textContent = `from ${windFrom.toFixed(0)}° ${compassName(windFrom)}`;
+  $("roll").textContent = `${s.roll.toFixed(1)}°`;
+  $("pitch").textContent = `${s.pitch.toFixed(1)}°`;
+  $("roll-bar").style.width = `${Math.min(100, Math.abs(s.roll) / 20 * 100)}%`;
+  $("pitch-bar").style.width = `${Math.min(100, Math.abs(s.pitch) / 10 * 100)}%`;
+  const lostTeu = Math.round(s.lost_teu), lostUnits = units.filter((u) => u.lostAt !== null && u.lostAt <= t).length;
+  $("teu").textContent = 1200 - lostTeu;
+  $("units").textContent = lostUnits;
+  $("grade").textContent = Math.round(s.grade);
+  $("grade").style.color = s.grade >= 3 ? "var(--danger)" : s.grade > 0 ? "var(--accent)" : "var(--ok)";
+  $("loss-bar").style.width = `${Math.min(100, lostTeu / 120 * 100)}%`;
+  const [label, color] = encounter(s);
+  $("relative").textContent = label; $("relative").style.color = color;
+  drawCompass(s, windFrom);
+  // events that the playhead just passed
+  const passed = data.events.filter((e) => e.t > lastToast && e.t <= t);
+  const orders = data.orders.filter((o) => o.t > lastToast && o.t <= t && o.t > 0);
+  for (const o of orders) toast(`Order: steer ${o.heading_deg.toFixed(0)}° (${o.relative_to_waves_deg}° off the waves)`, "order");
+  for (const e of passed) {
+    if (e.kind === "cargo_lost") toast(`${e.units.length} deck units overboard · roll ${s.roll.toFixed(0)}°`);
+    const li = document.createElement("li");
+    li.className = e.kind === "cargo_lost" ? "loss" : "";
+    li.textContent = `${new Date(start.getTime() + (e.t - data.samples[0][0]) * 1000).toISOString().slice(11, 19)} ${e.kind.replace("_", " ")}: ${e.detail}`;
+    $("log").prepend(li);
+  }
+  lastToast = t;
+}
+
+// ---------- animation ----------
+const tmp = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+let clock = performance.now(), visualTime = 0, camHeading = null, hudAt = 0;
+function frame(now) {
+  const real = Math.min(0.1, (now - clock) / 1000); clock = now;
+  if (data && data.samples.length) {
+    const end = data.samples[data.samples.length - 1][0];
+    const before = t;
+    if (LIVE) { const target = end - 1; if (target > t) t += Math.max(real, (target - t) * Math.min(1, real * 2)); t = Math.min(t, end); }
+    else if (playing) { t = Math.min(end, t + real * rate); if (t >= end) setPlaying(false); }
+    visualTime += LIVE ? t - before : real * (playing ? rate : 0);
+    const s = sampleAt(t);
+    setSea(s.hs, s.tp, s.wave_from);
+    oceanUniforms.uTime.value = visualTime;
+    const [x, z] = local(s.lon, s.lat);
+    const h = rad(s.heading), fx = Math.sin(h), fz = -Math.cos(h);
+    const y = (seaHeight(x + fx * 60, z + fz * 60, visualTime) + seaHeight(x, z, visualTime) + seaHeight(x - fx * 60, z - fz * 60, visualTime)) / 3;
+    ship.position.set(x, y, z);
+    updateWake(t);
+    ship.rotation.set(rad(s.roll), Math.PI / 2 - h, rad(s.pitch));
+    // follow camera behind the stern (chase) or at a fixed compass bearing (free)
+    if (camHeading === null) camHeading = s.heading;
+    let turn = s.heading - camHeading; turn -= 360 * Math.round(turn / 360);
+    camHeading = wrap(camHeading + turn * Math.min(1, real * 0.35)); // swing round slowly after a turn
+    const bearing = rad((chase ? camHeading + 180 : 180) + deg(view.azimuth));
+    const horizontal = view.distance * Math.cos(view.elevation);
+    // the camera rides a third of the ship's vertical motion so the horizon stays calm
+    camera.position.set(x + Math.sin(bearing) * horizontal, y * 0.3 + view.distance * Math.sin(view.elevation) + 20,
+                        z - Math.cos(bearing) * horizontal);
+    camera.lookAt(x, y * 0.5 + 12, z);
+    sky.position.copy(camera.position);
+    sky.material.uniforms.uTime.value = visualTime;
+    ocean.position.set(Math.round(x / NEAR_STEP) * NEAR_STEP, 0, Math.round(z / NEAR_STEP) * NEAR_STEP);
+    farSea.position.set(Math.round(x / FAR_STEP) * FAR_STEP, -0.3, Math.round(z / FAR_STEP) * FAR_STEP);
+    farMaterial.uniforms.uHole.value.set(ocean.position.x, ocean.position.z, NEAR / 2 - 30);
+    oceanMaterial.uniforms.uPatch.value.set(ocean.position.x, ocean.position.z, NEAR / 2);
+    oceanUniforms.uCamera.value.copy(camera.position);
+    // cargo: lost units slide over the low side and sink
+    for (const u of units) {
+      if (u.lostAt === null || t < u.lostAt) { containerMesh.setMatrixAt(u.index, u.home); continue; }
+      const age = (t - u.lostAt) * 1.0;
+      const fall = Math.min(age, 40);
+      u.home.decompose(v, q, sc);
+      const side = Math.sign(s.roll || u.side) || u.side;
+      v.z += side * (B / 2 + 6) * Math.min(1, fall / 6);
+      v.y += -fall * fall * 0.05 - Math.max(0, fall - 6) * 0.6;
+      q.setFromEuler(new THREE.Euler(side * Math.min(1.2, fall * 0.08), 0, fall * 0.02));
+      if (v.y < -40) sc.set(0, 0, 0);
+      containerMesh.setMatrixAt(u.index, tmp.compose(v, q, sc));
+    }
+    containerMesh.instanceMatrix.needsUpdate = true;
+    // rain around the camera, heavier with wind
+    const windMs = Math.hypot(s.wind_e, s.wind_n), precip = F.precip === undefined ? 0 : s.precip; // mm/h, ERA5 when present
+    const n = Math.min(RAIN, Math.floor(RAIN * Math.min(1, precip / 4)));
+    oceanUniforms.uWhitecap.value = whitecapFraction(windMs);
+    oceanUniforms.uWindDir.value.set(s.wind_e, -s.wind_n); // direction the wind blows towards, in scene axes
+    const wx = s.wind_e * 0.6, wz = -s.wind_n * 0.6;
+    for (let i = 0; i < RAIN; i++) {
+      const d = drops[i];
+      d[1] -= real * 60; d[0] += wx * real; d[2] += wz * real;
+      if (d[1] < 0) { d[1] = 300; d[0] = Math.random() * 900 - 450; d[2] = Math.random() * 900 - 450; }
+      const p = i < n ? [camera.position.x + d[0], d[1] + camera.position.y - 150, camera.position.z + d[2]] : [0, -9999, 0];
+      rainPos.set([p[0], p[1], p[2], p[0] - wx * 0.15, p[1] + 6, p[2] - wz * 0.15], i * 6);
+    }
+    rainGeom.attributes.position.needsUpdate = true;
+    const fog = 0.00035 + Math.min(0.0006, precip * 0.00008);
+    scene.fog.density = fog; oceanUniforms.uFogDensity.value = fog;
+    if (now - hudAt > 100) { updateHud(s); drawCursor(); hudAt = now; }
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+// ---------- controls ----------
+function setPlaying(p) { playing = p; $("play").textContent = p ? "Pause" : "Play"; }
+$("play").onclick = () => {
+  if (LIVE) return livePost("/api/pause", { paused: !live.paused }); if (!playing && data && t >= data.samples[data.samples.length - 1][0]) t = data.samples[0][0], $("log").innerHTML = "", lastToast = -1; setPlaying(!playing); };
+(LIVE ? LIVE_RATES : RATES).forEach((r, i) => {
+  const b = document.createElement("button"); b.textContent = r ? `${r}×` : "max"; b.title = String(i + 1);
+  b.onclick = () => setRate(r); $("rates").append(b);
+});
+function setRate(r) {
+  if (LIVE && data) livePost("/api/rate", { rate: r });
+  rate = r; [...$("rates").children].forEach((b) => b.classList.toggle("on", b.textContent === (r ? `${r}×` : "max")));
+}
+setRate(5);
+$("cam").onclick = () => { chase = !chase; $("cam").classList.toggle("on", chase); };
+$("cam").classList.add("on");
+$("trace").onclick = (e) => {
+  if (LIVE) return;
+  const r = e.target.getBoundingClientRect(), s = data.samples;
+  t = s[0][0] + (e.clientX - r.left) / r.width * (s[s.length - 1][0] - s[0][0]);
+  $("log").innerHTML = ""; lastToast = t;
+};
+addEventListener("keydown", (e) => {
+  if (e.target.tagName === "SELECT") return;
+  if (e.code === "Space") { e.preventDefault(); $("play").click(); }
+  if (!$("modal").hidden) return;
+  if (e.key >= "1" && e.key <= "4") setRate((LIVE ? LIVE_RATES : RATES)[+e.key - 1]);
+  if (e.key === "c" || e.key === "C") $("cam").click();
+  if (LIVE && live.order && e.key.startsWith("Arrow")) {
+    e.preventDefault();
+    const step = e.shiftKey ? 1 : 5;
+    if (e.key === "ArrowRight") live.order.heading = wrap(live.order.heading + step);
+    if (e.key === "ArrowLeft") live.order.heading = wrap(live.order.heading - step);
+    if (e.key === "ArrowUp") live.order.speed = Math.min(18, live.order.speed + 0.5);
+    if (e.key === "ArrowDown") live.order.speed = Math.max(0, live.order.speed - 0.5);
+    clearTimeout(live.orderTimer);
+    live.orderTimer = setTimeout(() => livePost("/api/order", { heading_deg: live.order.heading, speed_knots: live.order.speed }), 350);
+    return;
+  }
+  if (!LIVE && (e.key === "ArrowRight" || e.key === "ArrowLeft")) { t += e.key === "ArrowRight" ? 10 : -10; lastToast = t; }
+});
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  if (data) cacheTrace();
+}
+addEventListener("resize", resize);
+
+// ---------- live client ----------
+async function livePost(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const out = await r.json();
+  if (out.error) toast(out.error);
+  return out;
+}
+const DIRS = { "0,1": "North", "1,1": "North-east", "1,0": "East", "1,-1": "South-east", "0,-1": "South", "-1,-1": "South-west", "-1,0": "West", "-1,1": "North-west", "0,0": "Your area" };
+function renderForecasts(view) {
+  $("forecasts").style.display = "block";
+  const [sx, sy] = view.ship_sector, kn = 1.94384;
+  $("forecast-list").innerHTML = view.reports.map((r) => {
+    const where = DIRS[`${r.sector[0] - sx},${r.sector[1] - sy}`] || "Further away";
+    return `<li><b>${where}</b>: Hs ${r.hs_range_m[0]}–${r.hs_range_m[1]} m, wind ${(r.wind_range_mps[0] * kn).toFixed(0)}–${(r.wind_range_mps[1] * kn).toFixed(0)} kn, ` +
+      `waves from ${r.wave_from_deg}° (${compassName(r.wave_from_deg)}), ${r.wave_period_s} s, ${r.trend}` +
+      `<br><span style="color:var(--muted)">game forecast, valid to ${r.valid_to.slice(11, 16)} UTC</span></li>`;
+  }).join("") || "<li>None released yet.</li>";
+}
+function openModal(title, html, actions) {
+  $("m-title").textContent = title; $("m-body").innerHTML = html; $("m-actions").innerHTML = "";
+  for (const [label, fn] of actions) { const b = document.createElement("button"); b.textContent = label; b.onclick = fn; $("m-actions").append(b); }
+  $("modal").hidden = false;
+}
+function closeModal() { $("modal").hidden = true; }
+function checkpointForm(cp) {
+  const briefing = cp.trigger === "briefing" ? `<p>${data.objective}</p><p>${data.title}. ${data.start.slice(0, 16).replace("T", " ")} UTC, ` +
+    `${(data.budget_s / 3600).toFixed(0)} h. S175 container ship, ${data.cargo.total_teu} TEU loaded. Controls: ← → heading, ↑ ↓ speed, ` +
+    `Space pause, 1–4 rate. The storm area's boundary is not shown: read the sea and the forecasts.</p>` : "";
+  const qs = cp.questions.map((q) => `<fieldset><legend>${q.prompt}</legend>` +
+    q.options.map((o) => `<label><input type="radio" name="${q.id}" value="${o}"> ${o}</label>`).join("") + `</fieldset>`).join("");
+  const o = live.order;
+  return `${briefing}<p><b>${cp.message}</b></p>${qs}<fieldset><legend>Your orders</legend><div class="row">` +
+    `<label>Heading ° <input type="number" id="cp-heading" min="0" max="359" value="${o.heading.toFixed(0)}"></label>` +
+    `<label>Speed kn <input type="number" id="cp-speed" min="0" max="18" step="0.5" value="${o.speed.toFixed(1)}"></label></div>` +
+    `<label>Why? <textarea id="cp-reason" placeholder="What did you see, and why this order?"></textarea></label></fieldset>`;
+}
+function showCheckpoint(cp) {
+  live.openCheckpoint = cp.id;
+  openModal(cp.trigger === "briefing" ? "Briefing" : "Decision point", checkpointForm(cp), [["Submit and continue", async () => {
+    const answers = Object.fromEntries(cp.questions.map((q) => [q.id, document.querySelector(`input[name="${q.id}"]:checked`)?.value ?? null]));
+    const order = { heading_deg: wrap(+$("cp-heading").value || 0), speed_knots: Math.max(0, Math.min(18, +$("cp-speed").value || 0)) };
+    live.order = { heading: order.heading_deg, speed: order.speed_knots };
+    const results = await livePost("/api/answer", { id: cp.id, answers, reason: $("cp-reason").value, order });
+    if (results.error) return;
+    const lines = cp.questions.map((q) => { const r = results[q.id];
+      return `<p class="${r.correct ? "ok" : "bad"}">${r.correct ? "✓" : "✗"} ${q.prompt}<br>Your answer: ${r.given ?? "none"} · Expected: ${r.answer}</p>`; }).join("");
+    openModal("Checkpoint feedback", lines, [["Continue", closeModal]]);
+  }]]);
+}
+function showScore(score) {
+  live.scoreShown = true;
+  const p = score.parts, outcome = score.escaped ? "Escaped the storm" : `Did not escape (${score.outcome})`;
+  const review = score.checkpoints.map((cp) => `<li>${cp.trigger} at ${(cp.t / 60).toFixed(0)} min: ` +
+    Object.values(cp.results || {}).map((r) => `${r.correct ? "✓" : "✗"} ${r.given ?? "none"}`).join(", ") +
+    (cp.reason ? ` — “${cp.reason}”` : "") + "</li>").join("");
+  openModal("Voyage result", `<div class="stars">${"★".repeat(score.stars)}${"☆".repeat(3 - score.stars)}</div>` +
+    `<p><b>${outcome}</b> after ${(score.elapsed_s / 60).toFixed(0)} min · ${score.lost_teu} TEU lost (grade ${score.grade}) · ` +
+    `${score.answers_correct}/${score.answers_total} judgements right</p>` +
+    `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${score.total}/100</b></p><ul>${review}</ul>` +
+    `<p style="color:var(--muted)">Scores are game rules for training, not a professional assessment. Cargo loss comes from the game cargo model.</p>`,
+    [["Close", closeModal]]);
+}
+async function startLive(id) {
+  $("loading").style.display = "grid";
+  const b = await livePost("/api/start", { scenario: id });
+  data = { ...b, fields: b.fields, samples: [], events: [], orders: [], start_lon_lat: [b.initial.lon, b.initial.lat],
+           weather: { credit: "Weather data by Open-Meteo.com (CC BY 4.0), from ERA5, Copernicus C3S" } };
+  F = Object.fromEntries(data.fields.map((n, i) => [n, i])); dt = 1;
+  [origin.lon, origin.lat] = data.start_lon_lat; origin.ky = 110540; origin.kx = 111320 * Math.cos(rad(origin.lat));
+  layoutCargo(data.cargo); units.forEach((u) => { u.lostAt = null; u.side = Math.random() < 0.5 ? -1 : 1; });
+  camHeading = null; live.since = -1; live.order = { heading: b.initial.heading_deg, speed: b.initial.speed_mps * 1.94384 };
+  live.openCheckpoint = null; live.scoreShown = false; $("log").innerHTML = ""; lastToast = -1;
+  $("storm-name").textContent = data.title;
+  $("mode").innerHTML = "<b>Live</b> · steer with ← → and ↑ ↓; the storm's edge is hidden.";
+  $("help").textContent = "Space: pause/resume · 1–4: rate · C: chase camera · drag/wheel: camera";
+  $("notes").innerHTML = "Live TIDE session: Copernicus Marine storm subsets, S175 motion and game cargo model; " +
+    "forecasts are game forecasts from the historical reconstruction; cloud and rain from ERA5 via Open-Meteo.";
+  await livePoll();
+  t = data.samples[0][0];
+  $("loading").style.display = "none";
+}
+async function livePoll() {
+  if (!data || !LIVE) return;
+  const st = await (await fetch(`/api/state?since=${live.since}`)).json();
+  if (st.samples.length) {
+    data.samples.push(...st.samples); live.since = st.samples[st.samples.length - 1][0];
+    if (data.samples.length === 1) data.samples.push([...data.samples[0]]);
+  }
+  for (const e of st.log) {
+    if (e.kind === "wave_quality") continue;
+    data.events.push(e);
+    if (e.kind === "cargo_lost") for (const id of e.units) { const u = units.find((x) => x.id === id); if (u && u.lostAt === null) u.lostAt = e.t; }
+  }
+  live.view = st.view; live.paused = st.paused;
+  $("play").textContent = st.paused ? "Resume" : "Pause";
+  const left = st.view.remaining_s;
+  $("mode").innerHTML = `<b>Live</b> · ${Math.floor(left / 3600)}h${String(Math.floor(left % 3600 / 60)).padStart(2, "0")} left · ` +
+    `${st.paused ? "paused" : `×${(+st.view.achieved_rate || 0).toFixed(1)} achieved`}`;
+  renderForecasts(st.view);
+  if (st.checkpoint && live.openCheckpoint !== st.checkpoint.id) showCheckpoint(st.checkpoint);
+  if (st.score && !live.scoreShown) showScore(st.score);
+  cacheTrace();
+}
+if (LIVE) setInterval(() => livePoll().catch(() => {}), 400);
+
+// ---------- start ----------
+(async () => {
+  resize();
+  try {
+    if (LIVE) {
+      const list = await (await fetch("/api/scenarios")).json(), picker = $("picker");
+      for (const s of list) { const o = document.createElement("option"); o.value = s.id; o.textContent = `${s.title} · ${s.start.slice(11, 16)} UTC`; picker.append(o); }
+      picker.value = list.find((s) => s.id === "biscay-20260123-06")?.id ?? list[0].id;
+      picker.onchange = () => startLive(picker.value);
+      await startLive(picker.value);
+      requestAnimationFrame(frame);
+      return;
+    }
+    const index = await (await fetch("scenes/index.json")).json();
+    const picker = $("picker");
+    for (const s of index.storms) {
+      const o = document.createElement("option");
+      o.value = s.id; o.disabled = !s.scene;
+      o.textContent = `${s.peak.slice(0, 10)} · ${s.area} · Hs ${s.hs_m} m · ${s.max_wind_kn} kn${s.scene ? "" : " (not exported)"}`;
+      picker.append(o);
+    }
+    const first = index.storms.find((s) => s.scene && s.id === "biscay-20260123-06") || index.storms.find((s) => s.scene);
+    picker.value = first.id;
+    picker.onchange = () => load(picker.value);
+    await load(first.id);
+    requestAnimationFrame(frame);
+  } catch (err) {
+    $("loading").textContent = `Could not load the storm scenes (${err.message}). Run python -m pipeline.export_scene first and serve web/ over HTTP.`;
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "id": "sole-20261022-21",
+  "title": "Escape the Sole storm, 2026-10-22",
+  "start": "2026-10-22T21:00:00Z",
+  "end": "2026-10-22T22:15:00Z",
+  "seed": 1,
+  "initial": {
+    "lon": -10.6147,
+    "lat": 48.7611,
+    "heading_deg": 279.9,
+    "speed_mps": 5.0
+  },
+  "mission": {
+    "budget_s": 4500,
+    "target_lon_lat": [
+      -10.5476,
+      48.8892
+    ],
+    "radius_m": 1000,
+    "review_interval_s": 300
+  },
+  "vessel": {
+    "path": "data/processed/s175",
+    "sha256": "4c414785f072727722646246dcf503555e6b96a8f9161eeba7af113d330dda56",
+    "loading_condition": "Design waterline",
+    "source_commit": "ce0b40ed101411fc4eebd064b35c5a96916106ad"
+  },
+  "settings": {
+    "dt_s": 0.1,
+    "wave_period_s": 0.2,
+    "record_period_s": 1.0,
+    "max_thrust_n": 1500000.0,
+    "max_yaw_moment_nm": 30000000.0,
+    "max_reference_yaw_rate": 0.017453292519943295,
+    "max_reference_accel": 0.02,
+    "speed_time_constant_s": 60.0,
+    "yaw_natural_frequency": 0.08,
+    "roll_exposure_deg": 10.0,
+    "lateral_exposure_mps2": 0.9810000000000001,
+    "actuator_model": "s175_maneuvering"
+  },
+  "wind_parameters": {
+    "loa_m": 175.0,
+    "breadth_m": 25.4,
+    "lateral_area_m2": 2000.0,
+    "frontal_area_m2": 100.0,
+    "superstructure_area_m2": 200.0,
+    "perimeter_m": 130.0,
+    "centroid_from_bow_m": 30.0,
+    "mast_groups": 0,
+    "air_density_kg_m3": 1.224
+  },
+  "reports": {
+    "historical_bulletin": "unavailable",
+    "historical_warnings": "not_fetched",
+    "archive_directory": "data/raw/aemet"
+  },
+  "trials": {},
+  "area_bbox": [
+    -11.85,
+    -8.9,
+    46.65,
+    50.35
+  ],
+  "gameplay_settings": {
+    "region_hs_m": 11.0,
+    "start_inside_km": 15.0,
+    "note": "target_lon_lat is the nearest region edge at the start; the region moves with the storm. report_scale widens the forecast field around area_bbox.",
+    "report_scale": 2.0,
+    "report_scope": "field"
+  },
+  "collection": {
+    "source": "data/storms/biscay/biscay-20261022-21",
+    "storm": {
+      "id": "biscay-20261022-21",
+      "start": "2026-10-22T21:00Z",
+      "end": "2026-10-23T18:00Z",
+      "hours": 24,
+      "peak": "2026-10-22T21:00Z",
+      "area": "Ushant",
+      "lon": -10.75,
+      "lat": 48.5,
+      "hs_m": 12.2,
+      "tp_s": 14.4,
+      "wave_from_deg": 289.0,
+      "wind_sea_m": 11.9,
+      "swell_m": 2.6,
+      "swell_from_deg": 218.0,
+      "rise_24h_m": 7.7,
+      "max_wind_kn": 65.0
+    },
+    "start_selection": "storm_peak",
+    "demonstration": {
+      "annual_peak_hs_m": 12.19999972730875,
+      "peak_lon_lat": [
+        -10.75,
+        48.5
+      ],
+      "budget_source": "explicit_user_request",
+      "selected_candidate_ids": [
+        6,
+        9,
+        10,
+        12,
+        13,
+        14,
+        16,
+        17
+      ]
+    }
+  },
+  "environment": {
+    "waves": {
+      "path": "scenarios/sole-20261022-21/environment/waves.nc",
+      "sha256": "835e2f7526713a9287dfd152d31386f827bad4db8dfbcf40af7c8189689c7abd",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "currents": {
+      "path": "scenarios/sole-20261022-21/environment/currents.nc",
+      "sha256": "fa5679ec82bc2d9bb74fe9c15f2137d083478997096ddb0ae8479e8465945a35",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    },
+    "wind": {
+      "path": "scenarios/sole-20261022-21/environment/wind.nc",
+      "sha256": "f71c32391695c49e23cf0ba23fce25cb8a310ff5c40e125b53b96433e6204328",
+      "role": "historical_reconstruction",
+      "available_to_player": false
+    }
+  },
+  "voyage": {
+    "version": 1,
+    "origin": {
+      "name": "Brest",
+      "country": "France",
+      "lon": -4.5,
+      "lat": 48.383
+    },
+    "destination": {
+      "name": "Las Palmas",
+      "country": "Spain",
+      "lon": -15.417,
+      "lat": 28.15
+    },
+    "track": [
+      [
+        -4.5,
+        48.383
+      ],
+      [
+        -4.54189,
+        48.34733
+      ],
+      [
+        -4.780599,
+        48.299559
+      ],
+      [
+        -4.899391,
+        48.509285
+      ],
+      [
+        -5.003463,
+        48.693021
+      ],
+      [
+        -5.5,
+        48.6667
+      ],
+      [
+        -5.661424,
+        48.681543
+      ],
+      [
+        -5.952971,
+        48.708351
+      ],
+      [
+        -6.510489,
+        48.759616
+      ],
+      [
+        -7.193705,
+        48.822439
+      ],
+      [
+        -10.632436,
+        49.138636
+      ],
+      [
+        -10.630839,
+        49.118042
+      ],
+      [
+        -10.602881310764015,
+        48.76150044577309
+      ],
+      [
+        -10.558668,
+        48.187125
+      ],
+      [
+        -10.462429,
+        46.945761
+      ],
+      [
+        -10.404053,
+        46.192784
+      ],
+      [
+        -10.194961,
+        43.495763
+      ],
+      [
+        -10.176425,
+        43.256675
+      ],
+      [
+        -10.167909,
+        43.146826
+      ],
+      [
+        -10.289669,
+        42.796988
+      ],
+      [
+        -11.070622,
+        40.553191
+      ],
+      [
+        -11.158374,
+        40.301066
+      ],
+      [
+        -11.664545,
+        38.84676
+      ],
+      [
+        -11.81009,
+        38.428587
+      ],
+      [
+        -12.057515,
+        37.717697
+      ],
+      [
+        -12.131862,
+        37.504085
+      ],
+      [
+        -12.262448,
+        37.128892
+      ],
+      [
+        -12.32612,
+        36.945951
+      ],
+      [
+        -12.493983,
+        36.463656
+      ],
+      [
+        -12.608538,
+        36.134522
+      ],
+      [
+        -12.761203,
+        35.695892
+      ],
+      [
+        -12.839781,
+        35.470126
+      ],
+      [
+        -13.114888,
+        34.6797
+      ],
+      [
+        -13.32875,
+        34.065242
+      ],
+      [
+        -13.9051,
+        32.4093
+      ],
+      [
+        -15.172119,
+        29.337503
+      ],
+      [
+        -15.145809,
+        28.538331
+      ],
+      [
+        -15.128174,
+        27.999252
+      ],
+      [
+        -15.417,
+        28.15
+      ]
+    ],
+    "distance_nm": 1584.844490722498,
+    "snapped_position": [
+      -10.602881310764015,
+      48.76150044577309
+    ],
+    "snap_distance_nm": 0.4683837540433036,
+    "provenance": {
+      "method": "weighted_dijkstra_through_snapped_network_position",
+      "generation_method": "weighted_dijkstra_through_snapped_network_position",
+      "authored": true,
+      "source": "searoute embedded Eurostat SeaRoute MARNET (searoute/data/marnet_searoute.geojson)",
+      "searoute_version": "1.6.0",
+      "graph_source": "searoute embedded Eurostat SeaRoute MARNET (searoute/data/marnet_searoute.geojson)",
+      "graph_nodes": 9708,
+      "graph_edges": 15970,
+      "graph_weight_unit": "km",
+      "weight_to_nm": 0.5399568034557235,
+      "distance_unit": "nm",
+      "catalogue_path": "web/game/ports.json",
+      "catalogue_provenance": "Extracted with Node from web/game/deepwater-ports.js on 2026-10-30; NGA World Port Index (Pub. 150) coordinates where available, otherwise hand-placed; container ports with ocean-going calls, not a depth survey.",
+      "catalogue_ports": 223,
+      "catalogue_sha256": "f795808c60922104e2b72b3372b10ba0c294d5c9aea33ca94fb86c17b3ea29d3",
+      "coordinates": "WGS84 lon/lat",
+      "snap_method": "nearest_edge_projection",
+      "snap_fallback_from": null,
+      "snap_edge": [
+        [
+          -10.630839,
+          49.118042
+        ],
+        [
+          -10.558668,
+          48.187125
+        ]
+      ],
+      "initial": {
+        "lon": -10.6147,
+        "lat": 48.7611,
+        "heading_deg": 279.9,
+        "time": "2026-10-22T21:00:00Z",
+        "speed_mps": 5.0
+      },
+      "origin_port_bearing_deg": 93.06084258372866,
+      "destination_port_bearing_deg": 191.94787265622492,
+      "origin_departure_bearing_deg": 357.06205898392824,
+      "destination_departure_bearing_deg": 177.06205898393614,
+      "branch_separation_deg": 179.9999999999921,
+      "network_distance_nm": 1584.748606867221,
+      "score": 348.0574302068227,
+      "dateline_crossings": 0,
+      "dateline_crossing_indices": []
+    },
+    "authored": true
+  },
+  "gameplay": {
+    "path": "scenarios/sole-20261022-21/gameplay.json",
+    "sha256": "f31250c4fe3f9e395c491a5b0da8e3fdbeb4e5dae81a269b2c885e8bf0f92e68"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "retrieved_utc": "2026-10-30",
+  "simroute_palma_barna": {
+    "title": "SIMROUTE Palma de Mallorca to Barcelona reference case",
+    "citation": "Grifoll, M., Boren, C., Castells-Sanabra, M. (2022), Ocean Engineering 255, 111427, https://doi.org/10.1016/j.oceaneng.2022.111427",
+    "source": "https://github.com/ManelGrifoll/SIMROUTE",
+    "benchmark_snapshot_commit": "7d9a3381b8078013f63c3007c10f60dcf4f19f93",
+    "current_head_commit": "e4fd57129f0eda34f7d3fb73278a2644f04d0b45",
+    "license": "No license file in repository; no upstream code copied",
+    "case": {
+      "start_utc": "2020-01-20T09:00:00Z",
+      "grid_nodes": [125, 109],
+      "grid_step_nm": 1.5,
+      "start_node": 1411,
+      "end_node": 12781,
+      "start_lon_lat": [2.9, 39.225],
+      "end_lon_lat": [2.775, 41.5],
+      "cruise_speed_kn": 16.1,
+      "wave_effect": "WEN_form=1 (Bowditch)",
+      "wave_time_resolution_h": 1,
+      "trimmed_hourly_steps": 39
+    },
+    "data": {
+      "url": "https://github.com/ManelGrifoll/SIMROUTE/blob/7d9a3381b8078013f63c3007c10f60dcf4f19f93/in/waves.npz",
+      "sha256": "10ad9eb9b445462b83e34772ee3f48d2c969fd5780f2929b36ff4eebf7270027",
+      "arrays": ["hs_m", "peak_frequency", "wave_from_deg"]
+    },
+    "published_reference": {
+      "url": "https://github.com/ManelGrifoll/SIMROUTE/blob/7d9a3381b8078013f63c3007c10f60dcf4f19f93/out/Res_Palma_Barna.txt",
+      "sha256": "5c3b619c419e826e6360b74af89970efb5ab57cc3d067271d41695205b0eb25a",
+      "optimized_without_waves": {"hours": 9.40, "miles": 151.38},
+      "optimized_with_waves": {"hours": 14.97, "miles": 161.56},
+      "minimum_distance_with_waves": {"hours": 16.93, "miles": 151.38}
+    },
+    "independent_reproduction": {
+      "implementation": "Clean Python/NumPy A* reimplementation from the published algorithm and inspected source behaviour; no upstream code copied. The archived case tree was used only as validation input.",
+      "optimized_without_waves_h": 9.4026368221269,
+      "optimized_with_waves_h": 14.973725552938715,
+      "minimum_distance_with_waves_h": 16.928160301539155,
+      "optimized_with_waves_miles": 161.55764036833142,
+      "minimum_distance_miles": 151.38245283624312,
+      "reference_edge": {
+        "from_node": 1411,
+        "to_node": 1540,
+        "hours": 0.31247075703352833,
+        "distance_miles": 4.8832689428539195,
+        "mean_hs_m": 1.329844330920562,
+        "wave_from_deg": 112.51947885022184,
+        "course_deg": 72.07953735326944,
+        "effective_speed_kn": 15.627923038986786
+      }
+    },
+    "status": "independent_reproduction",
+    "caveats": [
+      "The current repository head uses a later refactor and a different wave-prepare file convention; the bundled Palma report belongs to the 2021 snapshot above.",
+      "The published report rounds hours and miles to two decimals. Reproduction is exact to floating-point roundoff before rounding.",
+      "No licence file was present at either inspected commit. The implementation is independent and does not redistribute upstream source."
+    ]
+  },
+  "visir2": {
+    "title": "VISIR-2 ship weather routing in Python",
+    "citation": "Mannarini, G., Salinas, M. L., Carelli, L., Petacco, N., Orovic, J. (2024), Geoscientific Model Development 17, 4355-4382, https://doi.org/10.5194/gmd-17-4355-2024",
+    "repository": "https://doi.org/10.5281/zenodo.10960842",
+    "zenodo_record": 10960842,
+    "publication_date": "2024-04-11",
+    "license": "GPL-3.0-or-later",
+    "snapshot": {
+      "file": "VISIR-2--gmd_2023.zip",
+      "sha256": "62a3a79bb668e38459e35ca44114d07cdde12802df14ba0ca44bca75b5ed4a74",
+      "license_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    "inspected_algorithm": {
+      "search": "time-dependent Dijkstra with edge weights from arrival-time-indexed wave and current fields",
+      "current_composition": "SOG = w_parallel + sqrt(STW^2 - w_cross^2), with negative SOG masked",
+      "edge_delay": "edge length / SOG",
+      "wave_effect": "vessel performance curve gives STW as a function of wave angle and height",
+      "graph": "projected Cartesian graph; coast screens and edge-length geometry outside the search"
+    },
+    "available_reference_benchmarks": {
+      "analytic_current": {
+        "url": "https://zenodo.org/records/10960842",
+        "file": "__data/Validazioni/Analitiche_curr.csv",
+        "sha256": "406b8565d1523d65f9b1c24f307ac9fc4e4f7e1457dd36b8590c0a4d06e9a713",
+        "analytic": {"L_over_L0": 1.00480754, "T_over_T0": 1.03038814},
+        "status": "reproduced_official"
+      },
+      "alboran_current_wind": {
+        "url": "https://zenodo.org/records/10960842",
+        "file": "__data/Validazioni/Benchmark_VISIR2_current_wind.csv",
+        "sha256": "08e272792147d526c80144c57addf12d359dc5ef999b11e73d09fa328c550c6c",
+        "example_row": {"nu": 6, "invDx": 18, "Tstar_h": 53.399080927155474, "Sint": 1},
+        "status": "not_run"
+      }
+    },
+    "reproduction": {
+      "result_file": "agent/references/visir2-run.json",
+      "runner_command": "uv run python -m agent.references.reproduce visir2 --cache /private/tmp/tide-reference-cache --offline",
+      "case": "official_analytic_current_techy",
+      "reproduction_kind": "original_reference_code_executed_externally",
+      "measured_utc": "2026-10-30T16:12:39Z",
+      "source_archive_sha256": "62a3a79bb668e38459e35ca44114d07cdde12802df14ba0ca44bca75b5ed4a74",
+      "analytic_input_sha256": "01cd73822cef63e1f740848624b352f5b3931eddc4c34d7f3fcc75be7c3f9784",
+      "analytic_reference_csv_sha256": "406b8565d1523d65f9b1c24f307ac9fc4e4f7e1457dd36b8590c0a4d06e9a713",
+      "stage_log_sha256": {
+        "01-grafi.log": "2fef27a6914f917670de525d84faebe285d9530ca72d29b6d2c7487a2ee20eb6",
+        "02-campi.log": "2d9a5bec2f1ab8e5201bea74297c0cc1f6f5398d6ac1dd3df30b20573f1e73bc",
+        "03-analitiche.log": "d6c585ee3e0ac48c661e60a4174a5463d6f11a2c2b197e0a0639273963ab93f3"
+      },
+      "runtime": {"python": "3.9.6", "numpy": "1.23.5", "scipy": "1.9.3", "pandas": "1.5.3", "networkx": "2.5.1"},
+      "measured": {
+        "L_over_L0": 1.017587668235335,
+        "T_over_T0": 1.0568394582308234,
+        "least_distance_L_over_L0": 0.9999938133589362,
+        "least_distance_T_over_T0": 1.0860655500855503,
+        "time_waypoints": 31,
+        "arrival_iso": "2000-01-01T01:03:24Z"
+      },
+      "reference": {"L_over_L0": 1.00480754, "T_over_T0": 1.03038814},
+      "comparison": {
+        "tolerance_percent": 3.0,
+        "delta_L_percent": 1.2718981224339767,
+        "delta_T_percent": 2.5671217674170315,
+        "passed": true
+      },
+      "official_verdict": "Curr analytic PASSED"
+    },
+    "status": "official_analytic_current_reproduced",
+    "alboran_full_numerical_status": "not_run",
+    "reason": "The original VISIR-2 code reproduced the official small analytic-current benchmark. The full Alboran current-and-wind numerical case was not run, because it needs the official graph, S175 performance models and large external environmental products. This repository does not redistribute or copy upstream VISIR-2 source or those inputs.",
+    "assumptions_for_tide_adaptation": [
+      "No VISIR-2 vessel performance curve for S175 is available here.",
+      "The TIDE adaptation therefore uses an Aertssen wave-speed proxy and the published current composition.",
+      "Empirical edge times only rank and time candidate routes. Full Session physics decides passage, cargo and failure outcomes.",
+      "The TIDE adaptations do not reproduce all upstream features and do not replace TIDE physics."
+    ]
+  },
+  "tide_adaptations": {
+    "simroute": {
+      "solver": "simroute:astar_aertssen",
+      "algorithm": "A* on a bounded local grid with Aertssen speed loss, no current, midpoint time predictor",
+      "why_not_bowditch_in_gameplay": "The faithful Bowditch reference model gives sub-knot speeds for the 175 m S175 at storm Hs, so the game adaptation uses SIMROUTE's Aertssen WEN_form=2 instead.",
+      "reference_exercise": "simroute_palma_barna reproduces the Bowditch WEN_form=1 benchmark independently."
+    },
+    "visir2": {
+      "solver": "visir2:td_dijkstra_aertssen_current",
+      "algorithm": "time-dependent Dijkstra, Aertssen speed-loss proxy, VISIR-2 current composition, headings separated from ground courses",
+      "reference_exercise": "The TIDE solver is not an execution of VISIR-2. The separate visir2.reproduction entry records the official analytic-current pass. The TIDE adaptation does not reproduce the upstream graph, full performance model or Alboran numerical benchmark."
+    }
+  }
+}

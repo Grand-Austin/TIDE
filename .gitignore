@@ -1,3 +1,13 @@
+# AI and IDE specific files
+AGENTS.md
+CLAUDE.md
+.vscode/
+.agents/
+.codex/
+
+# archive/ holds local-only copies of earlier implementations and studies
+archive/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -223,8 +233,21 @@ data/raw/
 *.nc
 # Curated Copernicus subsets are committed on purpose, see data/copernicus/README.md
 !data/copernicus/*.nc
+!data/storms/*/*/*.nc
+# A scenario may carry its own Copernicus cut when the wider window is not a committed storm subset
+!scenarios/*/environment/*.nc
 *.zarr/
 node_modules/
 .vercel/
 .DS_Store
 .claude/settings.local.json
+
+# TIDE generated data and local game output
+data/processed/
+data/runs/
+
+# Local Agent credentials and session state
+config/api_keys.local.json
+
+# Blender autosave backups
+*.blend1

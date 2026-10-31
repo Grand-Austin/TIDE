@@ -1,39 +1,76 @@
-# SeaSense
+# TIDE
 
-*Solve real cases at sea. Build the judgment future mariners need.*
+*Observe sea conditions, command a vessel, and learn from the consequences.*
 
-SeaSense is a decision-training platform for navigation students, built for the Copernicus Marine Service Hackathon 2026 (theme: advancing ocean research, knowledge, skills and innovation). Each case is a real historical day in the Mallorca–Menorca channel, mined from Copernicus Marine data. Students investigate the evidence, choose a route and departure time, then replay what the sea actually did and find the point where their decision should have changed.
+TIDE is a maritime training-game prototype. Players command a vessel in historical marine conditions through repeated heading and speed decisions. The target architecture uses a Director Agent to orchestrate local simulation tools and game rules. A Copilot translates natural-language input into actions.
 
-> SeaSense is a training tool. It is not a navigation or safety decision tool.
+The Python simulation toolkit implements continuous S175 six-degree-of-freedom motion, environmental sampling and exposure. See [SIMULATION.md](docs/SIMULATION.md) for setup, Python calls and modelling limits. Game rules and Director implementation are tracked in PLAN.md; see [GAME_RUNTIME.md](docs/GAME_RUNTIME.md) for command-line operation and credential setup. The scenario pipeline builds and validates a curated historical escape exercise; see [DATA_PIPELINE.md](docs/DATA_PIPELINE.md). Earlier route-selection analysis and export tools remain in `pipeline/` for reference and reuse; existing browser prototypes remain available.
+
+> TIDE is a training prototype, not a navigation or safety decision tool.
 
 ## Repository layout
 
-```
-pipeline/          Python: fetch Copernicus data, simulate routes, mine cases, export case files
-tests/             pytest tests for pipeline code
-data/copernicus/   Copernicus Marine NetCDF subsets used by the pipeline (see its README)
-data/candidates.json  candidate case days from pipeline/mine.py
-web/prototype/     clickable prototype on the real case files (python -m http.server -d web, open /prototype/)
-web/map-spike/     animated map of one real day (python -m http.server -d web, open /map-spike/)
-web/public/cases/  case files from pipeline/export_cases.py (format in docs/SCHEMA.md)
-web/public/maps/   one day of waves, currents and wind over the Balearics, from pipeline/export_map.py
-docs/SCHEMA.md     JSON contracts between pipeline, web and api
-docs/ARCHITECTURE.md  components, data flow, AI coach design, deployment, known limits
-docs/METHODS.md    data, simulation, thresholds, sensitivity results
+```text
+pipeline/             Current data collection, preparation and scenario construction
+game/                 Python runtime core
+  simulation/         Environment sampling, vessel dynamics, exposure, and events
+  rules/              Mission objectives, time limits, and game cargo loss
+  director/           Agent-orchestrated game loop and local execution tools
+  copilot/            Natural-language intent to heading and speed actions
+scenarios/            Curated scenario definitions, briefings, and data references
+data/
+  copernicus/         Existing committed environmental subsets
+  vessels/            Vessel metadata, model references, and source documentation
+  raw/                Additional downloads and external model files (ignored)
+  processed/          Generated environmental and vessel-model products (ignored)
+  runs/               Local trajectories, event logs, and trial results (ignored)
+web/
+  game/               Storm game frontend: 3D scene, replay and live play
+tests/                Tests for pipeline and game capabilities
+docs/                 Product and architecture
+archive/              Local, untracked copies of earlier implementations (ignored)
+PLAN.md               Implementation checklist
+STATUS.md             Current state, decisions and open questions
+CONTRIBUTING.md       Rules for contributors and coding agents
 ```
 
-Planned: `web/` app, `api/` (AI coach and play-test log).
+### Ownership and implementation order
+
+- **Offline preparation:** `pipeline/` reads source data and produces scenario inputs. Scenario Builder assistance belongs here.
+- **Runtime capabilities:** `game/simulation/` and `game/rules/` contain reusable local calculations. Both the pipeline and Director can call them; runtime code must not depend on the offline pipeline.
+- **Game flow:** `game/director/` receives actions and invokes tools. Local validation, state updates, and pause handling do not require a separate Session Controller service.
+- **Player input:** `game/copilot/` produces the same heading and speed actions as direct controls. `web/game/` presents the game; it does not duplicate simulation logic.
+- **Verification:** `tests/` follows the implementation boundaries. Tests cover current capabilities and the retained earlier route-selection pipeline.
+
+Follow [PLAN.md](PLAN.md): build and verify the toolkit, prepare one manual scenario, add rules, connect the Director, automate scenario construction, then build the frontend and Copilot. Shared action and state definitions can live directly in `game/` when implemented. No API framework or frontend framework is selected by this template.
 
 ## Setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest
+uv sync --locked
+uv run python -m pipeline.prepare_vessel
+uv run python -m game.simulation --seconds 60
+uv run python -m pytest
 ```
 
+CI (`.github/workflows/ci.yml`) runs the same steps on a fresh clone for every push and pull request, plus a two-minute scripted game run. No secrets are needed: tests use the committed Copernicus subsets.
+
 Copernicus Marine data needs a free account. Log in once with `copernicusmarine login`; credentials stay on your machine and must never be committed.
+
+## Play the storm game
+
+```bash
+uv run python -m game.live                 # then open http://localhost:8000/game/
+uv run python -m game.live --unvalidated   # playtests: also offer scenarios without a passing validation
+```
+
+The page opens the first validated storm scenario (`scenarios/biscay-*`, see
+[docs/STORM_SCENARIOS.md](docs/STORM_SCENARIOS.md)): leave the storm's hidden adverse-weather area within two hours
+and lose as little cargo as you can. Arrow keys change the ordered heading and speed, Space pauses; decision points
+ask what you see and why. The scene list also offers 34 storm replays with fixed demonstration orders.
+After a motion-model change every report is out of date until the scenarios are revalidated, so the plain command
+lists no storm to play; `--unvalidated` lists them marked `[unverified]`.
+See [web/game/README.md](web/game/README.md) for what is data and what is not.
 
 ## Copernicus Marine products
 
