@@ -12,9 +12,10 @@ def scenario_definition():
 
 
 def briefing_for(definition):
-    game = object.__new__(Game)  # briefing() reads the scenario definition and the rules' field extent
+    game = object.__new__(Game)  # briefing() reads the scenario definition, the rules' field extent and the agents
     game.scenario = SimpleNamespace(definition=definition)
     game.session = SimpleNamespace(rules=SimpleNamespace(report_bbox=definition["area_bbox"]))
+    game.copilot, game.solutions = None, None
     return game.briefing()
 
 

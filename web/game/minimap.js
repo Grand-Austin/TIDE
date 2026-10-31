@@ -11,7 +11,7 @@
 import { toLocal, sampleAt, latest } from "./replay.js";
 import { relativeSea, GRADE_COLORS } from "./panel.js";
 import { addWeather, forecastField, HS_GRADIENT } from "./weather-layer.js";
-import { beaufort } from "./live.js";
+import { beaufort, referenceTrack } from "./live.js";
 import { nearbyPorts, portFeature, rangeRing, portPopup, PORT_RANGE_NM } from "./port-guide.js";
 import { routeFeature } from "./ocean-route.js";
 import { haversineNm } from "./geo.js";
@@ -140,8 +140,9 @@ export function createMinimap(container, { replay, duration, live, field }) {
       document.documentElement.style.setProperty("--map-box", `${figure.offsetHeight}px`);
   }).observe(figure);
   const legend = document.getElementById("map-legend"), settle = document.getElementById("map-settle");
+  const refLegend = document.getElementById("map-ref-legend");
   let map = null, marker = null, placed = false, ready = false, follow = false, ship = [replay.lon[0], replay.lat[0]], drawnAt = -1, geo = null, count = -1;
-  let reportsKey = "", shownPreview = null, lossKey = -1, setWeather = null, windOn = false;
+  let reportsKey = "", shownPreview = null, shownReference, lossKey = -1, setWeather = null, windOn = false;
   let portsOn = true, portShip = null; // the port layer redraws only after the ship has moved
   const startMs = Date.parse(replay.start_utc);
   if (maplibre) {
@@ -159,7 +160,7 @@ export function createMinimap(container, { replay, duration, live, field }) {
     map = new maplibre.Map({ container, style: "https://tiles.openfreemap.org/styles/dark", bounds, fitBoundsOptions: { padding: 12 },
       attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
     map.on("load", () => {
-      for (const id of ["forecast", "forecast-arrow", "area", "ahead", "sailed", "preview"]) map.addSource(id, { type: "geojson", data: line([]) });
+      for (const id of ["forecast", "forecast-arrow", "area", "ahead", "sailed", "preview", "reference"]) map.addSource(id, { type: "geojson", data: line([]) });
       map.addLayer({ id: "forecast", type: "fill", source: "forecast", paint: { "fill-color": HS_COLORS, "fill-opacity": 0 } }); // an anchor: the colour is the weather layer's
       if (field) (setWeather = addWeather(map, field, "forecast")).wind(windOn); // replays: the Copernicus field under everything else
       map.addLayer({ id: "forecast-edge", type: "line", source: "forecast", paint: { "line-color": HS_COLORS, "line-opacity": 0.6 } });
@@ -181,6 +182,9 @@ export function createMinimap(container, { replay, duration, live, field }) {
         paint: { "line-color": "#5cc8e8", "line-width": 3 } });
       map.addLayer({ id: "preview", type: "line", source: "preview", layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#f2a93b", "line-width": 2.5, "line-dasharray": [1.5, 1.5] } });
+      // the Copilot's validated reference route, while its card is open: red and dashed, never the player's track
+      map.addLayer({ id: "reference", type: "line", source: "reference", layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#e25c4b", "line-width": 2.5, "line-dasharray": [3, 2] } });
       if (live) map.getSource("area").setData(outline(live.brief.area_bbox));
       // guidance ports: the nearest few container ports within PORT_RANGE_NM of the ship, and that range as a ring
       map.addSource("port-range", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -239,8 +243,20 @@ export function createMinimap(container, { replay, duration, live, field }) {
       follow = on;
       locateButton.setAttribute("aria-pressed", String(on));
     };
+    // Live play: "close" means two forecast cells across, which keeps the ship's own sea in view. The report grid
+    // is 3 x 3 over the field extent, so two cells are two thirds of that box, centred on the ship.
+    const twoCells = () => {
+      const [west, east, south, north] = live.brief.field_bbox ?? live.brief.area_bbox;
+      const [dx, dy] = [((east - west) * 2) / 3, ((north - south) * 2) / 3];
+      return [[ship[0] - dx / 2, ship[1] - dy / 2], [ship[0] + dx / 2, ship[1] + dy / 2]];
+    };
     const locate = (duration = 1200) => {
       setFollow(true);
+      if (live) {
+        const view = map.cameraForBounds(twoCells(), { padding: 8 }) ?? {};
+        map.flyTo({ ...view, center: ship, zoom: view.zoom ?? CLOSE_ZOOM, duration, essential: true });
+        return;
+      }
       map.flyTo({ center: ship, zoom: Math.max(map.getZoom(), CLOSE_ZOOM), duration, essential: true });
     };
     locateButton.onclick = () => locate(); // always re-centres; dragging the map is what stops following
@@ -318,6 +334,14 @@ export function createMinimap(container, { replay, duration, live, field }) {
         shownPreview = live.preview;
         const ahead = shownPreview ? shownPreview.track.filter((p) => p[2] > t).map(([lon, lat]) => [lon, lat]) : [];
         map.getSource("preview").setData(line(ahead.length ? [[s.lon, s.lat], ...ahead] : []));
+      }
+      // the Copilot's reference route: from the ship to its remaining waypoints, only while its card is open
+      const route = live.copilot?.route ?? null;
+      if (route !== shownReference) {
+        shownReference = route;
+        const track = referenceTrack(live.copilot), coords = track.length ? [[s.lon, s.lat], ...track] : [];
+        map.getSource("reference").setData(line(coords.length >= 2 ? coords : []));
+        if (refLegend) refLegend.hidden = coords.length < 2;
       }
       settle.textContent = settleNote(shownPreview, t);
     }

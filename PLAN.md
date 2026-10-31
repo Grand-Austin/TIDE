@@ -139,7 +139,7 @@ Confirmed product decisions are recorded in [Product.md](docs/Product.md), secti
 
 - **Status (2026-10-30 handoff):** The `agent/` package and the Builder are implemented and tested. The Builder writes review-staging packages and never publishes. No current Biscay package has a qualified route, so no second playable scenario exists yet. Real pipeline monitoring is the parent priority. This documentation pass defines planned Copilot and Tutor scope; it implements no role runtime, steering calibration or training.
 - **Director:** Entrypoints remain disabled. Stage 4 records historical Director work. Do not treat Director as a current play path or add a speculative future Director role.
-- **Roles:** Builder is the only implemented Agent role. Copilot and Tutor remain planned. The planned Copilot has advisory L1 and L2 hint modes and an explicitly enabled route-following control mode. The planned Tutor produces a concise settlement-page evaluation. No Copilot or Tutor tool set is implemented today. See section 7.15.
+- **Roles:** Builder, Copilot advisory L1/L2 and the Tutor debrief are implemented. The Copilot's advisory modes run on the 3D live page behind `--agent`; its explicitly enabled route-following control mode remains planned. The Tutor adds two evidence-backed sentences to the live result card. See section 7.15.
 - **Authority:** The local `Session` remains authoritative for physics, cargo, ship loss, mission rules and state. Agents call scoped local tools; they do not calculate or commit a physical result.
 
 **Historical baseline (2026-10-30):** Local branch `experiment` includes upstream `4101d2d`; 519 Python tests and 37 frontend tests passed at that time. The 519/37 counts are a historical baseline, not verification of the solutions-package changes. The original Agent stash `ef3ac67dbb487a9a1cbb472732c627335f3bf264` is retained. Agent work is not committed or pushed. Live NIM Builder execution and a qualified/published Biscay package remain operational follow-up; full Alboran benchmarking is out of scope.
@@ -161,9 +161,9 @@ Implementation and operating details are in [agent/README.md](agent/README.md). 
 - [x] Add `models.json` Builder profiles for NVIDIA NIM and explicit OpenRouter, plus an ignored local key file and a key-free example. Evidence: `models.json`, `config/api_keys.example.json`; `git check-ignore` confirms `config/api_keys.local.json` is ignored; `tests/test_agent_builder.py::test_ai_mode_can_inspect_and_revise_without_external_calls` uses an injected transport.
 - [x] Provide deterministic local mode and controlled AI mode. Local mode makes no model call and reads no key. AI mode lets the model select, inspect, revise and finalize only through Builder tools; local code still decides qualification and packaging. Evidence: `agent/__main__.py`; `tests/test_agent_builder.py::test_ai_mode_can_inspect_and_revise_without_external_calls`.
 - [ ] **IMPLEMENTED BUT NOT LIVE-VERIFIED:** Run `--mode ai` against a real Builder provider with a real key. No such run is recorded. Tests use injected transports and no external provider call.
-- [ ] Implement Copilot advisory modes. Planned scope: an expanded-map hint button requests L1 (complete currently released forecast plus visible state, no solutions access) or L2 (temporary request-scoped solutions read that returns a route id, red reference line and short insight). Both are advisory only. See section 7.15.
+- [x] Implement Copilot advisory modes: an expanded-map hint button requests L1 (released forecast plus visible state, no solutions access) or L2 (one request-scoped route that returns a route id, red reference line and short insight). Both are advisory only. Evidence: `agent/copilot.py`, `agent/copilot_harness/`, `tests/test_agent_copilot.py`, `tests/test_live_copilot.py`; live NIM run on 2026-10-31 returned an agent insight for L1 and an agent route note for L2. See section 7.15.
 - [ ] Implement Copilot route-following control. Planned scope: explicit route drawing, preview and grant; bounded heading and speed orders through authoritative Session/TUI MCP tools; deterministic local controller; immediate human override and outcome stops. It never edits scores or rules. See section 7.15.
-- [ ] Implement Tutor. Planned scope: read the terminal game log and show a two-sentence, evidence-backed settlement-page evaluation with cited facts, no fabricated outcome and no rule or score changes. See section 7.15.
+- [x] Implement Tutor: read the live game log and show a two-sentence, evidence-backed evaluation on the result card with cited facts, no fabricated outcome and no rule or score changes. Evidence: `agent/tutor.py`, `agent/tutor_harness/`, `tests/test_agent_tutor.py`, `tests/test_live_copilot.py`; live NIM run on 2026-10-31 returned an agent debrief. The terminal settlement page is not wired. See section 7.15.
 
 ### 7.2 Simulator service and interaction hosts
 
@@ -177,7 +177,7 @@ Implementation and operating details are in [agent/README.md](agent/README.md). 
 - [x] Reject scenario references outside the project and invalid orders before starting a trial. Evidence: `tests/test_agent_simulator.py::test_scenario_reference_must_stay_inside_project`, `::test_run_plan_rejects_invalid_orders_without_starting_a_trial`.
 - [x] Host the actual original terminal screen in `agent.tui`, expose the same Session on a private Unix socket, reject an existing socket path, set mode `0600`, and let MCP attach with `--socket`. Evidence: `agent/tui.py`; `tests/test_agent_mcp.py::test_unix_socket_is_private_and_controls_the_same_live_session`, `::test_existing_socket_is_rejected_and_preserved`.
 - [x] Provide MCP stdio tools `create`, `read`, `step`, `fork`, `run_plan`, `plan_voyage` and `close`. Default `--workspace` owns independent headless trials; `--socket` controls the TUI Session. Evidence: `tests/test_agent_mcp.py::test_mcp_stdio_direct_handshake_and_real_trial`, `::test_mcp_stdio_socket_handshake_calls_same_live_session`; later voyage integration is tracked in stage 8.
-- [x] Keep the browser outside the Agent control and scoring path. This package adds no browser endpoint, checkpoint or score storage. Evidence: `grep` finds no browser module import in `agent/`; current `web/game` voyage changes are display-only and are covered in stage 8.
+- [x] Keep the browser outside the Agent control and scoring path. `POST /api/copilot` is the only browser endpoint into `agent/`; it is advisory and cannot order, pause, score or write game state, and the Tutor result stays in the `Game` object. Evidence: `game/live.py::Game.copilot_advice`, `::Game._prepare_tutor`; `tests/test_live_copilot.py`.
 - [ ] **UNIMPLEMENTED:** Batch MCP calls, a separate cancel RPC and a revision RPC. Current bounds are finite duration, workspace/trial lifetime, service close, TUI pause/close, stale-revision rejection and operation receipts. Builder route revisions are local candidate edits, not MCP command revisions.
 
 ### 7.3 Builder fixed inputs and calibrated outputs
@@ -345,9 +345,9 @@ Known limits at this handoff:
 - Copilot and Tutor runtime, steering calibration and extra-trial flows remain unimplemented. See section 7.15.
 - The solutions file does not promise that all possible routes are enumerated.
 
-### 7.15 Planned Copilot and Tutor scope: documentation-only handoff
+### 7.15 Copilot advisory and Tutor debrief scope
 
-**Status:** the design is documented. Runtime and evaluation are not implemented. Real pipeline monitoring remains the parent priority. No Copilot, Tutor, steering calibration, training or related test ran in this documentation pass.
+**Status:** Copilot L1/L2 advisory and the Tutor debrief are implemented on the 3D live page and live-verified against NVIDIA NIM on 2026-10-31. The route-following control mode, steering calibration, the terminal settlement page and prompt-version recording remain unimplemented. Real pipeline monitoring remains the parent priority.
 
 **Documentation completed in this pass**
 
@@ -359,24 +359,24 @@ Known limits at this handoff:
 
 **Copilot L1 implementation and evaluation**
 
-- [ ] Add the expanded-map hint button near the expanded-map controls and current mission guidance.
-- [ ] Build the L1 context adapter from the complete currently released Copernicus forecast payload for the scenario and valid window plus the current visible vessel state.
-- [ ] Expose the full forecast through a tool or chunked retrieval so the model does not receive or repeat a giant prose payload.
-- [ ] Enforce brief, sharp output: one actionable insight, a hard sentence or token limit, no forecast restatement and no generic advice.
-- [ ] Label dataset historical truth separately from an issued forecast when the current forecast is simulator-derived.
+- [x] Add the hint button near the expanded-map controls and current mission guidance; it is hidden unless the server enables the Copilot. Evidence: `web/game/index.html#map-hint`, `web/game/main.js`; manual browser check.
+- [x] Build the L1 context adapter: released forecasts arrive through `read_released_forecast`, and the prompt carries only scenario, time, vessel, target, cargo and sector. Evidence: `game/live.py::Game._copilot_context`, `agent/copilot.py`; `tests/test_agent_copilot.py::test_l1_reads_the_forecast_and_returns_the_model_sentence` asserts no `reports` or `solutions` key in the prompt.
+- [x] Expose the released forecasts through a tool rather than the prompt. Evidence: `agent/copilot_harness/tools_l1.json`.
+- [x] Enforce brief output: a 240-character and two-sentence limit, rejection of route, waypoint and solution wording, and a local fallback on any failure. Evidence: `agent/copilot.py::_valid_insight`; `tests/test_agent_copilot.py::test_l1_rejects_a_route_shaped_or_three_sentence_insight`.
+- [x] Label the released payload as a game forecast generated from the historical reconstruction, not an observation. Evidence: the tool note and label in `agent/copilot.py::Copilot._l1`.
 - [ ] Test prompts iteratively against fixed scenarios and require brevity and sharpness review. Record prompt versions and results.
-- [ ] Prove L1 cannot see unreleased bulletins, solutions, hidden regions or future realized fields. Future valid times inside the already released forecast are permitted.
-- [ ] Verify L1 has no solutions access and cannot return a route id or reference waypoints.
+- [x] Prove L1 cannot see unreleased bulletins, solutions, hidden regions or future realized fields: the prompt carries no `reports` list, and the tool returns only the currently released reports for that instant. Evidence: `tests/test_agent_copilot.py::test_l1_reads_the_forecast_and_returns_the_model_sentence`.
+- [x] Verify L1 has no solutions access and cannot return a route id or reference waypoints. Evidence: `tests/test_agent_copilot.py::test_each_mode_authorizes_only_its_own_tool`, `::test_l1_rejects_a_route_shaped_or_three_sentence_insight`.
 
 **Copilot L2 implementation and evaluation**
 
-- [ ] Implement a temporary, request-scoped read permission for `package/solutions.json`. Grant on request and revoke on completion, cancellation, timeout or error.
-- [ ] Prove the permission does not become a persistent prompt or a standing tool capability.
-- [ ] Implement route selection with spatial proximity, time, heading, speed, remaining budget, damage and current-source fingerprint matching.
-- [ ] Return `route_id` and reference waypoints, draw the red reference line in the frontend and show the short insight.
-- [ ] Define refusal cases: no near or suitable route, fingerprint mismatch, stale or unreleased source, expired permission and an arbitrary current state with no safe continuation.
-- [ ] Verify L2 never claims that an initial-state-validated route guarantees escape from the current state.
-- [ ] Add permission-lifecycle, red-line overlay, route-selection and refusal tests.
+- [x] Implement a temporary, request-scoped read permission for the solutions package: one selected route, granted per request and revoked in `finally`. Evidence: `agent/copilot.py::SolutionsGrant`; `tests/test_agent_copilot.py::test_the_grant_returns_one_route_and_stops_after_revoke`.
+- [x] Prove the permission does not persist: L2 writes no audit file and the harness receives one route, never the solutions list. Evidence: `tests/test_agent_copilot.py::test_l2_writes_no_route_audit_file`, `::test_l2_shows_one_sanitized_reference_route`.
+- [x] Implement route selection with spatial proximity, time gap, heading gap, remaining budget and package identity matching; damage is not a selector. Evidence: `agent/copilot.py::select_route`, `::load_solutions`; `tests/test_agent_copilot.py::test_the_nearest_matching_reference_route_wins_and_starts_at_the_match`, `::test_a_route_too_far_or_too_late_is_not_offered`.
+- [x] Return the route id and remaining waypoints, draw the red reference line in the frontend and show the short insight. Evidence: `web/game/minimap.js` reference layer, `web/game/live.js::copilotHtml`; manual browser check with `map-ref-legend` shown while the card is open.
+- [x] Define refusal cases: no released forecast, no package, stale package validation, no nearby route, mission ended and agent disabled. Evidence: `agent/copilot.py::load_solutions`, `::Copilot._l2`; `tests/test_agent_copilot.py::test_a_missing_package_names_the_first_failing_check`, `::test_l2_refuses_without_a_package_or_a_nearby_route`.
+- [x] Verify L2 never claims a guarantee: the route carries `guarantee: false`, caveats, and an insight check that rejects guarantee wording. Evidence: `agent/copilot.py::L2_FORBIDDEN`; `tests/test_agent_copilot.py::test_the_nearest_matching_reference_route_wins_and_starts_at_the_match`.
+- [x] Add permission-lifecycle, red-line overlay, route-selection and refusal tests. Evidence: `tests/test_agent_copilot.py`, `web/game/game.test.js`.
 
 **Route-following control implementation and evaluation**
 
@@ -393,18 +393,18 @@ Known limits at this handoff:
 
 **Tutor implementation and evaluation**
 
-- [ ] Implement a terminal game-log adapter that reads real decisions, timestamps, commands, events and outcomes.
-- [ ] Add settlement-page UI for a simple evaluation, by default two short sentences: one key decision and one improvement.
-- [ ] Require cited real facts from the log and prohibit fabricated outcomes or unsupported claims.
-- [ ] Add a factuality fallback: on missing evidence or model error, show a deterministic log-based summary or a clear unavailable message.
-- [ ] Verify the Tutor cannot edit rules, scores, judgement, stars, cargo totals or the recorded outcome.
-- [ ] Test concise-output limits, missing-log handling, citation correctness and fallback behaviour.
+- [x] Implement a game-log adapter that reads real decisions, timestamps, orders, sea samples and the outcome. The live result card is wired; the terminal settlement page is not. Evidence: `game/live.py::Game._tutor_evidence`; `tests/test_live_copilot.py::test_the_local_tutor_debriefs_the_finished_mission`.
+- [x] Add the two-sentence evaluation to the live Voyage result card, behind a loading frame. Evidence: `web/game/live.js::tutorHtml`, `::score`; `web/game/game.test.js`.
+- [x] Require cited fact ids and forbid any number the evidence does not carry. Evidence: `agent/tutor.py::Tutor._valid`, `::valid_sentence`; `tests/test_agent_tutor.py::test_an_invented_cargo_loss_is_rejected`.
+- [x] Add a deterministic log-based fallback on a missing read, an invalid answer or a model failure. Evidence: `agent/tutor.py::fallback_evaluation`; `tests/test_agent_tutor.py::test_a_failing_transport_still_debriefs_from_the_log`.
+- [x] Verify the Tutor cannot edit rules, scores, judgement, stars, cargo totals or the recorded outcome: the result is a message under the existing card. Evidence: `tests/test_live_copilot.py::test_a_failing_tutor_falls_back_without_touching_the_score`.
+- [x] Test concise-output limits, missing-log handling, citation correctness and fallback behaviour. Evidence: `tests/test_agent_tutor.py`, `tests/test_live_copilot.py`.
 
 **Cross-cutting checks**
 
-- [ ] Use the shared ignored `config/api_keys.local.json` and NVIDIA NIM transport for any future role call. Keep the fixed 30/60 attempt budget and no provider fallback.
-- [ ] Re-verify that Director stays disabled when Copilot or Tutor work begins, and enable no role by default.
-- [ ] Run the relevant role acceptance checks and record results before ticking runtime items. Do not rerun unrelated suites without a regression reason.
+- [x] Use the shared ignored `config/api_keys.local.json` and the NVIDIA NIM transport for both roles, with the fixed 30/60 attempt budget and no provider fallback. Evidence: `models.json` `copilot_nim` and `tutor_nim`; `agent/transport.py`.
+- [x] Re-verify that Director stays disabled and no role runs by default: `game.live` enables the roles only with `--agent`, and the briefing reports `copilot: {l1: false, l2: false}` otherwise. Evidence: `tests/test_live_copilot.py::test_without_agent_settings_the_copilot_is_absent`.
+- [x] Run the relevant acceptance checks: 33 new Python tests, 15 touched-suite regression tests, the full suite and 41 frontend tests passed on 2026-10-31. Live NIM runs returned an L1 insight, an L2 route note and a Tutor debrief.
 - [ ] Record real pipeline monitoring separately. This role documentation does not verify the pipeline.
 
 ## 8. Coastal Navigation Guard and Planned Voyage Context

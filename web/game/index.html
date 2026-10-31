@@ -93,6 +93,7 @@
   .sw { display: inline-block; width: 16px; height: 0; border-top: 3px solid var(--accent); }
   .sw.ahead { border-top: 2px dashed var(--order); }
   .sw.ocean { border-top: 2px dashed #8fa6ff; }
+  .sw.ref { border-top: 2px dashed #e25c4b; }
   .sw.port { width: 8px; height: 8px; border: 0; border-radius: 50%; background: #6ee7b7; }
   .sw.hs { height: 9px; border: 0; border-radius: 2px; background: linear-gradient(90deg, #4caf7d, #e6c84f, #f0954a, #b8324a); }
   #map-settle { flex-basis: 100%; color: var(--order); }
@@ -242,7 +243,7 @@
     <div class="track"><div id="p-total-bar"></div></div>
     <div class="row"><span>Deck cargo, 480 TEU</span><span class="mono" id="p-deck"></span></div>
     <div class="track"><div id="p-deck-bar"></div></div>
-    <div class="muted"><span id="p-lost"></span> · hold cargo cannot be lost, so the first bar stops at 60%</div>
+    <div class="muted"><span id="p-lost"></span></div>
   </section>
 
   <section>
@@ -256,11 +257,12 @@
     <button type="button" class="expand text" id="map-ports" aria-pressed="true" title="Container ports within 200 nm">Ports</button>
     <button type="button" class="expand text" id="map-wind" aria-pressed="false" title="Show the wind (Copernicus)">Wind</button>
     <button type="button" class="expand" id="map-locate" aria-pressed="false" aria-label="Centre on the ship and follow it" title="Centre on the ship and follow it"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align: middle"><path d="M21 3 3 10.5l7.5 3 3 7.5z" fill="currentColor"/></svg></button>
+    <button type="button" class="expand text" id="map-hint" hidden title="Ask the Copilot for advisory help">Hint</button>
     <button type="button" class="expand" id="map-expand" aria-pressed="false" aria-label="Enlarge the map" title="Enlarge the map">⤢</button></div>
   <div id="map" role="img" aria-label="Map of the ship's track, released forecast areas, the ocean track, the nearest container ports and the predicted track"></div>
   <div class="legend" id="map-legend"><span><i class="sw sailed"></i>sailed</span><span class="live-only"><i class="sw ahead"></i>your order</span>
     <span><i class="sw ocean"></i>Le Havre–Halifax track</span><span><i class="sw port"></i>container port ≤ 200 nm</span>
-    <span class="live-only"><i class="sw hs"></i>forecast Hs 0–10 m · arrow: waves run this way</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
+    <span class="live-only"><i class="sw hs"></i>forecast Hs 0–10 m · arrow: waves run this way</span><span class="live-only" id="map-ref-legend" hidden><i class="sw ref"></i>Copilot reference</span><span class="field-only"><i class="sw field"></i>Hs 0–10 m · wind (Copernicus)</span><span><i class="sw loss"></i>cargo lost (click)</span><span class="muted" id="map-settle"></span></div>
 </figure>
 
 <div class="views seg glass" id="views" role="group" aria-label="Camera view (keys 1-5)">

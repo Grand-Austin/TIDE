@@ -210,7 +210,8 @@ export async function startLive(id, { onLoss }) {
     orders: [{ t: 0, heading_deg: brief.initial.heading_deg, speed_knots: brief.initial.speed_mps * KN }],
     events: [],
   };
-  const live = { brief, replay, since: -1, state: null, helm: { heading: brief.initial.heading_deg, speed: brief.initial.speed_mps * KN } };
+  const live = { brief, replay, since: -1, state: null, copilot: null,
+    helm: { heading: brief.initial.heading_deg, speed: brief.initial.speed_mps * KN } };
   let timer = null;
 
   live.poll = async () => {
@@ -267,8 +268,65 @@ export async function startLive(id, { onLoss }) {
   };
   live.pause = (paused) => post("/api/pause", { paused });
   live.rate = (r) => post("/api/rate", { rate: r });
+  // One advisory request; the answer replaces the last one, and a network fault still has a readable reason.
+  live.askCopilot = async (mode) => {
+    const result = await post("/api/copilot", { mode }).catch(() => ({ status: "unavailable", reason: "network" }));
+    live.copilot = result;
+    return result;
+  };
   await live.poll();
   return live;
+}
+
+// ---------- Copilot and Tutor cards ----------
+// The reference line is drawn only from waypoints the server sanitized; anything else is ignored.
+export function referenceTrack(copilot) {
+  const points = copilot?.route?.waypoints;
+  if (!Array.isArray(points)) return [];
+  return points.filter((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite));
+}
+
+// Why the Copilot has no advice, in plain words: the server sends a reason, never a model message.
+const COPILOT_REASONS = {
+  agent_disabled: "Copilot is not enabled on this server.",
+  mission_ended: "The voyage is over, so the Copilot no longer advises.",
+  no_released_forecast: "No forecast has been released yet.",
+  solutions_unavailable: "No validated reference route is available for this scenario.",
+  no_nearby_reference_route: "No reference route passes near the current position and time.",
+  network: "The server could not be reached.",
+};
+
+// Chart positions to two decimals, as the reference line's own coordinates.
+const position = (c) => `${Math.abs(c.lat).toFixed(2)}° ${c.lat >= 0 ? "N" : "S"} ${Math.abs(c.lon).toFixed(2)}° ${c.lon >= 0 ? "E" : "W"}`;
+
+export function copilotHtml(result) {
+  if (!result) return `<p class="live-status">No advice is available.</p>`;
+  if (result.status !== "ready") {
+    return `<p>${escapeHtml(COPILOT_REASONS[result.reason] ?? "No advice is available.")}</p>`;
+  }
+  // no provider name in the card: the source that matters is whether a model answered or the local summary did
+  const source = result.source === "agent" ? "" : "Local summary";
+  const at = Number.isFinite(result.at_s) ? `${(result.at_s / 60).toFixed(0)} min` : "";
+  // the reference line's ends, so a model sentence has exact positions to sit beside; the local summary already
+  // contains them, so it is not repeated there
+  const route = result.mode === "l2" && result.source === "agent" ? result.route : null;
+  const ends = route?.start && route?.end && [route.start.lon, route.start.lat, route.end.lon, route.end.lat].every(Number.isFinite)
+    ? `<p class="live-status">${position(route.start)} → ${position(route.end)} · ` +
+      `${route.offset_nm.toFixed(1)} nm ${escapeHtml(route.side ?? `${route.direction} of you`)} · ` +
+      `runs ${escapeHtml(route.runs)}</p>`
+    : "";
+  return `<p>${escapeHtml(result.text)}</p>${ends}` +
+    `<p class="live-status">${[source, at, "advisory only"].filter(Boolean).join(" · ")}</p>`;
+}
+
+// The debrief: a pending frame while the Tutor reads the log, then two sentences and who wrote them.
+export function tutorHtml(tutor) {
+  if (!tutor) return `<p class="live-status">Debrief not available.</p>`;
+  if (tutor.status === "pending") return `<p class="live-status">Tutor is reading the log…</p>`;
+  if (tutor.status !== "ready") return `<p class="live-status">Debrief unavailable.</p>`;
+  const sentences = Array.isArray(tutor.sentences) && tutor.sentences.length
+    ? tutor.sentences : [tutor.decision?.text, tutor.improvement?.text].filter((t) => typeof t === "string" && t);
+  return `<div id="tutor"><p>${sentences.map(escapeHtml).join(" ")}</p></div>`;
 }
 
 // ---------- overlay: forecasts, decision card, result ----------
@@ -287,6 +345,11 @@ const CSS = `
     background: #0e1b29; color: var(--text); font: inherit; cursor: pointer; }
   .live-card .choices button[aria-pressed="true"], .live-card button.primary { background: #2b4660; color: #fff; }
   .live-card .actions { display: flex; justify-content: flex-end; gap: 8px; }
+  /* the advisory card stacks its two requests, so a long label never spills out of a fixed-height button */
+  .live-card .actions.stack { flex-direction: column; align-items: stretch; }
+  .live-card .actions.stack button { height: auto; min-height: 34px; padding: 8px 12px; line-height: 1.3; text-align: center; }
+  .live-card .actions button.close { border-color: rgba(226, 92, 75, 0.7); color: #f2a79b; }
+  .live-card .actions button.close:hover { border-color: #e25c4b; background: rgba(226, 92, 75, 0.14); color: #fff; }
   .live-card .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .live-card label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
   .live-card input, .live-card textarea { box-sizing: border-box; width: 100%; border: 1px solid #2b4660; border-radius: 4px;
@@ -344,11 +407,12 @@ export function liveOverlay() {
   let shownCheckpoint = null, shownScore = false, view = "status", pending = null;
 
   const el = (html) => Object.assign(document.createElement("template"), { innerHTML: html.trim() }).content;
-  const button = (label, fn, primary) => Object.assign(document.createElement("button"), { type: "button", textContent: label, onclick: fn,
-    className: primary ? "primary" : "" });
+  // primary fills the row; a plain keyword styles one button (e.g. "close" gets the quiet red outline)
+  const button = (label, fn, kind) => Object.assign(document.createElement("button"), { type: "button", textContent: label, onclick: fn,
+    className: kind === true ? "primary" : (kind ?? "") });
   // attention: a briefing or decision waits for the player; the card glows until they first touch it
   let readingOpen = false; // the card redraws on every poll: keep "How to read it" as the trainee left it
-  const render = (title, html, actions, attention) => {
+  const render = (title, html, actions, attention, actionsClass) => {
     card.replaceChildren(el(`<h2>${title}</h2>${html}`));
     for (const d of card.querySelectorAll("details.reading")) {
       d.open = readingOpen;
@@ -357,7 +421,8 @@ export function liveOverlay() {
     card.classList.toggle("attention", !!attention);
     card.classList.remove("touched");
     if (actions?.length) {
-      const row = Object.assign(document.createElement("div"), { className: "actions" });
+      const row = Object.assign(document.createElement("div"), {
+        className: actionsClass ? `actions ${actionsClass}` : "actions" });
       row.append(...actions);
       card.append(row);
     }
@@ -372,6 +437,14 @@ export function liveOverlay() {
     card.hidden = true;
     pill.textContent = label;
     pill.hidden = false;
+  };
+  // the Tutor answers after the result card is up: replace the debrief block only when its state changes
+  const refreshTutor = (live) => {
+    const key = JSON.stringify(live.state?.tutor ?? null);
+    if (key === live.tutorKey) return;
+    live.tutorKey = key;
+    const slot = card.querySelector("#tutor-slot");
+    if (slot) slot.innerHTML = tutorHtml(live.state?.tutor);
   };
 
   const forecasts = (live) => bulletin(live.state.view.reports, live.state.view.ship_sector);
@@ -428,10 +501,40 @@ export function liveOverlay() {
   pill.onclick = () => pending && questions(pending.live, pending.cp);
 
   return {
-    get open() { return !card.hidden && view === "decision"; },
+    get open() { return !card.hidden && (view === "decision" || view === "copilot"); },
+    // The Copilot card: advisory only, two requests, and the red reference line while it stays open.
+    copilot(live) {
+      view = "copilot";
+      const close = () => {
+        view = "status";
+        live.copilot = null; // the reference line goes with the card
+        if (live.state?.score) return this.score(live.state.score, live);
+        const cp = live.state?.checkpoint; // a decision still waits: put it back, do not hide it
+        if (cp) {
+          shownCheckpoint = cp.id;
+          return cp.trigger === "briefing" ? briefing(live, cp) : questions(live, cp);
+        }
+        card.hidden = true; // the next poll paints the Mission card
+      };
+      const ask = async (mode) => {
+        render("Copilot", `<p class="live-status">${mode === "l1" ? "Reading the released forecast…" : "Selecting a reference route…"}</p>`,
+          [button("Close", close, "close")]);
+        const result = await live.askCopilot(mode);
+        render("Copilot", copilotHtml(result), [button("Close", close, "close")]);
+      };
+      const actions = [button("Advice from the released forecast", () => ask("l1"))];
+      if (live.brief.copilot?.l2) actions.push(button("Reference route", () => ask("l2")));
+      actions.push(button("Close", close, "close"));
+      render("Copilot", "", actions, false, "stack");
+    },
     update(live) {
       const st = live.state, v = st.view;
-      if (st.score && !shownScore) return this.score(st.score, live);
+      if (st.score && !shownScore) {
+        live.copilot = null; // the reference line does not outlive the mission
+        return this.score(st.score, live);
+      }
+      if (view === "copilot") return; // the player opened the card: keep it until they close it
+      refreshTutor(live);
       if (st.checkpoint && shownCheckpoint !== st.checkpoint.id) {
         shownCheckpoint = st.checkpoint.id;
         view = "decision";
@@ -449,6 +552,7 @@ export function liveOverlay() {
     score(s, live) {
       shownScore = true;
       view = "score";
+      live.tutorKey = JSON.stringify(live.state?.tutor ?? null); // the debrief block is refreshed from the poll
       const p = s.parts;
       const review = s.checkpoints.map((cp) => `<li>${cp.trigger} at ${(cp.t / 60).toFixed(0)} min: ` +
         Object.values(cp.results ?? {}).map((r) => `${r.correct ? "✓" : "✗"} ${r.given ?? "no answer"}`).join(", ") +
@@ -459,6 +563,7 @@ export function liveOverlay() {
         (s.ship_lost ? (({ cause, then, tip }) => `<p>${cause} ${then}</p><p class="live-hint">${tip}</p>`)(shipLossNote(live.replay, s.ship)) : "") +
         `<p>${(s.elapsed_s / 60).toFixed(0)} min · ${s.lost_teu} TEU lost (grade ${s.grade}: ${GRADES[s.grade]}) · ${s.answers_correct}/${s.answers_total} judgements right</p>` +
         `<p>Escape ${p.escape}/40 · Cargo ${p.cargo}/40 · Judgement ${p.judgement}/20 · <b>Total ${s.total}/100</b></p><ul>${review}</ul>` +
+        `<h2>Debrief</h2><div id="tutor-slot">${tutorHtml(live.state?.tutor)}</div>` +
         `<p class="live-status">Game scoring for training, not a professional assessment.</p>`);
     },
   };

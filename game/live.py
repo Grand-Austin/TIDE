@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+from dataclasses import dataclass
 import json
 import math
 import threading
@@ -21,6 +22,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from agent.copilot import Copilot, load_solutions
+from agent.tutor import Tutor, fallback_evaluation
 from game.cargo import STACKS, stack_unit_ids
 from game.scenario import ROOT, load_scenario
 from game.session import Session
@@ -43,6 +46,18 @@ ENCOUNTERS = ["Head seas", "Bow-quartering seas", "Beam seas", "Stern-quartering
 COMPASS = {(0, 1): "North", (1, 1): "North-east", (1, 0): "East", (1, -1): "South-east",
            (0, -1): "South", (-1, -1): "South-west", (-1, 0): "West", (-1, 1): "North-west"}
 STAY = "No neighbouring area is forecast lower"
+KNOTS_PER_MPS = 1.94384
+
+
+@dataclass(frozen=True)
+class AgentSettings:
+    """Where the Copilot and Tutor read their model profile and key (--agent only)."""
+
+    models_path: Path
+    keys_path: Path
+
+
+AGENT_SETTINGS: AgentSettings | None = None
 
 
 def encounter(heading: float, wave_from: float) -> str:
@@ -64,17 +79,32 @@ def lower_seas_direction(reports: list[dict], sector: tuple[int, int]) -> str:
 
 
 class Game:
-    def __init__(self, scenario_id: str):
+    def __init__(self, scenario_id: str, *, agent_settings: AgentSettings | None = None,
+                 copilot=None, tutor_agent=None):
         self.scenario = load_scenario(SCENARIOS / scenario_id / "scenario.json")
         d = self.scenario.definition
         gameplay = json.loads((ROOT / d["gameplay"]["path"]).read_text())
         self._environment = self.scenario.environment()
         env = self._environment.__enter__()
-        out = ROOT / "data" / "runs" / f"live-{scenario_id}-{datetime.now():%Y%m%d-%H%M%S}"
+        out = ROOT / "data" / "runs" / f"live-{scenario_id}-{datetime.now():%Y%m%d-%H%M%S-%f}"  # unique per start
         self.session = Session(self.scenario, self.scenario.simulation(env), gameplay, out)
         weather = SCENARIOS / scenario_id / "weather.json"
         self.weather = json.loads(weather.read_text())["hourly"] if weather.exists() else []
         self.lock = threading.RLock()
+        self.scenario_dir = SCENARIOS / scenario_id
+        self.solutions, self.solutions_reason = (
+            load_solutions(self.scenario_dir, definition=d, root=ROOT)
+            if (agent_settings is not None or copilot is not None) else (None, "agent_disabled"))
+        self.copilot = copilot or (
+            Copilot(models_path=agent_settings.models_path, keys_path=agent_settings.keys_path, audit_dir=out)
+            if agent_settings is not None else None)
+        self.tutor_agent = tutor_agent or (
+            Tutor(models_path=agent_settings.models_path, keys_path=agent_settings.keys_path, audit_dir=out)
+            if agent_settings is not None else None)
+        self.tutor_result = None
+        self.tutor_evidence = None
+        self.orders = [{"t": 0.0, "heading_deg": float(d["initial"]["heading_deg"]),
+                        "speed_knots": float(d["initial"]["speed_mps"]) * KNOTS_PER_MPS}]
         self.samples, self.log, self.checkpoints = [], [], []
         self.pending = None
         self.rate = 5.0
@@ -184,6 +214,7 @@ class Game:
             order = body.get("order") or {}
             if order:
                 self.session.set_order(float(order["heading_deg"]) % 360, float(order["speed_knots"]))
+                self._note_order(float(order["heading_deg"]) % 360, float(order["speed_knots"]))
                 cp["order"] = order
             self.checkpoints.append(cp)
             self.session.record("checkpoint", cp)
@@ -193,10 +224,20 @@ class Game:
             return cp["results"]
 
     # ---------- player controls ----------
+    def _note_order(self, heading_deg: float, speed_knots: float):
+        """Keep the order log the Tutor reads: one entry per real change, timed on the session clock."""
+        entry = {"t": float(self.session.last_sample["time_s"]), "heading_deg": float(heading_deg),
+                 "speed_knots": float(speed_knots)}
+        last = self.orders[-1]
+        if all(abs(entry[key] - last[key]) <= 1e-6 for key in ("heading_deg", "speed_knots")):
+            return
+        self.orders.append(entry)
+
     def order(self, heading_deg: float, speed_knots: float):
         with self.lock:
             paused = self.session.pause_signal.is_set()
             self.session.set_order(float(heading_deg) % 360, float(speed_knots))
+            self._note_order(float(heading_deg) % 360, float(speed_knots))
             if not paused and not self.pending:
                 self.session.authorize_resume()
 
@@ -272,6 +313,134 @@ class Game:
                       "answers_total": len(graded), "parts": parts, "total": round(sum(parts.values()), 1),
                       "stars": stars, "checkpoints": self.checkpoints}
         s.record("score", self.score)
+        self._prepare_tutor()
+
+    # ---------- tutor ----------
+    def _prepare_tutor(self):
+        """Freeze the log into evidence, then answer locally or ask the Tutor off the game-loop thread."""
+        try:
+            self.tutor_evidence = self._tutor_evidence()
+            if self.tutor_agent is None:
+                self.tutor_result = fallback_evaluation(self.tutor_evidence)
+                return
+            self.tutor_result = {"status": "pending", "source": "fallback", "decision": None,
+                                 "improvement": None, "sentences": [], "reason": None}
+            threading.Thread(target=self._evaluate_tutor, daemon=True).start()
+        except Exception:
+            self.tutor_result = self._tutor_error()
+
+    def _evaluate_tutor(self, evidence: dict | None = None):
+        evidence = evidence if evidence is not None else self.tutor_evidence
+        try:
+            result = (self.tutor_agent.evaluate(evidence) if self.tutor_agent is not None
+                      else fallback_evaluation(evidence))
+        except Exception:
+            result = self._tutor_fallback(evidence)
+        if not isinstance(result, dict) or result.get("status") not in ("ready", "unavailable"):
+            result = self._tutor_fallback(evidence)
+        with self.lock:
+            self.tutor_result = result
+
+    def _tutor_fallback(self, evidence):
+        try:
+            return fallback_evaluation(evidence)
+        except Exception:
+            return self._tutor_error()
+
+    @staticmethod
+    def _tutor_error() -> dict:
+        return {"status": "unavailable", "source": "fallback", "reason": "tutor_error",
+                "decision": None, "improvement": None, "sentences": []}
+
+    def _tutor_evidence(self) -> dict:
+        """Everything the Tutor may cite: the frozen score, the answered decisions, the orders and the sea."""
+        d = self.scenario.definition
+        with self.lock:
+            view = self.session.visible()
+            score = self.score or {}
+            samples, log, orders = list(self.samples), list(self.log), list(self.orders)
+            checkpoints = [cp for cp in self.checkpoints if cp.get("results")]
+        column = {name: FIELDS.index(name) for name in ("t", "roll", "hs", "heading", "wave_from")}
+
+        def sea_point(row):
+            return {"t": row[column["t"]], "roll_deg": row[column["roll"]], "hs_m": row[column["hs"]],
+                    "heading_deg": row[column["heading"]], "wave_from_deg": row[column["wave_from"]],
+                    "encounter": encounter(row[column["heading"]], row[column["wave_from"]])}
+
+        peak = max(samples, key=lambda row: abs(row[column["roll"]]), default=None)
+        highest = max(samples, key=lambda row: row[column["hs"]], default=None)
+        loss_row = next((entry for entry in log if entry.get("kind") == "cargo_lost"), None)
+        first_loss = None
+        if loss_row is not None:
+            lost_at = loss_row.get("t") or 0.0
+            nearest = min(samples, key=lambda row: abs(row[column["t"]] - lost_at), default=None)
+            sea = sea_point(nearest) if nearest is not None else {}
+            first_loss = {"t": loss_row.get("t"), "teu": loss_row.get("teu"), "demand_g": loss_row.get("demand_g"),
+                          "hs_m": sea.get("hs_m"), "encounter": sea.get("encounter"),
+                          "heading_deg": sea.get("heading_deg")}
+        ship = score.get("ship") or {}
+        return {
+            "scenario": {"id": d["id"], "title": d["title"], "start": d["start"],
+                         "budget_s": d["mission"]["budget_s"]},
+            "outcome": {"outcome": score.get("outcome"), "escaped": bool(score.get("escaped")),
+                        "elapsed_s": score.get("elapsed_s"), "remaining_s": view["remaining_s"],
+                        "ship_lost": bool(score.get("ship_lost")), "lost_teu": score.get("lost_teu"),
+                        "total_teu": view["cargo"]["total_teu"], "grade": score.get("grade"),
+                        "stars": score.get("stars"), "total": score.get("total")},
+            "ship": {"lost": bool(ship.get("lost")), "cause": ship.get("cause"), "time_s": ship.get("time_s")},
+            "checkpoints": [{"trigger": cp.get("trigger"), "t": cp.get("t"),
+                             "results": dict(cp.get("results") or {}), "reason": cp.get("reason", "")}
+                            for cp in checkpoints],
+            "orders": [{"t": entry["t"], "heading_deg": entry["heading_deg"],
+                        "speed_knots": entry["speed_knots"]} for entry in orders],
+            "sea": {"peak_roll": sea_point(peak) if peak is not None else None,
+                    "max_hs": sea_point(highest) if highest is not None else None,
+                    "first_loss": first_loss},
+        }
+
+    # ---------- copilot ----------
+    def _copilot_context(self) -> dict:
+        """The visible state the Copilot may read, and nothing hidden."""
+        v = self.session.visible()
+        row = v["vessel"]
+        return {
+            "scenario": {"id": self.scenario.definition["id"], "title": self.scenario.definition["title"],
+                         "start": self.scenario.definition["start"],
+                         "budget_s": self.scenario.definition["mission"]["budget_s"]},
+            "time": {"elapsed_s": v["elapsed_s"], "remaining_s": v["remaining_s"], "utc": v["utc"]},
+            "vessel": {key: row[key] for key in (
+                "lon", "lat", "heading_deg", "speed_through_water_mps", "speed_over_ground_mps",
+                "course_over_ground_deg", "roll_deg", "pitch_deg", "heave_m", "hs_m", "tp_s", "wave_from_deg",
+                "current_east_mps", "current_north_mps")},
+            "target": {"heading_deg": v["target_heading_deg"], "speed_knots": v["target_speed_knots"]},
+            "cargo": {"lost_teu": v["cargo"]["lost_teu"], "total_teu": v["cargo"]["total_teu"],
+                      "grade": v["cargo"]["grade"]},
+            "sector": list(self.session.rules.sector(row["lon"], row["lat"])),
+            "reports": v["reports"],
+            "encounter": encounter(row["heading_deg"], row["wave_from_deg"]),
+            "orders": self.orders[-5:],
+        }
+
+    def copilot_advice(self, mode: str) -> dict:
+        """One advisory answer; the model call runs with the game lock released."""
+        if mode not in ("l1", "l2"):
+            raise ValueError("unknown copilot mode")
+
+        def unavailable(reason: str) -> dict:
+            text = "Copilot is not enabled on this server." if reason == "agent_disabled" else "Copilot is unavailable."
+            return {"status": "unavailable", "mode": mode, "source": "local", "text": text,
+                    "route": None, "reason": reason, "at_s": None}
+
+        if self.copilot is None:
+            return unavailable("agent_disabled")
+        with self.lock:
+            if self.score is not None:
+                return unavailable("mission_ended")
+            context = self._copilot_context()
+        try:
+            return self.copilot.advise(mode, context, self.solutions)
+        except Exception:  # the model path must never break the page: say so and carry on
+            return unavailable("agent_error")
 
     def state(self, since: float) -> dict:
         with self.lock:
@@ -284,6 +453,7 @@ class Game:
             v["ship_sector"] = list(s.rules.sector(vessel["lon"], vessel["lat"]))  # which forecast area the ship is in
             return {"samples": [row for row in self.samples if row[0] > since], "view": v, "rate": self.rate,
                     "paused": s.pause_signal.is_set(), "checkpoint": pending, "score": self.score,
+                    "tutor": self.tutor_result,
                     "log": [e for e in self.log if e["t"] is not None and e["t"] > since]}
 
     def briefing(self) -> dict:
@@ -297,6 +467,7 @@ class Game:
                 "units": [{"id": unit, "teu": 1 + stack % 2, "stack": stack, "tier": tier}
                           for stack in range(STACKS) for tier, unit in enumerate(stack_unit_ids(stack))]},
                 "objective": "Leave the storm's adverse-weather area before time runs out, and lose as little cargo as you can.",
+                "copilot": {"l1": bool(self.copilot), "l2": bool(self.copilot and self.solutions is not None)},
                 "notes": "Forecast cards are generated from the historical reconstruction and labelled as game forecasts."}
 
 
@@ -358,7 +529,7 @@ class Handler(SimpleHTTPRequestHandler):
             if self.path == "/api/start":
                 if GAME is not None:
                     GAME.stopped = True
-                GAME = Game(body["scenario"])
+                GAME = Game(body["scenario"], agent_settings=AGENT_SETTINGS)
                 return self._json(GAME.briefing())
             if GAME is None:
                 return self._json({"error": "no game"}, 404)
@@ -372,6 +543,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(GAME.answer(body))
             elif self.path == "/api/preview":
                 return self._json(GAME.preview(body["heading_deg"], body["speed_knots"]))
+            elif self.path == "/api/copilot":
+                return self._json(GAME.copilot_advice(str(body.get("mode", ""))))
             else:
                 return self._json({"error": "unknown"}, 404)
             return self._json({"ok": True})
@@ -384,9 +557,18 @@ def main():
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--unvalidated", action="store_true",
                         help="also offer scenarios whose validation is missing, failed or out of date (playtests only)")
+    parser.add_argument("--agent", action="store_true", help="enable Copilot and Tutor model calls")
+    parser.add_argument("--models", default="models.json")
+    parser.add_argument("--keys", default="config/api_keys.local.json")
     args = parser.parse_args()
-    global UNVALIDATED
+    global UNVALIDATED, AGENT_SETTINGS
     UNVALIDATED = args.unvalidated
+    if args.agent:
+        settings = AgentSettings(Path(args.models), Path(args.keys))
+        for probe in (Copilot(models_path=settings.models_path, keys_path=settings.keys_path),
+                      Tutor(models_path=settings.models_path, keys_path=settings.keys_path)):
+            probe.close()  # a missing key or profile fails here, before the server accepts a click
+        AGENT_SETTINGS = settings
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"TIDE live play: http://localhost:{args.port}/game/ (pick a 'Play:' scenario)")
     server.serve_forever()

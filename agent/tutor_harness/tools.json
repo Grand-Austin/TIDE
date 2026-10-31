@@ -1,0 +1,15 @@
+{"version": 1, "tools": [
+  {"name": "record_plan", "description": "Record the short plan for this debrief.",
+   "roles": ["tutor"],
+   "parameters": {"type": "object", "additionalProperties": false, "required": ["steps"],
+     "properties": {"steps": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}}}}},
+  {"name": "read_evidence", "description": "Return the real logged facts for this mission.",
+   "roles": ["tutor"],
+   "parameters": {"type": "object", "additionalProperties": false, "properties": {}}},
+  {"name": "finish_evaluation", "description": "Finish with one decision and one improvement.",
+   "roles": ["tutor"], "terminal": true,
+   "parameters": {"type": "object", "additionalProperties": false,
+     "required": ["decision_fact", "decision_sentence", "improvement_fact", "improvement_sentence"],
+     "properties": {"decision_fact": {"type": "string"}, "decision_sentence": {"type": "string"},
+                    "improvement_fact": {"type": "string"}, "improvement_sentence": {"type": "string"}}}}
+]}

@@ -389,6 +389,12 @@ ui.scene.onchange = () => (location.search = (ui.scene.value === "replay" ? "?re
   : ui.scene.value.startsWith("live:") ? `?live=${ui.scene.value.slice(5)}` : `?scene=${ui.scene.value}`) + keep);
 const overlay = live ? liveOverlay() : null;
 if (live) {
+  // Copilot hint: one advisory card, offered only when this server can answer
+  const hint = document.getElementById("map-hint");
+  if (hint) {
+    hint.hidden = !(live.brief.copilot?.l1 || live.brief.copilot?.l2);
+    hint.onclick = () => overlay.copilot(live);
+  }
   ui.scrub.disabled = true;
   const helm = helmGauge();
   // On-screen helm for mouse and touch, in the dock where the replay slider sits (live time cannot be scrubbed):
@@ -405,7 +411,12 @@ if (live) {
   showSpeed();
   ui.scrub.hidden = true;
   ui.play.after(ctl);
-  setInterval(() => live.poll().then(() => (overlay.update(live), helm.update(live), showSpeed())).catch(() => {}), 400);
+  setInterval(() => live.poll().then(() => {
+    overlay.update(live);
+    helm.update(live);
+    showSpeed();
+    if (live.state?.score && hint && !hint.hidden) hint.hidden = true; // no advisory once the voyage is scored
+  }).catch(() => {}), 400);
   // Captured before the scene picker or a focused button sees the key, so arrows always steer the ship
   // (a focused <select> would otherwise switch scenes). Typing in a text field is left alone.
   addEventListener("keydown", (e) => {

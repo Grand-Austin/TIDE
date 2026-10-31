@@ -15,9 +15,9 @@ mission rules and Session state.
 | Builder local mode | **Implemented** | `agent/builder.py`, `agent/routing.py`; Builder tests |
 | Builder AI mode with injected transport | **Implemented and tested** | `tests/test_agent_builder.py::test_ai_mode_can_inspect_and_revise_without_external_calls` |
 | Builder AI mode with a live provider | **Not live-verified** | No real provider run is recorded. Tests inject the transport. |
-| Copilot | **Planned** | L1 reads released forecasts; L2 temporarily reads solutions and returns a red reference route. Separate, explicitly enabled route-following control may issue bounded heading/speed orders with immediate human override. See PLAN 7.15. |
+| Copilot L1/L2 advisory | **Implemented on the 3D live page** | `agent/copilot.py`; `tests/test_agent_copilot.py`, `tests/test_live_copilot.py`. L1 reads the released forecasts through a tool; L2 gets one request-scoped route and writes no route audit. Both refuse or fall back rather than invent. Live-verified against NVIDIA NIM on 2026-10-31. |
 | Solutions package | **Implemented; targeted checks passed** | One readable `package/solutions.json` with all distinct qualified routes. 57 Builder/budget/context checks and 12 exporter checks passed. |
-| Tutor | **Planned** | No implementation. It changes no rules, score, cargo total or outcome. |
+| Tutor | **Implemented on the 3D live page** | `agent/tutor.py`; `tests/test_agent_tutor.py`. Two evidence-backed sentences, a fact-id and number check, and a deterministic local summary when the model fails. It changes no rules, score, cargo total or outcome. Live-verified against NVIDIA NIM on 2026-10-31. |
 | Director | **Retained, disabled** | Historical stage 4 work. Entrypoints remain disabled. |
 | Batch, cancel RPC, revision RPC | **Unimplemented** | Current bounds are step duration, stale-revision checks, operation receipts, close, human pause and process shutdown. |
 | Qualified or published Biscay package | **Not available** | No current package has a qualified route. Publication is human-only. |
@@ -37,7 +37,7 @@ package. A `review_ready` label means only that local checks passed and a human 
    capability; it does not commit a calculated physical result.
 4. Keep the original curses terminal TUI as the interactive surface. MCP controls a local `Session`, not a
    web page or animation.
-5. Keep the browser outside the checkpoint and scoring path. This package adds no browser endpoint.
+5. Keep the browser outside the checkpoint and scoring path. `POST /api/copilot` is the only browser endpoint into `agent/`: it is advisory, read-only and cannot order, pause, score or write game state. The Tutor result stays in the `Game` object.
 6. Keep Director disabled. Do not add a speculative future Director role.
 
 ## 3. Components
@@ -53,6 +53,8 @@ package. A `review_ready` label means only that local checks passed and a human 
 | `agent.tui` | Hosts the actual terminal screen and exposes the same Session on a private Unix socket. It uses the shared coast guard. |
 | `agent.transport` | Shared NIM model client. Reserves one global slot before every HTTP attempt, retries at most three total attempts and raises sanitized errors. |
 | `agent.rate_limit` | SQLite-backed rolling-window limiter: 30 actual attempts per 60 s across roles, clients, threads and processes. |
+| `agent.copilot` | L1/L2 advisory: scenario-package identity checks, deterministic route selection, a one-route grant, and a bounded harness run per request. |
+| `agent.tutor` | Debrief: builds the citable facts from the finished game, validates one decision and one improvement sentence, and falls back to the local summary. |
 | `agent.voyage` | Authored-voyage builder from the sea-route network and canonical `web/game/ports.json`. It reports the actual start, nearest network point, snap offset and branch. |
 | `pipeline.navigation_data` | Preparation and verification of the offline pinned Natural Earth 10m land v5.1.1 package under `data/navigation`, plus initial-position validation. |
 | `game.navigation` | Authoritative fixed 5 nm coast guard. It checks candidate edges and actual local execution, and fails closed on bad data. |
@@ -62,6 +64,25 @@ package. A `review_ready` label means only that local checks passed and a human 
 ## 4. Commands
 
 Run commands from the repository root.
+
+### 4.0 Copilot and Tutor on the 3D live page
+
+```bash
+uv run python -m game.live --unvalidated                    # no model file, no key, no model call
+uv run python -m game.live --agent --unvalidated             # Copilot L1/L2 and the Tutor debrief
+uv run python -m game.live --agent --models models.json --keys config/api_keys.local.json
+```
+
+`--agent` reads `roles.copilot` and `roles.tutor` from `models.json` and the NIM key from the key file before
+the server starts, so a missing profile or key fails at launch. Without it the Hint button is hidden, L2 is
+absent and the result card shows the local debrief. The page's only Agent endpoint is `POST /api/copilot` with
+`{"mode": "l1"}` or `{"mode": "l2"}`; it is advisory and cannot order, pause or score.
+
+The active profiles are `copilot_nim` on `nvidia/nemotron-3.5-lightning-30b-a3b` (L1/L2) and `tutor_nim` on
+`nvidia/nemotron-3-ultra-550b-a55b` (debrief). The Tutor allows 1600 output tokens because a model that reasons
+before it calls a tool can spend a smaller budget and then answer with no tool call at all. Both roles answer
+through the shared harness and the fixed 30-attempt / 60-second budget. Both were live-verified against NVIDIA
+NIM on 2026-10-31 with three-round harness runs and native tool calls, in 6-9 s per debrief.
 
 ### 4.1 Builder, local deterministic mode
 
@@ -500,7 +521,7 @@ There is no batch tool, no cancel RPC and no MCP command-revision RPC. Use these
 - No API key enters the audit stream.
 - The model cannot approve, publish, edit fixed inputs or bypass local qualification.
 
-## 12. Solutions package and planned Copilot
+## 12. Solutions package and Copilot L2
 
 The Builder writes one readable `package/solutions.json`. It stores solution routes, not graded hints. The
 L1/L2/L3 Hint feature, `hints.json`, `hints.md`, Builder replay and branch expansion, the whole-area coverage
@@ -552,8 +573,9 @@ integration step. The live TUI already supports maximum game speed (`rate=0`).
   `builder_nim` with model `nvidia/nemotron-3.5-lightning-30b-a3b`.
 - `agent.transport.ChatClient` is the shared model transport. `game/director/models.py` re-exports the same
   `ChatClient`, `ModelError` and `load_profile`, but Director entrypoints remain disabled.
-- The shared transport has no automatic provider fallback. Copilot and Tutor are planned and have no active
-  model transport.
+- The shared transport has no automatic provider fallback. The active profiles are `builder_nim`,
+  `copilot_nim` (Copilot L1/L2) and `tutor_nim` (debrief); Director, OpenRouter and the route-following control
+  mode stay disabled.
 
 ### 13.2 Global attempt policy
 

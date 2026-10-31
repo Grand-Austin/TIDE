@@ -484,3 +484,58 @@ test("the port module reads the one canonical catalogue", () => {
   for (const name of ["Leixões", "Halifax", "Busan", "Santos", "Durban", "Fremantle"])
     expect(DEEPWATER_PORTS.some((p) => p.name === name)).toBe(true);
 });
+
+test("the Copilot reference line uses only sanitized waypoint pairs", async () => {
+  const { referenceTrack } = await import("./live.js");
+  expect(referenceTrack({ route: { waypoints: [[-10.6, 48.7], [-10.5, 48.8]] } })).toEqual([[-10.6, 48.7], [-10.5, 48.8]]);
+  expect(referenceTrack(null)).toEqual([]);
+  expect(referenceTrack({ route: { waypoints: [[-10.6, 48.7], ["x", 48.8]] } })).toEqual([[-10.6, 48.7]]);
+  expect(referenceTrack({ route: {} })).toEqual([]);
+});
+
+test("the Tutor shows a loading frame while it reads the log", async () => {
+  const { tutorHtml } = await import("./live.js");
+  expect(tutorHtml({ status: "pending" })).toContain("reading the log");
+  expect(tutorHtml({ status: "unavailable" })).toContain("Debrief unavailable");
+  expect(tutorHtml(null)).toContain("Debrief not available");
+});
+
+test("a ready debrief shows both sentences and says who wrote them", async () => {
+  const { tutorHtml } = await import("./live.js");
+  const fallback = tutorHtml({ status: "ready", source: "fallback", decision: { text: "One." }, improvement: { text: "Two." } });
+  expect(fallback).toContain("One.");
+  expect(fallback).toContain("Two.");
+  const agent = tutorHtml({ status: "ready", source: "agent", sentences: ["Three.", "Four."] });
+  expect(agent).toContain("Three. Four.");
+  for (const absent of ["NVIDIA", "Advises", "does not change the result", "Log summary"])
+    assert.ok(!agent.includes(absent), absent); // the debrief is the two sentences and nothing else
+});
+
+test("an L2 answer never names the route or quotes its time and loss", async () => {
+  const { copilotHtml } = await import("./live.js");
+  const html = copilotHtml({ status: "ready", mode: "l2", source: "agent", at_s: 120,
+    text: "The reference track lies to your north and runs north-east; compare it with the released forecast.",
+    route: { waypoints: [[-10.597, 48.7898], [-10.5766, 48.8124]], start: { lon: -10.597, lat: 48.7898 },
+      end: { lon: -10.5766, lat: 48.8124 }, direction: "north", side: "on your port bow",
+      runs: "north-east", offset_nm: 1.12 } });
+  expect(html).toContain("north-east");
+  expect(html).toContain("48.79° N 10.60° W → 48.81° N 10.58° W");
+  expect(html).toContain("1.1 nm on your port bow");
+  // the local summary already carries the positions: no duplicate coordinate line
+  const local = copilotHtml({ status: "ready", mode: "l2", source: "fallback", at_s: 60,
+    text: "A reference track runs from 48.79° N 10.60° W to 48.81° N 10.58° W, about 1.1 nm on your port bow.",
+    route: { start: { lon: -10.597, lat: 48.7898 }, end: { lon: -10.5766, lat: 48.8124 },
+      direction: "north", side: "on your port bow", runs: "north-east", offset_nm: 1.12 } });
+  assert.ok(!local.includes("48.79° N 10.60° W →"));
+  expect(html).toContain("advisory only");
+  for (const banned of ["escape at", "TEU", "validated", "waypoints", "route-", "NVIDIA"]) assert.ok(!html.includes(banned), banned);
+});
+
+test("a refused Copilot explains why and shows no route", async () => {
+  const { copilotHtml } = await import("./live.js");
+  const refused = copilotHtml({ status: "refused", reason: "no_nearby_reference_route" });
+  expect(refused).toContain("No reference route passes near the current position and time.");
+  assert.ok(!refused.includes("no_nearby_reference_route")); // the reason code stays out of the card
+  expect(copilotHtml({ status: "unavailable", reason: "network" })).toContain("The server could not be reached.");
+  expect(copilotHtml({ status: "refused", reason: "other" })).toContain("No advice is available.");
+});

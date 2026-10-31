@@ -8,7 +8,9 @@
     "director_nim": {"provider": "nvidia_nim", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "temperature": 0.2, "top_p": 0.95, "max_tokens": 1024, "timeout_s": 30, "tool_round_limit": 4, "request_options": {"chat_template_kwargs": {"enable_thinking": false}}},
     "director_openrouter": {"provider": "openrouter", "model": "REPLACE_WITH_VERIFIED_TOOL_CAPABLE_MODEL_ID", "temperature": 0.2, "top_p": 0.95, "max_tokens": 1024, "timeout_s": 30, "tool_round_limit": 4, "request_options": {}},
     "builder_nim": {"provider": "nvidia_nim", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "temperature": 0.2, "top_p": 0.95, "max_tokens": 2048, "timeout_s": 60, "tool_round_limit": 10, "request_options": {"chat_template_kwargs": {"enable_thinking": false}}},
-    "builder_openrouter": {"provider": "openrouter", "model": "REPLACE_WITH_VERIFIED_TOOL_CAPABLE_MODEL_ID", "temperature": 0.2, "top_p": 0.95, "max_tokens": 2048, "timeout_s": 60, "tool_round_limit": 10, "request_options": {}}
+    "builder_openrouter": {"provider": "openrouter", "model": "REPLACE_WITH_VERIFIED_TOOL_CAPABLE_MODEL_ID", "temperature": 0.2, "top_p": 0.95, "max_tokens": 2048, "timeout_s": 60, "tool_round_limit": 10, "request_options": {}},
+    "copilot_nim": {"provider": "nvidia_nim", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "temperature": 0.3, "top_p": 0.95, "max_tokens": 400, "timeout_s": 30, "tool_round_limit": 4, "request_options": {"chat_template_kwargs": {"enable_thinking": false}}},
+    "tutor_nim": {"provider": "nvidia_nim", "model": "nvidia/nemotron-3-ultra-550b-a55b", "temperature": 0.2, "top_p": 0.95, "max_tokens": 1600, "timeout_s": 60, "tool_round_limit": 4, "request_options": {"chat_template_kwargs": {"enable_thinking": false}}}
   },
-  "roles": {"director": "director_nim", "builder": "builder_nim"}
+  "roles": {"director": "director_nim", "builder": "builder_nim", "copilot": "copilot_nim", "tutor": "tutor_nim"}
 }

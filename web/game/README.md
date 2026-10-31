@@ -85,9 +85,23 @@ What is data and what is not:
 ## Live play
 
 ```bash
-uv run python -m game.live        # open http://localhost:8000/game/classic.html?live
+uv run python -m game.live                 # http://localhost:8000/game/ then pick a "Play:" scenario
+uv run python -m game.live --agent         # also Copilot L1/L2 and the Tutor debrief
 ```
 
 `game/live.py` serves `web/` and wraps `game.session.Session` for one storm scenario
 (`pipeline.storm_scenario`): keyboard orders, released game forecasts, judgement checkpoints graded on
-what the player could see, and a score in three parts.
+what the player could see, and a score in three parts. `classic.html?live` still hosts the older page.
+
+The 3D page adds two advisory surfaces. Both stay off unless the server runs with `--agent`; without it
+the hint button is hidden and the result card shows the local debrief.
+
+- **Hint**, in the expanded map's header, opens the Copilot card. *Advice from the released forecast* (L1)
+  returns one method-level sentence; *Reference route* (L2) returns a validated reference route, its
+  remaining waypoints and a red dashed line on the passage map with the legend entry `Copilot reference`.
+  The line lasts while the card is open. Neither mode steers, and a refusal names its reason in plain words.
+- **Debrief**, on the Voyage result card: two sentences from the Tutor and nothing else. A slow model shows
+  "Tutor is reading the log…" until the answer lands, and the debrief never changes the score.
+- Neither card names the provider, the route identity, its escape time or its cargo loss. L2 gives the
+  reference line's ends as chart positions plus the side and distance from the ship:
+  `48.76° N 10.62° W → 48.77° N 10.40° W · 0.1 nm on your starboard quarter · runs east`.
