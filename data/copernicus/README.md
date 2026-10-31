@@ -1,8 +1,8 @@
 # Copernicus Marine data: Mallorca–Menorca channel, summer 2026
 
-Four NetCDF subsets downloaded from the Copernicus Marine Data Store on 2026-10-26. Together they provide every evidence layer in `docs/SCHEMA.md` (`hs`, `wave_dir`, `period`, `current_u`, `current_v`, `wind`, `sst`) for the case area, for 1 July to 30 September 2026.
+Four NetCDF subsets downloaded from the Copernicus Marine Data Store on 2026-10-26. Together they provide the evidence layers (`hs`, `wave_dir`, `period`, `current_u`, `current_v`, `wind`, `sst`) that the earlier SeaSense case schema described, for the case area, from 1 July to 30 September 2026.
 
-These are the raw inputs for `pipeline/`. Do not edit them. Write derived files elsewhere, for example `data/raw/` or `web/public/cases/`.
+These are the raw inputs for `pipeline/`. Do not edit them. Write derived files elsewhere, for example `data/raw/` or `data/processed/`.
 
 **This is the only data committed to git.** It is here so that anyone can run the pipeline without a Copernicus Marine account. Do not commit more `.nc` files. All further data (other periods, the larger display box, forecasts, in-situ data) is fetched with a script into `data/raw/`, which is git-ignored.
 
@@ -164,7 +164,7 @@ The domain-mean SST peaks at 30.0 °C. On a typical day the spatial spread is on
 
 Wind speed: mean 7.3 kn, 99th percentile 22.5 kn, maximum 33.3 kn. The components give the direction the wind blows **toward**. The meteorological direction the wind comes **from** is `atan2(-u, -v)`.
 
-## Mapping to `docs/SCHEMA.md` layers
+## Mapping to the earlier case-schema layers
 
 | Case-file layer | Source | Conversion |
 |---|---|---|
@@ -193,20 +193,20 @@ wind = wnd.interp(longitude=wav.longitude, latitude=wav.latitude)
 sst = tem.thetao.isel(depth=0)
 ```
 
-Requirements: `xarray`, `netCDF4` and `scipy` (for `.interp`), all in `requirements.txt`.
+Requirements: `xarray`, `netCDF4` and `scipy` (for `.interp`), all declared in `pyproject.toml`.
 
 ## Caveats for pipeline code
 
 1. **Land cells are NaN.** On this grid, the prototype routes in `web/prototype/index.html` put 15–24 % of their samples on land cells, mostly in Alcúdia bay and off Cap de Capdepera. Redraw the routes along the real coastline, start and end them at waypoints outside the harbours, and never let a route sample a NaN cell.
-2. **Mixed sources.** Waves, currents and temperature are multi-year (reanalysis or interim) model products. Wind is a near-real-time product that blends scatterometer observations with a model, because no multi-year wind product covered summer 2026 at download time. State this in `docs/METHODS.md`.
+2. **Mixed sources.** Waves, currents and temperature are multi-year (reanalysis or interim) model products. Wind is a near-real-time product that blends scatterometer observations with a model, because no multi-year wind product covered summer 2026 at download time. State this in the methods notes.
 3. **Stress-equivalent wind** is not exactly the wind measured on board. Treat it as an evidence layer only.
 4. **Different averaging.** Currents are hourly means and waves are hourly instantaneous values. Both are stamped on the hour. SST is a daily mean.
-5. **No forecasts.** Every file is analysis or observation data. Set `forecast_grid` to `null` and explain the simplification in `docs/METHODS.md`.
+5. **No forecasts.** Every file is analysis or observation data. Set `forecast_grid` to `null` and explain the simplification in the methods notes.
 6. **One season only.** The files cover one summer, which is the calm season; northerly (Tramontana) events are more frequent in autumn and winter. Statistics drawn from these files should say "summer 2026 only". For multi-year statistics, download the same four datasets for more years. That is about 220 MB per year for all four.
 
 ## Preliminary validation (2026-10-26)
 
-> **Preliminary.** This is a feasibility check, not case statistics. It uses the prototype routes (which cross land cells) and thresholds that have no citation yet. Do not quote these numbers in the pitch or in `docs/METHODS.md`.
+> **Preliminary.** This is a feasibility check, not case statistics. It uses the prototype routes (which cross land cells) and thresholds that have no citation yet. Do not quote these numbers in the pitch or in the methods notes.
 
 Reproduce with `python -m pipeline.validate_summer` (about 30 s). The run used `pipeline/simulate.py` with these files and the three prototype routes, with a nearest-sea-cell fallback for land samples. It covered all 92 days, with departures every 30 minutes from 04:00 to 14:00 UTC (06:00–16:00 local), no arrival deadline, a vessel speed of 6 kn and **illustrative, uncited** limits.
 

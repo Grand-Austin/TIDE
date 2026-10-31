@@ -125,6 +125,8 @@ physical calibration of the combined S175 model.
 
 Useful commands:
 
+`pipeline.validate_turning` moved out of the repository on 2026-10-31 and stays in the local `archive/pipeline/` directory.
+
 ```sh
 uv run python -m pipeline.validate_container --output data/runs/container-comparison
 uv run python -m pipeline.validate_maneuvering_octave --two-timescale --output data/runs/maneuvering-octave/two-timescale

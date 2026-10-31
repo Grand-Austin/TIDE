@@ -5,10 +5,8 @@ CLAUDE.md
 .agents/
 .codex/
 
-archive/*
-!archive/game/
-!archive/pipeline/
-!archive/tests/
+# archive/ holds local-only copies of earlier implementations and studies
+archive/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

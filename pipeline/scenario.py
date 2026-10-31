@@ -1,8 +1,8 @@
 """Analyze, build and numerically validate a curated scenario with the runtime toolkit.
 
-uv run python -m pipeline.scenario analyze scenarios/menorca-20260909/scenario.json
-uv run python -m pipeline.scenario validate scenarios/menorca-20260909/scenario.json
-uv run python -m pipeline.scenario build scenarios/menorca-20260909/scenario.json --out data/processed/menorca
+uv run python -m pipeline.scenario analyze scenarios/sole-20261022-21/scenario.json
+uv run python -m pipeline.scenario validate scenarios/sole-20261022-21/scenario.json
+uv run python -m pipeline.scenario build scenarios/sole-20261022-21/scenario.json --out data/processed/sole
 """
 
 import argparse
@@ -341,7 +341,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["analyze", "build", "validate"])
     parser.add_argument("scenario", type=Path)
-    parser.add_argument("--out", type=Path, default=Path("data/runs/menorca-20260909"))
+    parser.add_argument("--out", type=Path, default=Path("data/runs/sole-20261022-21"))
     parser.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3])
     parser.add_argument(
         "--validation",

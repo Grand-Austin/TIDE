@@ -36,7 +36,7 @@ from pipeline.scenario import write_json
 from pipeline.storms import OUT as STORMS
 
 OUT = ROOT / "scenarios"
-REFERENCE = json.loads((OUT / "menorca-20260909/scenario.json").read_text())
+REFERENCE = json.loads((OUT / "sole-20261022-21/scenario.json").read_text())
 BUDGET_S = 7200
 SPEED_MPS = 5.0
 INSIDE_KM = (10.0, 25.0)

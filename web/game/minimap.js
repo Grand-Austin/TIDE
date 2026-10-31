@@ -1,4 +1,4 @@
-// Bottom-left map of the passage on a real basemap (MapLibre + OpenFreeMap, as web/prototype): the track sailed
+// Bottom-left map of the passage on a real basemap (MapLibre + OpenFreeMap, as the archived web/prototype): the track sailed
 // so far, the ship and its heading, and in a replay the rest of the recorded track. Live play adds the released
 // forecast areas (coloured by forecast Hs), the scenario's operating area and the helm preview: where the current
 // order takes the ship, from game.live's run of the ship model. Released information only: no escape region.

@@ -167,9 +167,9 @@ Start the actual terminal screen with a private socket:
 
 ```bash
 uv run python -m agent.tui \
-  --scenario scenarios/menorca-20260909/scenario.json \
+  --scenario scenarios/sole-20261022-21/scenario.json \
   --session data/runs/agent-tui \
-  --socket /private/tmp/tide-sim.sock
+  --socket /tmp/tide-sim.sock
 ```
 
 `agent.tui` restores automatically when `--session/state.json` exists. It has no separate resume flag. The
@@ -179,7 +179,7 @@ socket must not already exist; the server rejects and preserves an existing path
 Attach MCP to that same live Session:
 
 ```bash
-uv run python -m agent.mcp --socket /private/tmp/tide-sim.sock
+uv run python -m agent.mcp --socket /tmp/tide-sim.sock
 ```
 
 The live trial id is exactly `live`. MCP cannot close the live trial; the terminal host owns it. A live step

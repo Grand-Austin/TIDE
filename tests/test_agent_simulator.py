@@ -13,7 +13,7 @@ import agent.simulator as simulator
 from agent.simulator import SimulatorService
 
 ROOT = Path(__file__).resolve().parents[1]
-SCENARIO = ROOT / "scenarios/menorca-20260909/scenario.json"
+SCENARIO = ROOT / "scenarios/sole-20261022-21/scenario.json"
 
 
 def factory_for(vessel, rules=None):

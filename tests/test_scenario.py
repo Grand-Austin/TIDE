@@ -5,17 +5,18 @@ import pytest
 from game.scenario import load_scenario
 from pipeline.scenario import build, displacement
 
-SOURCE = Path("scenarios/menorca-20260909/scenario.json")
+SOURCE = Path("scenarios/sole-20261022-21/scenario.json")
 
 
 def test_bad_initial_state_and_budget(tmp_path):
     d = json.loads(SOURCE.read_text())
+    budget = d["mission"]["budget_s"]
     d["mission"]["budget_s"] = 1
     p = tmp_path / "scenario.json"
     p.write_text(json.dumps(d))
     with pytest.raises(ValueError, match="budget"):
         load_scenario(p)
-    d["mission"]["budget_s"] = 10800
+    d["mission"]["budget_s"] = budget
     d["initial"]["lat"] = 90
     p.write_text(json.dumps(d))
     with pytest.raises(ValueError, match="coordinates"):
@@ -40,9 +41,9 @@ def test_build_reproducible_and_complete(tmp_path):
     manifest = json.loads((tmp_path / "data-manifest.json").read_text())
     from game.cargo import CargoModel
     assert manifest["gameplay"]["cargo"] == CargoModel().config
-    assert len(manifest["hourly"]) == 4
+    assert len(manifest["hourly"]) == 3
     assert manifest["hourly"][0]["initial"]["hs"] > 3
-    assert manifest["hourly"][-1]["target"]["hs"] < 2.5
+    assert manifest["hourly"][-1]["target"]["hs"] < manifest["hourly"][0]["initial"]["hs"]
     assert not manifest["sources"]["waves"]["available_to_player"]
 
 
@@ -102,9 +103,9 @@ def test_reports_exclude_unrelated_dates(tmp_path):
     scenario = Scenario(d, tmp_path)
     assert report_evidence(scenario) == []
     report.update(
-        issued_at="2026-09-09T10:00:00Z",
-        valid_from="2026-09-09T12:00:00Z",
-        valid_to="2026-09-10T12:00:00Z",
+        issued_at="2026-10-22T20:00:00Z",
+        valid_from="2026-10-22T20:00:00Z",
+        valid_to="2026-10-22T23:00:00Z",
     )
     (archive / "historical.json").write_text(json.dumps(report))
     assert report_evidence(scenario) == [report]

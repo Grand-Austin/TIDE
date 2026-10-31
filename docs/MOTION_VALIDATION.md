@@ -182,6 +182,8 @@ forcing/control assumptions. A separate above-30-degree replay agrees to
 ```bash
 uv run python -m pipeline.prepare_vessel
 uv run python -m pipeline.validate_mss
+`pipeline.validate_storm` moved out of the repository on 2026-10-31 and stays in the local `archive/pipeline/` directory. The results below remain the record.
+
 uv run python -m pipeline.validate_storm
 uv run python -m pipeline.validate_storm --speed-knots 12 14 16 --cases calm head bow beam stern-quarter following head-12m head-16m beam-16m
 uv run python -m pipeline.validate_storm --seed 2 --cases head-fast head-12m following

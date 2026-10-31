@@ -39,7 +39,7 @@ class Box(NamedTuple):
 COMPUTE_BOX = Box(2.9, 4.1, 39.59, 40.28)
 # Display box: map background only.
 DISPLAY_BOX = Box(2.3, 4.5, 39.2, 40.5)
-# Map box: the Balearic Islands, for the animated map (web/map-spike/).
+# Map box: the Balearic Islands, for the archived animated map (web/map-spike/).
 MAP_BOX = Box(1.1, 4.7, 38.5, 40.6)
 
 WAVE_VARIABLES = [

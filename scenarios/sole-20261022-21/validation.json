@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scenario": "sole-20261022-21",
-  "definition_sha256": "fc3c667a361de4b4e830b627c68d395eaf30e2d372cf270fc79cff3d43c57aad",
+  "definition_sha256": "38c3b63ea8e0e2c20fbb084d58e9248a26cd10a0b4fbc32e2aec487fe7581567",
   "gameplay_sha256": "f31250c4fe3f9e395c491a5b0da8e3fdbeb4e5dae81a269b2c885e8bf0f92e68",
   "passed": true,
   "status": "user_approved",

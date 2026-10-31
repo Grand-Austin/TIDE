@@ -34,8 +34,8 @@ from pipeline.fetch_region import PRODUCTS, REGIONS, directory
 from pipeline.storms import OUT as STORMS
 
 OUT = ROOT / "web" / "game" / "scenes"
-# The frozen scenario's vessel settings and windage are reused unchanged.
-REFERENCE = json.loads((ROOT / "scenarios/menorca-20260909/scenario.json").read_text())
+# The storm package's vessel settings and windage are reused unchanged.
+REFERENCE = json.loads((ROOT / "scenarios/sole-20261022-21/scenario.json").read_text())
 SPEED_MPS = 5.0  # Nominal initial speed, not a validated strong-sea steering capability.
 # Physical mode uses source rudder/RPM bounds; the retained force cap is teaching-mode metadata.
 STORM_SETTINGS = dict(REFERENCE["settings"], actuator_model="s175_maneuvering", max_thrust_n=1_500_000.0,

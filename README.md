@@ -25,13 +25,10 @@ data/
   processed/          Generated environmental and vessel-model products (ignored)
   runs/               Local trajectories, event logs, and trial results (ignored)
 web/
-  game/               Reserved for the new frontend demo
-  prototype/          Existing route-selection prototype
-  map-spike/          Existing map experiment
-  public/             Existing case and map exports
+  game/               Storm game frontend: 3D scene, replay and live play
 tests/                Tests for pipeline and game capabilities
-docs/                 Current product and architecture; legacy methods and schema
-archive/              Historical discussion and reference material
+docs/                 Product and architecture
+archive/              Local, untracked copies of earlier implementations (ignored)
 PLAN.md               Implementation checklist
 STATUS.md             Current state, decisions and open questions
 CONTRIBUTING.md       Rules for contributors and coding agents

@@ -221,6 +221,8 @@ observed live calls range from about 1.1 to 2.5 microseconds/step across local r
 
 ## 6. Reproduction and scope
 
+`pipeline.cargo_study` moved out of the repository on 2026-10-31 and stays in the local `archive/pipeline/` directory; it imports the earlier implementations from the same archive.
+
 ```bash
 uv run python -m pipeline.cargo_study --replay data/runs/cargo-study --output data/runs/cargo-runtime --benchmark
 uv run python -m pipeline.cargo_study --replay data/runs/cargo-study-half-step --output data/runs/cargo-runtime-half-step

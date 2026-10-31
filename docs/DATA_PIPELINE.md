@@ -1,13 +1,13 @@
 # Scenario data pipeline
 
-The first package uses the historical 9 September 2026 afternoon sea state in the Mallorca–Menorca channel. Its definition, briefing and source manifest live in `scenarios/menorca-20260909/`. It supplies mission settings for later game rules; it is not a scored game session.
+The curated storm package uses the 22 October 2026 evening sea state in the Sole area. Its definition, briefing and source manifest live in `scenarios/sole-20261022-21/`. It supplies mission settings for the game rules.
 
 ## Existing components reused
 
 | Existing component | Use in this change |
 | --- | --- |
 | `pipeline.fetch`, `WAVE_VARIABLES`, dataset IDs and boxes | Extend existing downloads with a time-window command, integrity metadata, retries and atomic publication. |
-| `day`, `forecast`, `DAY_DATASETS` | Preserve commands and the three-source contract consumed by `pipeline.export_map`. Temperature enters through `window`. |
+| `day`, `forecast`, `DAY_DATASETS` | Preserve commands and the three-source contract consumed by the archived `pipeline.export_map`. Temperature enters through `window`. |
 | Forecast archive workflow | Retain the daily schedule; use uv and locked dependencies and retain diagnostic files on failure. |
 | `CopernicusEnvironment` | Reuse strict native-grid sampling, circular wave directions, daily SST and missing-data stops. No nearest-sea fallback. |
 | S175 preparation and `Simulation.advance` | Reuse vessel preparation, wind loads, continuous control/wave state and exposure calculations for all trials. |
@@ -22,10 +22,10 @@ New responsibilities are `game.scenario` (runtime definition/loading), `pipeline
 Run from the repository root after `uv sync --locked` and vessel preparation:
 
 ```sh
-uv run python -m pipeline.scenario analyze scenarios/menorca-20260909/scenario.json
-uv run python -m pipeline.scenario build scenarios/menorca-20260909/scenario.json --out data/processed/menorca
-uv run python -m pipeline.scenario validate scenarios/menorca-20260909/scenario.json
-uv run python -m pipeline.fetch window --request scenarios/menorca-20260909/scenario.json --out data/raw/menorca-window
+uv run python -m pipeline.scenario analyze scenarios/sole-20261022-21/scenario.json
+uv run python -m pipeline.scenario build scenarios/sole-20261022-21/scenario.json --out data/processed/sole
+uv run python -m pipeline.scenario validate scenarios/sole-20261022-21/scenario.json
+uv run python -m pipeline.fetch window --request scenarios/sole-20261022-21/scenario.json --out data/raw/sole-window
 uv run python -m pipeline.aemet bulletin
 uv run python -m pipeline.aemet warnings --start 2026-09-09T00:00:00Z --end 2026-09-10T00:00:00Z
 ```
@@ -75,5 +75,5 @@ Official follow-up references:
 - EMODnet: https://emodnet.ec.europa.eu/en/bathymetry
 
 To publish reviewed numerical evidence with a build, pass
-`--validation data/runs/menorca-20260909/validation.json` to `build`.
+`--validation scenarios/sole-20261022-21/validation.json` to `build`.
 The builder rejects failed reports and reports for a different definition checksum.

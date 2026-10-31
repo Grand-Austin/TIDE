@@ -19,9 +19,9 @@ from game.navigation import DEFAULT_CLEARANCE_NM, CoastGuard
 from game.simulation.environment import EnvironmentError
 
 ROOT = Path(__file__).resolve().parents[1]
-SCENARIO = "scenarios/menorca-20260909/scenario.json"
-MENORCA = ROOT / SCENARIO
-BBOX = (3.5, 3.95, 39.7, 40.15)
+SCENARIO = "scenarios/sole-20261022-21/scenario.json"
+PACKAGE = ROOT / SCENARIO
+BBOX = (-11.85, -8.9, 46.65, 50.35)
 
 
 class _StopAfterRules:
@@ -63,8 +63,9 @@ def mcp_command(*arguments):
 
 
 def coast_guard():
-    # Start at 3.65 E is just outside 5 nm from this east coast fixture.
-    return CoastGuard(BBOX, land=box(3.76, 39.90, 3.95, 40.15))
+    # The start at 10.61 W is just outside 5 nm from this west-side fixture.
+    # The storm drift carries the ship west, so a short step reaches the buffer.
+    return CoastGuard(BBOX, land=box(-10.9422, 48.66, -10.7422, 48.86))
 
 
 def guarded_factory(guard, rules=None):
@@ -191,31 +192,32 @@ def test_guard_stops_at_the_last_safe_state_and_rejects_the_next_step(tmp_path):
 
 
 def test_unsafe_initial_state_fails_clearly_without_creating_a_trial(tmp_path):
-    guard = CoastGuard(BBOX, land=box(3.60, 39.95, 3.95, 40.15))
+    guard = CoastGuard(BBOX, land=box(-10.75, 48.60, -10.45, 48.90))
     service = guarded_service(tmp_path, guard)
-    before = hashlib.sha256(MENORCA.read_bytes()).hexdigest()
+    before = hashlib.sha256(PACKAGE.read_bytes()).hexdigest()
     try:
         with pytest.raises(EnvironmentError) as error:
             service.create(SCENARIO)
         assert error.value.reason == "coast_clearance"
         assert service._trials == {}
         assert list((tmp_path / "workspace").iterdir()) == []
-        assert hashlib.sha256(MENORCA.read_bytes()).hexdigest() == before
+        assert hashlib.sha256(PACKAGE.read_bytes()).hexdigest() == before
     finally:
         service.close()
 
 
 def test_plan_voyage_is_read_only_and_uses_the_fixed_initial_state(tmp_path):
     service = SimulatorService(tmp_path / "workspace")
-    before = hashlib.sha256(MENORCA.read_bytes()).hexdigest()
+    before = hashlib.sha256(PACKAGE.read_bytes()).hexdigest()
     try:
         voyage = service.plan_voyage(SCENARIO)
         assert_authored_voyage(voyage)
-        assert voyage["provenance"]["initial"]["lon"] == pytest.approx(3.65)
-        assert voyage["provenance"]["initial"]["lat"] == pytest.approx(40.05)
-        assert voyage["provenance"]["initial"]["heading_deg"] == pytest.approx(155.0)
+        initial = json.loads((ROOT / SCENARIO).read_text())["initial"]
+        assert voyage["provenance"]["initial"]["lon"] == pytest.approx(initial["lon"])
+        assert voyage["provenance"]["initial"]["lat"] == pytest.approx(initial["lat"])
+        assert voyage["provenance"]["initial"]["heading_deg"] == pytest.approx(initial["heading_deg"])
         assert service._trials == {}
-        assert hashlib.sha256(MENORCA.read_bytes()).hexdigest() == before
+        assert hashlib.sha256(PACKAGE.read_bytes()).hexdigest() == before
         assert service.plan_voyage(SCENARIO) == voyage
     finally:
         service.close()
@@ -249,7 +251,7 @@ def test_mcp_stdio_lists_the_voyage_tool_and_rejects_unknown_calls(tmp_path):
                 assert "Unknown tool" in str(unknown.content)
                 bad_arguments = await mcp.call_tool(
                     "plan_voyage",
-                    {"scenario_path": SCENARIO, "lon": 3.65},
+                    {"scenario_path": SCENARIO, "lon": -10.61},
                 )
                 assert bad_arguments.isError
 
@@ -259,7 +261,7 @@ def test_mcp_stdio_lists_the_voyage_tool_and_rejects_unknown_calls(tmp_path):
 def test_mcp_stdio_over_unix_attaches_the_guarded_live_session(tmp_path):
     guard = coast_guard()
     handle = open_session(
-        MENORCA,
+        PACKAGE,
         tmp_path / "live",
         project_root=ROOT,
         coast_guard=guard,
@@ -268,7 +270,7 @@ def test_mcp_stdio_over_unix_attaches_the_guarded_live_session(tmp_path):
     service = SimulatorService(
         tmp_path / "workspace",
         live_session=session,
-        live_scenario_path=MENORCA,
+        live_scenario_path=PACKAGE,
     )
     path = short_socket()
     server = UnixToolServer(path, service)

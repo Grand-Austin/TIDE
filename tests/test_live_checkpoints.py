@@ -2,7 +2,7 @@ from game.live import CHECKPOINT_GAP_S, Game
 
 
 def test_cards_after_a_decision_wait_but_the_briefing_holds_none_back():
-    game = Game("menorca-20260909")  # not the preview test's scenario: session folders are named to the second
+    game = Game("sole-20261022-21")  # not the preview test's scenario: session folders are named to the second
     try:
         with game.lock:
             game.session.pause(manual=True)

@@ -8,6 +8,8 @@ dependencies.
 
 ## Run from the repository root
 
+`pipeline.validate_toolkit` moved out of the repository on 2026-10-31 and stays in the local `archive/pipeline/` directory.
+
 ```bash
 uv sync --locked
 uv run python -m pipeline.prepare_vessel

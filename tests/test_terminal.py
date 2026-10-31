@@ -84,16 +84,19 @@ def test_instruments_show_units_rates_and_cargo(screen):
 
 def test_forecasts_prioritize_current_sector_and_fit_minimum_screen(screen):
     view = screen.controls.session.visible()
-    report = json.loads(Path("scenarios/menorca-20260909/gameplay.json").read_text())[
+    report = json.loads(Path("scenarios/sole-20261022-21/gameplay.json").read_text())[
         "reports"
     ][0]
-    remote = dict(report, id="remote", sector_bbox=[3, 3.2, 39, 39.2])
-    local = dict(report, id="local", sector_bbox=[3, 4, 39, 41])
+    lon, lat = view["vessel"]["lon"], view["vessel"]["lat"]
+    remote = dict(report, id="remote", sector_bbox=[lon - 2, lon - 1.5, lat - 1, lat - 0.5])
+    local = dict(report, id="local", sector_bbox=[lon - 0.5, lon + 0.5, lat - 0.5, lat + 0.5])
     view["reports"] = [remote, local]
     lines = forecast_lines(view, 77)
+    issued = report["issued_at"][11:16]
+    valid_to = report["valid_to"][11:16]
     assert "[HERE]" in lines[0]
-    assert "15:00Z" in lines[0]
-    assert "Valid" in lines[1] and "16:00Z" in lines[1]
+    assert f"{issued}Z" in lines[0]
+    assert "Valid" in lines[1] and f"{valid_to}Z" in lines[1]
     assert "Hs" in lines[2] and "wind" in lines[2]
     assert all(len(line) <= 77 for line in lines)
     screen.draw(view)

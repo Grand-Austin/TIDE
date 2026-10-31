@@ -245,7 +245,10 @@ def test_save_resume_during_an_unfinished_overload_preserves_the_counter(vessel,
 
 
 def test_old_algorithm_snapshot_is_rejected_by_the_fingerprint(vessel, tmp_path):
-    from archive.game.cargo import CargoModel as LegacyCargoModel
+    from game.cargo import CargoModel
+
+    class LegacyCargoModel(CargoModel):
+        algorithm_id = "category_dose_v1"  # a retired model id, enough to change the fingerprint
 
     make_session(vessel, tmp_path, cargo_model=LegacyCargoModel(seed=1))
     with pytest.raises(ValueError, match="does not match"):

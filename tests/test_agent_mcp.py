@@ -19,7 +19,7 @@ from agent.simulator import RPC_LINE_LIMIT, SimulatorService
 from agent.tui import UnixToolServer
 
 ROOT = Path(__file__).resolve().parents[1]
-SCENARIO = "scenarios/menorca-20260909/scenario.json"
+SCENARIO = "scenarios/sole-20261022-21/scenario.json"
 MENORCA = ROOT / SCENARIO
 
 

@@ -36,7 +36,7 @@ def main():
     parser.add_argument(
         "--scenario",
         type=Path,
-        default=Path("scenarios/menorca-20260909/scenario.json"),
+        default=Path("scenarios/sole-20261022-21/scenario.json"),
     )
     parser.add_argument("--session", type=Path)
     parser.add_argument("--resume", action="store_true")

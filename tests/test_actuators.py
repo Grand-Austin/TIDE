@@ -133,17 +133,6 @@ def test_physical_zero_start_and_invalid_configuration():
         Settings(actuator_model="unknown")
 
 
-def test_maneuvering_diagnostic_runs_the_coupled_state():
-    from pipeline.validate_maneuvering import trial
-
-    row, samples = trial("rudder_left", seconds=1)
-    assert row["stop"] == "duration_reached"
-    assert row["advanced_s"] == 1
-    assert row["net_heading_change_deg"] < 0
-    assert samples[-1]["rudder_angle_deg"] < 0
-    assert row["matrix_sha256"]["D"]
-
-
 def test_low_speed_yaw_outside_inflow_envelope_stops_without_committing_state():
     sim = physical_sim()
     state = sim.initial_state(START, 3.5, 40, speed_mps=.2)

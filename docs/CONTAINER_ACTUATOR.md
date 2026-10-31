@@ -96,6 +96,8 @@ explicit engineering restriction, not an experimentally established vessel
 limit. Outside it, the runtime returns `model_limit` at the last accepted state.
 Extending low-speed operation requires a validated inflow model, not a force clamp.
 
+`pipeline.validate_maneuvering` moved out of the repository on 2026-10-31 and stays in the local `archive/pipeline/` directory.
+
 ```sh
 uv run python -m pipeline.validate_maneuvering --seconds 600
 ```

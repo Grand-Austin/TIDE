@@ -48,7 +48,7 @@ After the subsequent motion repair, one current direct-strategy mission with see
 
 The package contains 181 one-minute convex region envelopes and 24 explicitly labelled game forecast records. Existing environmental checksums and S175 numerical settings remain unchanged. New gameplay data has its own version and checksum; numerical scenario schema remains version 1.
 
-`scenarios/menorca-20260909/game-validation.json` records all 12 completed full-window game trials from before the final attention-policy update, with the scenario-definition checksum used for that historical run. Its cargo rule has since been replaced; final delivery/attention behaviour is covered by targeted regression tests. Seeds 1, 2 and 3 each have a successful escape.
+The removed Menorca package recorded all 12 completed full-window game trials from before the final attention-policy update, with the scenario-definition checksum used for that historical run. Its cargo rule has since been replaced; final delivery/attention behaviour is covered by targeted regression tests. Seeds 1, 2 and 3 each have a successful escape.
 
 | Strategy | Three-seed outcome | Elapsed simulation seconds |
 | --- | --- | --- |
